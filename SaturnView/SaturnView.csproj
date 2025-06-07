@@ -6,4 +6,7 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+        <PackageReference Include="SkiaSharp" Version="3.119.0"/>
+    </ItemGroup>
 </Project>
