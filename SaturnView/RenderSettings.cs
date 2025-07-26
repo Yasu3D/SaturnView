@@ -158,7 +158,7 @@ public class RenderSettings
             if (chainNoteColor != value)
             {
                 chainNoteColor = value;
-                chainNoteColor = value;
+                PropertyChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -177,7 +177,7 @@ public class RenderSettings
             if (holdNoteColor != value)
             {
                 holdNoteColor = value;
-                holdNoteColor = value;
+                PropertyChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -195,8 +195,8 @@ public class RenderSettings
         {
             if (slideClockwiseNoteColor != value)
             {
-                SlideClockwiseNoteColor = value;
                 slideClockwiseNoteColor = value;
+                PropertyChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
