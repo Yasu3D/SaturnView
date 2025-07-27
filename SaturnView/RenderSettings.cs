@@ -239,8 +239,7 @@ public class RenderSettings
     }
 
     private NoteColorOption snapForwardNoteColor = NoteColorOption.Red;
-
-
+    
     /// <summary>
     /// The color of Snap Backward notes.
     /// </summary>
