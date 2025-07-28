@@ -693,17 +693,17 @@ public class RenderSettings
     /// <summary>
     /// Should Tutorial tags be shown?
     /// </summary>
-    public bool ShowTutorialTags
+    public bool ShowTutorialMarkers
     {
-        get => showTutorialTags;
+        get => showTutorialMarkers;
         set 
         {
-            showTutorialTags = value;
+            showTutorialMarkers = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    private bool showTutorialTags = true;
+    private bool showTutorialMarkers = true;
 
 
     /// <summary>
