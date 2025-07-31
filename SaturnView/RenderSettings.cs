@@ -126,6 +126,67 @@ public class RenderSettings
     }
 
     private int noteThickness = 3;
+    
+    /// <summary>
+    /// Should event markers be hidden during playback?
+    /// </summary>
+    public bool HideEventMarkersDuringPlayback
+    {
+        get => hideEventMarkersDuringPlayback;
+        set 
+        {
+            hideEventMarkersDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool hideEventMarkersDuringPlayback = true;
+
+    /// <summary>
+    /// Should lane toggle notes be hidden during playback?
+    /// </summary>
+    public bool HideLaneToggleNotesDuringPlayback
+    {
+        get => hideLaneToggleNotesDuringPlayback;
+        set 
+        {
+            hideLaneToggleNotesDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool hideLaneToggleNotesDuringPlayback = true;
+
+
+    /// <summary>
+    /// Should hold note control points be hidden during playback?
+    /// </summary>
+    public bool HideHoldControlPointsDuringPlayback
+    {
+        get => hideHoldControlPointsDuringPlayback;
+        set 
+        {
+            hideHoldControlPointsDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool hideHoldControlPointsDuringPlayback = true;
+
+    /// <summary>
+    /// Should lane toggle animations be ignored?
+    /// </summary>
+    public bool IgnoreLaneToggleAnimations
+    {
+        get => ignoreLaneToggleAnimations;
+        set 
+        {
+            ignoreLaneToggleAnimations = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool ignoreLaneToggleAnimations = false;
 
 
     /// <summary>
@@ -294,7 +355,7 @@ public class RenderSettings
         }
     }
 
-    private BackgroundDimOption backgroundDim;
+    private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
 
 
     /// <summary>
@@ -704,66 +765,4 @@ public class RenderSettings
     }
 
     private bool showTutorialMarkers = true;
-
-
-    /// <summary>
-    /// Should event markers be shown during playback?
-    /// </summary>
-    public bool ShowEventMarkersDuringPlayback
-    {
-        get => showEventMarkersDuringPlayback;
-        set 
-        {
-            showEventMarkersDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private bool showEventMarkersDuringPlayback = false;
-
-    /// <summary>
-    /// Should lane toggle notes be shown during playback?
-    /// </summary>
-    public bool ShowLaneToggleNotesDuringPlayback
-    {
-        get => showLaneToggleNotesDuringPlayback;
-        set 
-        {
-            showLaneToggleNotesDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private bool showLaneToggleNotesDuringPlayback = false;
-
-
-    /// <summary>
-    /// Should hold note control points be shown during playback?
-    /// </summary>
-    public bool ShowHoldControlPointsDuringPlayback
-    {
-        get => showHoldControlPointsDuringPlayback;
-        set 
-        {
-            showHoldControlPointsDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private bool showHoldControlPointsDuringPlayback = false;
-
-    /// <summary>
-    /// Should lane toggles be ignored?
-    /// </summary>
-    public bool IgnoreLaneToggles
-    {
-        get => ignoreLaneToggles;
-        set 
-        {
-            ignoreLaneToggles = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private bool ignoreLaneToggles = false;
 }
