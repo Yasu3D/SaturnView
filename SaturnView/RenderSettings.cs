@@ -52,6 +52,15 @@ public class RenderSettings
         Plus4 = 4,
     }
 
+    public enum NoteThicknessOption
+    {
+        Thickness1 = 0,
+        Thickness2 = 1,
+        Thickness3 = 2,
+        Thickness4 = 3,
+        Thickness5 = 4,
+    }
+
 
     /// <summary>
     /// How many times per second the viewport is updated.
@@ -112,7 +121,7 @@ public class RenderSettings
     /// <summary>
     /// The thickness of notes.
     /// </summary>
-    public int NoteThickness
+    public NoteThicknessOption NoteThickness
     {
         get => noteThickness;
         set
@@ -125,7 +134,24 @@ public class RenderSettings
         }
     }
 
-    private int noteThickness = 3;
+    private NoteThicknessOption noteThickness = NoteThicknessOption.Thickness3;
+    
+    
+    /// <summary>
+    /// Should lane toggle animations be ignored?
+    /// </summary>
+    public bool IgnoreLaneToggleAnimations
+    {
+        get => ignoreLaneToggleAnimations;
+        set 
+        {
+            ignoreLaneToggleAnimations = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool ignoreLaneToggleAnimations = false;
+    
     
     /// <summary>
     /// Should event markers be hidden during playback?
@@ -172,21 +198,6 @@ public class RenderSettings
     }
 
     private bool hideHoldControlPointsDuringPlayback = true;
-
-    /// <summary>
-    /// Should lane toggle animations be ignored?
-    /// </summary>
-    public bool IgnoreLaneToggleAnimations
-    {
-        get => ignoreLaneToggleAnimations;
-        set 
-        {
-            ignoreLaneToggleAnimations = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private bool ignoreLaneToggleAnimations = false;
 
 
     /// <summary>
