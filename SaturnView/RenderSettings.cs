@@ -4,6 +4,8 @@ namespace SaturnView;
 public class RenderSettings
 {
     public event EventHandler? PropertyChanged;
+    
+#region Enum Definitions
 
     /// <summary>
     /// The list of available note colors.
@@ -52,6 +54,9 @@ public class RenderSettings
         Plus4 = 4,
     }
 
+    /// <summary>
+    /// The list of available note thicknesses.
+    /// </summary>
     public enum NoteThicknessOption
     {
         Thickness1 = 0,
@@ -60,7 +65,8 @@ public class RenderSettings
         Thickness4 = 3,
         Thickness5 = 4,
     }
-
+    
+#endregion Enum Definitions
 
     /// <summary>
     /// How many times per second the viewport is updated.
@@ -77,7 +83,6 @@ public class RenderSettings
             }
         }
     }
-
     private int refreshRate = 60;
 
     /// <summary>
@@ -95,10 +100,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool lowPerformanceMode = false;
-
-
+    
     /// <summary>
     /// The note speed to render the chart with. (Game-Accurate)
     /// </summary>
@@ -114,10 +117,8 @@ public class RenderSettings
             }
         }
     }
-
     private int noteSpeed = 30;
-
-
+    
     /// <summary>
     /// The thickness of notes.
     /// </summary>
@@ -133,9 +134,7 @@ public class RenderSettings
             }
         }
     }
-
     private NoteThicknessOption noteThickness = NoteThicknessOption.Thickness3;
-    
     
     /// <summary>
     /// Should lane toggle animations be ignored?
@@ -149,9 +148,7 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool ignoreLaneToggleAnimations = false;
-    
     
     /// <summary>
     /// Should event markers be hidden during playback?
@@ -165,9 +162,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool hideEventMarkersDuringPlayback = true;
-
+    
     /// <summary>
     /// Should lane toggle notes be hidden during playback?
     /// </summary>
@@ -180,10 +176,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool hideLaneToggleNotesDuringPlayback = true;
-
-
+    
     /// <summary>
     /// Should hold note control points be hidden during playback?
     /// </summary>
@@ -196,10 +190,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool hideHoldControlPointsDuringPlayback = true;
-
-
+    
     /// <summary>
     /// The color of Touch notes.
     /// </summary>
@@ -215,10 +207,8 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption touchNoteColor = NoteColorOption.LightMagenta;
-
-
+    
     /// <summary>
     /// The color of Chain notes.
     /// </summary>
@@ -234,10 +224,8 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption chainNoteColor = NoteColorOption.LightYellow;
-
-
+    
     /// <summary>
     /// The color of Hold notes.
     /// </summary>
@@ -253,10 +241,8 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption holdNoteColor = NoteColorOption.DarkYellow;
-
-
+    
     /// <summary>
     /// The color of Slide Clockwise notes.
     /// </summary>
@@ -272,10 +258,8 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption slideClockwiseNoteColor = NoteColorOption.Orange;
-
-
+    
     /// <summary>
     /// The color of Slide Counterclockwise notes.
     /// </summary>
@@ -291,7 +275,6 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption slideCounterclockwiseNoteColor = NoteColorOption.Lime;
 
     /// <summary>
@@ -309,7 +292,6 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption snapForwardNoteColor = NoteColorOption.Red;
     
     /// <summary>
@@ -327,10 +309,8 @@ public class RenderSettings
             }
         }
     }
-
     private NoteColorOption snapBackwardNoteColor = NoteColorOption.SkyBlue;
-
-
+    
     /// <summary>
     /// The density of guidelines.
     /// </summary>
@@ -346,10 +326,8 @@ public class RenderSettings
             }
         }
     }
-
     private GuideLineTypeOption guideLineType;
-
-
+    
     /// <summary>
     /// The amount to dim the background by.
     /// </summary>
@@ -365,10 +343,8 @@ public class RenderSettings
             }
         }
     }
-
     private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
-
-
+    
     /// <summary>
     /// Should judgement windows be shown?
     /// </summary>
@@ -384,7 +360,6 @@ public class RenderSettings
             }
         }
     }
-
     private bool showJudgementWindows = true;
 
 
@@ -403,7 +378,6 @@ public class RenderSettings
             }
         }
     }
-
     private bool showMarvelousWindows = true;
 
     /// <summary>
@@ -421,10 +395,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showGreatWindows = true;
-
-
+    
     /// <summary>
     /// Should GOOD judgement windows be shown?
     /// </summary>
@@ -440,10 +412,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showGoodWindows = true;
-
-
+    
     /// <summary>
     /// Should judgement windows follow the Saturn specifications?<br/>
     /// (Slight engine changes to prevent "splashing")
@@ -460,10 +430,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool saturnJudgementWindows = true;
-
-
+    
     /// <summary>
     /// Should hold note detection windows be visualized?
     /// </summary>
@@ -479,10 +447,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool visualizeHoldNoteWindows = true;
-
-
+    
     /// <summary>
     /// Should the sweep animations of lane toggles be visualized?
     /// </summary>
@@ -498,10 +464,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool visualizeSweepAnimations = true;
-
-
+    
     /// <summary>
     /// Should Touch notes be shown?
     /// </summary>
@@ -517,10 +481,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showTouchNotes = true;
-
-
+    
     /// <summary>
     /// Should Chain notes be shown?
     /// </summary>
@@ -536,10 +498,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showChainNotes = true;
-
-
+    
     /// <summary>
     /// Should Hold notes be shown?
     /// </summary>
@@ -555,7 +515,6 @@ public class RenderSettings
             }
         }
     }
-
     private bool showHoldNotes = true;
 
     /// <summary>
@@ -573,10 +532,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showSlideClockwiseNotes = true;
-
-
+    
     /// <summary>
     /// Should Slide Counterclockwise notes be shown?
     /// </summary>
@@ -592,10 +549,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showSlideCounterclockwiseNotes = true;
-
-
+    
     /// <summary>
     /// Should Snap Forward notes be shown?
     /// </summary>
@@ -611,10 +566,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showSnapForwardNotes = true;
-
-
+    
     /// <summary>
     /// Should Snap Backward notes be shown?
     /// </summary>
@@ -630,10 +583,8 @@ public class RenderSettings
             }
         }
     }
-
     private bool showSnapBackwardNotes = true;
-
-
+    
     /// <summary>
     /// Should Lane Show notes be shown?
     /// </summary>
@@ -646,10 +597,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showLaneShowNotes = true;
-
-
+    
     /// <summary>
     /// Should Lane Hide notes be shown?
     /// </summary>
@@ -662,10 +611,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showLaneHideNotes = true;
-
-
+    
     /// <summary>
     /// Should Tempo changes be shown?
     /// </summary>
@@ -678,10 +625,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showTempoChanges = true;
-
-
+    
     /// <summary>
     /// Should Metre changes be shown?
     /// </summary>
@@ -694,10 +639,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showMetreChanges = true;
-
-
+    
     /// <summary>
     /// Should Speed changes be shown?
     /// </summary>
@@ -710,10 +653,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showSpeedChanges = true;
-
-
+    
     /// <summary>
     /// Should Visibility changes be shown?
     /// </summary>
@@ -726,10 +667,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showVisibilityChanges = true;
-
-
+    
     /// <summary>
     /// Should Reverse effects be shown?
     /// </summary>
@@ -742,10 +681,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showReverseEffects = true;
-
-
+    
     /// <summary>
     /// Should Stop effects be shown?
     /// </summary>
@@ -758,10 +695,8 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showStopEffects = true;
-
-
+    
     /// <summary>
     /// Should Tutorial tags be shown?
     /// </summary>
@@ -774,6 +709,5 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
     private bool showTutorialMarkers = true;
 }
