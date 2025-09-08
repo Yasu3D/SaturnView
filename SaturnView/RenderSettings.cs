@@ -76,11 +76,10 @@ public class RenderSettings
         get => refreshRate;
         set
         {
-            if (refreshRate != value)
-            {
-                refreshRate = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (refreshRate == value) return;
+            
+            refreshRate = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private int refreshRate = 60;
@@ -93,11 +92,10 @@ public class RenderSettings
         get => lowPerformanceMode;
         set
         {
-            if (lowPerformanceMode != value)
-            {
-                lowPerformanceMode = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (lowPerformanceMode == value) return;
+            
+            lowPerformanceMode = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool lowPerformanceMode = false;
@@ -110,11 +108,10 @@ public class RenderSettings
         get => noteSpeed;
         set
         {
-            if (noteSpeed != value)
-            {
-                noteSpeed = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (noteSpeed == value) return;
+            
+            noteSpeed = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private int noteSpeed = 30;
@@ -127,11 +124,10 @@ public class RenderSettings
         get => noteThickness;
         set
         {
-            if (noteThickness != value)
-            {
-                noteThickness = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (noteThickness == value) return;
+            
+            noteThickness = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteThicknessOption noteThickness = NoteThicknessOption.Thickness3;
@@ -200,11 +196,10 @@ public class RenderSettings
         get => touchNoteColor;
         set
         {
-            if (touchNoteColor != value)
-            {
-                touchNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (touchNoteColor == value) return;
+            
+            touchNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption touchNoteColor = NoteColorOption.LightMagenta;
@@ -217,11 +212,10 @@ public class RenderSettings
         get => chainNoteColor;
         set
         {
-            if (chainNoteColor != value)
-            {
-                chainNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (chainNoteColor == value) return;
+            
+            chainNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption chainNoteColor = NoteColorOption.LightYellow;
@@ -234,11 +228,10 @@ public class RenderSettings
         get => holdNoteColor;
         set
         {
-            if (holdNoteColor != value)
-            {
-                holdNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (holdNoteColor == value) return;
+            
+            holdNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption holdNoteColor = NoteColorOption.DarkYellow;
@@ -251,11 +244,10 @@ public class RenderSettings
         get => slideClockwiseNoteColor;
         set
         {
-            if (slideClockwiseNoteColor != value)
-            {
-                slideClockwiseNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (slideClockwiseNoteColor == value) return;
+            
+            slideClockwiseNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption slideClockwiseNoteColor = NoteColorOption.Orange;
@@ -268,11 +260,10 @@ public class RenderSettings
         get => slideCounterclockwiseNoteColor;
         set
         {
-            if (slideCounterclockwiseNoteColor != value)
-            {
-                slideCounterclockwiseNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (slideCounterclockwiseNoteColor == value) return;
+            
+            slideCounterclockwiseNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption slideCounterclockwiseNoteColor = NoteColorOption.Lime;
@@ -285,11 +276,10 @@ public class RenderSettings
         get => snapForwardNoteColor;
         set
         {
-            if (snapForwardNoteColor != value)
-            {
-                snapForwardNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (snapForwardNoteColor == value) return;
+            
+            snapForwardNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption snapForwardNoteColor = NoteColorOption.Red;
@@ -302,11 +292,10 @@ public class RenderSettings
         get => snapBackwardNoteColor;
         set
         {
-            if (snapBackwardNoteColor != value)
-            {
-                snapBackwardNoteColor = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (snapBackwardNoteColor == value) return;
+            
+            snapBackwardNoteColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private NoteColorOption snapBackwardNoteColor = NoteColorOption.SkyBlue;
@@ -319,11 +308,10 @@ public class RenderSettings
         get => guideLineType;
         set
         {
-            if (guideLineType != value)
-            {
-                guideLineType = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (guideLineType == value) return;
+            
+            guideLineType = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private GuideLineTypeOption guideLineType;
@@ -336,11 +324,10 @@ public class RenderSettings
         get => backgroundDim;
         set
         {
-            if (backgroundDim != value)
-            {
-                backgroundDim = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (backgroundDim == value) return;
+            
+            backgroundDim = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
@@ -353,11 +340,10 @@ public class RenderSettings
         get => showJudgementWindows;
         set
         {
-            if (showJudgementWindows != value)
-            {
-                showJudgementWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showJudgementWindows == value) return;
+            
+            showJudgementWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showJudgementWindows = true;
@@ -371,11 +357,10 @@ public class RenderSettings
         get => showMarvelousWindows;
         set
         {
-            if (showMarvelousWindows != value)
-            {
-                showMarvelousWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showMarvelousWindows == value) return;
+            
+            showMarvelousWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showMarvelousWindows = true;
@@ -388,11 +373,10 @@ public class RenderSettings
         get => showGreatWindows;
         set
         {
-            if (showGreatWindows != value)
-            {
-                showGreatWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showGreatWindows == value) return;
+            
+            showGreatWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showGreatWindows = true;
@@ -405,11 +389,10 @@ public class RenderSettings
         get => showGoodWindows;
         set
         {
-            if (showGoodWindows != value)
-            {
-                showGoodWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showGoodWindows == value) return;
+            
+            showGoodWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showGoodWindows = true;
@@ -423,11 +406,10 @@ public class RenderSettings
         get => saturnJudgementWindows;
         set
         {
-            if (saturnJudgementWindows != value)
-            {
-                saturnJudgementWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (saturnJudgementWindows == value) return;
+            
+            saturnJudgementWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool saturnJudgementWindows = true;
@@ -440,11 +422,10 @@ public class RenderSettings
         get => visualizeHoldNoteWindows;
         set
         {
-            if (visualizeHoldNoteWindows != value)
-            {
-                visualizeHoldNoteWindows = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (visualizeHoldNoteWindows == value) return;
+            
+            visualizeHoldNoteWindows = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool visualizeHoldNoteWindows = true;
@@ -457,11 +438,10 @@ public class RenderSettings
         get => visualizeSweepAnimations;
         set
         {
-            if (visualizeSweepAnimations != value)
-            {
-                visualizeSweepAnimations = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (visualizeSweepAnimations == value) return;
+            
+            visualizeSweepAnimations = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool visualizeSweepAnimations = true;
@@ -474,11 +454,10 @@ public class RenderSettings
         get => showTouchNotes;
         set
         {
-            if (showTouchNotes != value)
-            {
-                showTouchNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showTouchNotes == value) return;
+            
+            showTouchNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showTouchNotes = true;
@@ -489,13 +468,12 @@ public class RenderSettings
     public bool ShowChainNotes
     {
         get => showChainNotes;
-        set 
+        set
         {
-            if (showChainNotes != value)
-            {
-                showChainNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showChainNotes == value) return;
+            
+            showChainNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showChainNotes = true;
@@ -506,13 +484,12 @@ public class RenderSettings
     public bool ShowHoldNotes
     {
         get => showHoldNotes;
-        set 
+        set
         {
-            if (showHoldNotes != value)
-            {
-                showHoldNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showHoldNotes == value) return;
+            
+            showHoldNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showHoldNotes = true;
@@ -523,13 +500,12 @@ public class RenderSettings
     public bool ShowSlideClockwiseNotes
     {
         get => showSlideClockwiseNotes;
-        set 
+        set
         {
-            if (showSlideClockwiseNotes != value)
-            {
-                showSlideClockwiseNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showSlideClockwiseNotes == value) return;
+            
+            showSlideClockwiseNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showSlideClockwiseNotes = true;
@@ -540,13 +516,12 @@ public class RenderSettings
     public bool ShowSlideCounterclockwiseNotes
     {
         get => showSlideCounterclockwiseNotes;
-        set 
+        set
         {
-            if (showSlideCounterclockwiseNotes != value)
-            {
-                showSlideCounterclockwiseNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showSlideCounterclockwiseNotes == value) return;
+            
+            showSlideCounterclockwiseNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showSlideCounterclockwiseNotes = true;
@@ -557,13 +532,12 @@ public class RenderSettings
     public bool ShowSnapForwardNotes
     {
         get => showSnapForwardNotes;
-        set 
+        set
         {
-            if (showSnapForwardNotes != value)
-            {
-                showSnapForwardNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showSnapForwardNotes == value) return;
+            
+            showSnapForwardNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showSnapForwardNotes = true;
@@ -574,13 +548,12 @@ public class RenderSettings
     public bool ShowSnapBackwardNotes
     {
         get => showSnapBackwardNotes;
-        set 
+        set
         {
-            if (showSnapBackwardNotes != value)
-            {
-                showSnapBackwardNotes = value;
-                PropertyChanged?.Invoke(this, EventArgs.Empty);
-            }
+            if (showSnapBackwardNotes == value) return;
+            
+            showSnapBackwardNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showSnapBackwardNotes = true;
