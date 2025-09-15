@@ -11,7 +11,7 @@ public static class RendererWaveform
         IsAntialias = false,
     };
     
-    public static void RenderSeekSlider(SKCanvas canvas, CanvasInfo canvasInfo, SKColor clearColor, float[]? waveform)
+    public static void RenderSeekSlider(SKCanvas canvas, CanvasInfo canvasInfo, SKColor clearColor, float[]? waveform, float audioOffset, float audioLength, float sliderLength)
     {
         canvas.Clear(clearColor);
         
@@ -19,14 +19,22 @@ public static class RendererWaveform
         
         for (int x = 0; x < canvasInfo.Width; x += 2)
         {
-            float t = x / canvasInfo.Width;
-
             float sample = 0;
-
-            if (waveform != null)
+            
+            if (waveform != null && waveform.Length != 0 && audioLength != 0)
             {
+                // Get 0-1 progress across slider.
+                float t = x / canvasInfo.Width;
+                
+                // Rescale to fit slider properly.
+                t *= sliderLength / audioLength;
+                
+                // Apply audio offset.
+                t -= audioOffset / audioLength;
+            
                 int sampleIndex = (int)(t * waveform.Length);
-                sample = waveform[sampleIndex];
+
+                sample = sampleIndex < 0 || sampleIndex >= waveform.Length ? 0 : waveform[sampleIndex];
             }
             
             float y0 = (canvasInfo.Height + canvasInfo.Height * sample * 0.65f) * 0.5f;
