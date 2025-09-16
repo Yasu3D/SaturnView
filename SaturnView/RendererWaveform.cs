@@ -6,12 +6,11 @@ public static class RendererWaveform
 {
     private static readonly SKPaint WaveformPaint = new()
     {
-        Color = new(0xFF, 0xFF, 0xFF, 0x60),
         StrokeWidth = 1,
         IsAntialias = false,
     };
     
-    public static void RenderSeekSlider(SKCanvas canvas, CanvasInfo canvasInfo, SKColor clearColor, float[]? waveform, float audioOffset, float audioLength, float sliderLength)
+    public static void RenderSeekSlider(SKCanvas canvas, CanvasInfo canvasInfo, SKColor clearColor, SKColor waveformColor, float[]? waveform, float audioOffset, float audioLength, float sliderLength)
     {
         canvas.Clear(clearColor);
         
@@ -46,6 +45,7 @@ public static class RendererWaveform
                 y1 += 1;
             }
 
+            WaveformPaint.Color = waveformColor;
             canvas.DrawLine(x, y0, x, y1, WaveformPaint);
         }
     }
