@@ -29,7 +29,7 @@ public static class RendererWaveform
                 t *= sliderLength / audioLength;
                 
                 // Apply audio offset.
-                t -= audioOffset / audioLength;
+                t += audioOffset / audioLength;
             
                 int sampleIndex = (int)(t * waveform.Length);
 
