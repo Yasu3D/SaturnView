@@ -65,6 +65,17 @@ public class RenderSettings
         Thickness4 = 3,
         Thickness5 = 4,
     }
+
+    /// <summary>
+    /// The list of available judgement line colors.
+    /// </summary>
+    public enum JudgementLineColorOption
+    {
+        Version0 = 0,
+        Version1 = 1,
+        Version2 = 2,
+        Version3 = 3,
+    }
     
 #endregion Enum Definitions
 
@@ -115,6 +126,22 @@ public class RenderSettings
         }
     }
     private int noteSpeed = 30;
+
+    /// <summary>
+    /// The color of the judgement line.
+    /// </summary>
+    public JudgementLineColorOption JudgementLineColor
+    {
+        get => judgementLineColor;
+        set
+        {
+            if (judgementLineColor != value) return;
+
+            judgementLineColor = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private JudgementLineColorOption judgementLineColor = JudgementLineColorOption.Version3;
     
     /// <summary>
     /// The thickness of notes.

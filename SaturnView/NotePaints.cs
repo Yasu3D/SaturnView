@@ -9,7 +9,19 @@ internal static class NotePaints
     private static readonly SKColor NoteColorCapBase  = new(NoteColors.CapBase);
     private static readonly SKColor NoteColorCapDark  = new(NoteColors.CapDark);
 
+    private static readonly SKColor NoteColorChainStripe = new(NoteColors.ChainStripe);
     private static readonly SKColor NoteColorRNoteGlow = new(NoteColors.RNoteGlow);
+    private static readonly SKColor NoteColorSyncOutline = new(NoteColors.SyncOutline);
+    
+    private static readonly SKColor NoteColorMeasureLine = new(NoteColors.MeasureLine);
+    private static readonly SKColor NoteColorBeatLine = new(NoteColors.BeatLine);
+    
+    private static readonly SKColor NoteColorLaneGuideLineA = new(NoteColors.LaneGuideLineA);
+    private static readonly SKColor NoteColorLaneGuideLineB = new(NoteColors.LaneGuideLineB);
+    
+    private static readonly SKColor NoteColorSyncConnectorLight = new(NoteColors.SyncConnectorLight);
+    private static readonly SKColor NoteColorSyncConnectorBase = new(NoteColors.SyncConnectorBase);
+    private static readonly SKColor NoteColorSyncConnectorDark = new(NoteColors.SyncConnectorDark);
     
     private static readonly SKColor NoteColorLightMagentaAverage = new(NoteColors.LightMagentaAverage);
     private static readonly SKColor NoteColorLightMagentaBase    = new(NoteColors.LightMagentaBase);
@@ -76,7 +88,11 @@ internal static class NotePaints
     private static readonly SKColor NoteColorLightGrayLight   = new(NoteColors.LightGrayLight);
     private static readonly SKColor NoteColorLightGrayDark    = new(NoteColors.LightGrayDark);
 
-    private static readonly SKColor NoteColorChainStripe = new(NoteColors.ChainStripe);
+    private static readonly SKColor ShadeColorA = new(0x00FFFFFF);
+    private static readonly SKColor ShadeColorB = new(0x50FFFFFF);
+    private static readonly SKColor ShadeColorC = new(0xFFFFFFFF);
+    private static readonly SKColor ShadeColorD = new(0xFFAAAAAA);
+    
 #endregion Color Definitions
     
     private static SKColor GetNoteColorAverage(int id) => id switch
@@ -151,8 +167,7 @@ internal static class NotePaints
         _ => NoteColorLightMagentaLight,
     };
 
-    internal static readonly float[] NoteStrokeWidths     = [ 18.0f, 24.0f, 36.0f, 48.0f, 60.0f ];
-    internal static readonly float RNoteStrokeWidth = 36.0f;
+    internal static readonly float[] NoteStrokeWidths     = [ 16.0f, 22.0f, 34.0f, 46.0f, 58.0f ];
     
     internal static readonly float[] NoteGradientPos1     = [ 0.200f, 0.250f, 0.194f, 0.145f, 0.100f ];
     internal static readonly float[] NoteGradientPos2     = [ 0.500f, 0.333f, 0.333f, 0.250f, 0.183f ];
@@ -165,6 +180,8 @@ internal static class NotePaints
         IsAntialias = true,
         StrokeCap = SKStrokeCap.Butt, 
         Style = SKPaintStyle.Stroke,
+        StrokeJoin = SKStrokeJoin.Miter,
+        StrokeMiter = 10,
     };
 
     private static readonly SKPaint ShaderStrokePaint = new()
@@ -172,9 +189,17 @@ internal static class NotePaints
         IsAntialias = true,
         StrokeCap = SKStrokeCap.Butt,
         Style = SKPaintStyle.Stroke,
+        StrokeJoin = SKStrokeJoin.Miter,
+        StrokeMiter = 10,
     };
 
-    private static readonly SKPaint FillPaint = new()
+    private static readonly SKPaint FlatFillPaint = new()
+    {
+        IsAntialias = true,
+        Style = SKPaintStyle.Fill,
+    };
+
+    private static readonly SKPaint ShaderFillPaint = new()
     {
         IsAntialias = true,
         Style = SKPaintStyle.Fill,
@@ -185,6 +210,31 @@ internal static class NotePaints
         IsAntialias = true,
         Style = SKPaintStyle.Stroke,
         BlendMode = SKBlendMode.Plus,
+    };
+
+    public static readonly SKPaint DebugPaint = new()
+    {
+        IsAntialias = false,
+        Color = new(0xFF00FF00),
+        Style = SKPaintStyle.Stroke,
+        StrokeCap = SKStrokeCap.Butt,
+        StrokeWidth = 1,
+    };
+    
+    public static readonly SKPaint DebugPaint2 = new()
+    {
+        IsAntialias = false,
+        Color = new(0xFFFF0000),
+        Style = SKPaintStyle.Stroke,
+        StrokeCap = SKStrokeCap.Butt,
+        StrokeWidth = 1,
+    };
+    
+    public static readonly SKPaint DebugPaint3 = new()
+    {
+        IsAntialias = false,
+        Color = new(0xFF00FFFF),
+        Style = SKPaintStyle.Fill,
     };
     
     internal static SKPaint GetNoteCapPaint(CanvasInfo canvasInfo, RenderSettings settings, float scaleScaledByScreen, float rawScale, float opacity)
@@ -208,7 +258,7 @@ internal static class NotePaints
         float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * scaleScaledByScreen;
         ShaderStrokePaint.StrokeWidth = strokeWidth;
         
-        float noteRadius = canvasInfo.ScaledRadius * rawScale;
+        float noteRadius = canvasInfo.JudgementLineRadius * rawScale;
         float offset = strokeWidth * 0.5f;
 
         float minRadius = (noteRadius - offset) / canvasInfo.Radius;
@@ -230,11 +280,11 @@ internal static class NotePaints
         return ShaderStrokePaint;
     }
     
-    internal static SKPaint GetNoteBasePaint(CanvasInfo canvasInfo, RenderSettings settings, int colorId, float scaleScaledByScreen, float rawScale, float opacity)
+    internal static SKPaint GetNoteBasePaint(CanvasInfo canvasInfo, RenderSettings settings, int colorId, float pixelScale, float rawScale, float opacity)
     {
         if (settings.LowPerformanceMode)
         {
-            FlatStrokePaint.StrokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * scaleScaledByScreen;
+            FlatStrokePaint.StrokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * pixelScale;
             FlatStrokePaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
             
             return FlatStrokePaint;
@@ -243,10 +293,10 @@ internal static class NotePaints
         byte alpha = (byte)(opacity * 255);
         ShaderStrokePaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
         
-        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * scaleScaledByScreen;
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * pixelScale;
         ShaderStrokePaint.StrokeWidth = strokeWidth;
     
-        float noteRadius = canvasInfo.ScaledRadius * rawScale;
+        float noteRadius = canvasInfo.JudgementLineRadius * rawScale;
         float offset = strokeWidth * 0.5f;
 
         float minRadius = (noteRadius - offset) / canvasInfo.Radius;
@@ -274,10 +324,48 @@ internal static class NotePaints
         return ShaderStrokePaint;
     }
 
-    internal static SKPaint GetChainStripePaint()
+    internal static SKPaint GetNoteBonusPaint(CanvasInfo canvasInfo, RenderSettings settings, int colorId, float pixelScale, float rawScale, float opacity)
     {
-        FillPaint.Color = NoteColorChainStripe;
-        return FillPaint;
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorBase(colorId).WithAlpha((byte)(opacity * 255));
+            
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * pixelScale;
+        
+        float noteRadius = canvasInfo.JudgementLineRadius * rawScale;
+        float offset = strokeWidth * 0.5f;
+
+        float minRadius = (noteRadius - offset) / canvasInfo.Radius;
+        float maxRadius = (noteRadius + offset) / canvasInfo.Radius;
+        float delta = maxRadius - minRadius;
+
+        float pos0 = minRadius - delta * 0.10f;
+        float pos1 = minRadius + delta * 0.4f;
+        float pos2 = minRadius + delta * 0.6f;
+        float pos3 = minRadius + delta * 1.10f;
+
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+        
+        SKColor[] colors = [colorLight, colorBase, colorBase, colorLight];
+        float[] positions = [pos0, pos1, pos2, pos3];
+        
+        SKShader shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
+    
+    internal static SKPaint GetChainStripePaint(float opacity)
+    {
+        FlatFillPaint.Color = NoteColorChainStripe.WithAlpha((byte)(opacity * 255));
+        return FlatFillPaint;
     }
 
     internal static SKPaint GetRNotePaint(RenderSettings settings, float scaleScaledByScreen, float opacity)
@@ -297,5 +385,192 @@ internal static class NotePaints
         BlurStrokePaint.ImageFilter = SKImageFilter.CreateBlur(blur, blur);
         
         return BlurStrokePaint;
+    }
+
+    internal static SKPaint GetSnapStrokePaint(int colorId, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 2.5f * pixelScale;
+        FlatStrokePaint.Color = GetNoteColorDark(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetSnapFillPaint(CanvasInfo canvasInfo, RenderSettings settings, int colorId, float rawScale, float opacity, bool flip)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
+            return FlatFillPaint;
+        }
+
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        float radius = canvasInfo.JudgementLineRadius * rawScale / canvasInfo.Radius;
+        
+        float radius0 = radius * 0.73f;
+        float radius1 = flip ? radius * 0.86f : radius * 0.77f;
+        float radius2 = radius * 0.90f;
+
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+        
+        SKColor[] colors = flip ? [colorBase, colorLight, SKColors.White] : [SKColors.White, colorLight, colorBase];
+        float[] positions = [radius0, radius1, radius2];
+        
+        SKShader shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
+    
+    internal static SKPaint GetSlideStrokePaint(int colorId, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 5f * pixelScale;
+        FlatStrokePaint.Color = GetNoteColorDark(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetSlideFillPaint(CanvasInfo canvasInfo, RenderSettings settings, int position, int size, int colorId, float opacity, bool flip)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
+            return FlatFillPaint;
+        }
+
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+        
+        SKColor[] colors = flip ? [colorLight, colorBase] : [colorBase, colorLight];
+        float[] positions = flip ? [0.0f, 0.4f] : [0.6f, 1.0f];
+
+        float startAngle = 360 + position * -6;
+        float endAngle = startAngle + size * 6;
+        
+        SKShader shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Repeat, startAngle, endAngle);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
+
+    internal static SKPaint GetSyncOutlinePaint(float opacity)
+    {
+        FlatFillPaint.Color = NoteColorSyncOutline.WithAlpha((byte)(opacity * 255));
+        return FlatFillPaint;
+    }
+
+    internal static SKPaint GetSyncConnectorPaint(CanvasInfo canvasInfo, RenderSettings settings, float pixelScale, float rawScale, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatStrokePaint.StrokeWidth = 10 * pixelScale;
+            FlatStrokePaint.Color = NoteColorSyncOutline.WithAlpha((byte)(opacity * 255));
+            return FlatStrokePaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderStrokePaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        float strokeWidth = 10 * pixelScale;
+        ShaderStrokePaint.StrokeWidth = strokeWidth;
+    
+        float noteRadius = canvasInfo.JudgementLineRadius * rawScale;
+        float offset = strokeWidth * 0.5f;
+
+        float minRadius = (noteRadius - offset) / canvasInfo.Radius;
+        float maxRadius = (noteRadius + offset) / canvasInfo.Radius;
+        float delta = maxRadius - minRadius;
+
+        float pos0 = minRadius + delta * 0.05f;
+        float pos1 = minRadius + delta * 0.15f;
+        float pos2 = minRadius + delta * 0.45f;
+        float pos3 = minRadius + delta * 0.55f;
+        float pos4 = minRadius + delta * 0.85f;
+        float pos5 = minRadius + delta * 0.95f;
+        
+        SKColor[] colors = [NoteColorSyncConnectorLight, NoteColorSyncConnectorBase, NoteColorSyncConnectorDark, NoteColorSyncConnectorDark, NoteColorSyncConnectorBase, NoteColorSyncConnectorLight];
+        float[] positions = [pos0, pos1, pos2, pos3, pos4, pos5];
+        
+        SKShader shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors, positions, SKShaderTileMode.Clamp);
+        ShaderStrokePaint.Shader = shader;
+
+        return ShaderStrokePaint;
+    }
+
+    internal static SKPaint GetMeasureLinePaint(CanvasInfo canvasInfo, float linearScale)
+    {
+        FlatStrokePaint.StrokeWidth = 3 * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.Color = NoteColorMeasureLine;
+
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetBeatLinePaint(CanvasInfo canvasInfo, float linearScale)
+    {
+        FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.Color = NoteColorBeatLine;
+
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetJudgementLinePaint(CanvasInfo canvasInfo, RenderSettings settings)
+    {
+        float strokeWidth = (NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale;
+        float centerOffset = strokeWidth * 0.08f;
+        float lineOffset = strokeWidth * 0.5f;
+        float glowOffset = strokeWidth * 0.875f;
+        
+        float radius0 = canvasInfo.JudgementLineRadius - glowOffset;
+        float radius1 = canvasInfo.JudgementLineRadius - lineOffset;
+        float radius2 = canvasInfo.JudgementLineRadius - lineOffset + 1f;
+        float radius3 = canvasInfo.JudgementLineRadius - centerOffset;
+        float radius4 = canvasInfo.JudgementLineRadius + centerOffset;
+        float radius5 = canvasInfo.JudgementLineRadius + lineOffset - 1f;
+        float radius6 = canvasInfo.JudgementLineRadius + lineOffset;
+        float radius7 = canvasInfo.JudgementLineRadius + glowOffset;
+        
+        radius0 /= canvasInfo.Radius;
+        radius1 /= canvasInfo.Radius;
+        radius2 /= canvasInfo.Radius;
+        radius3 /= canvasInfo.Radius;
+        radius4 /= canvasInfo.Radius;
+        radius5 /= canvasInfo.Radius;
+        radius6 /= canvasInfo.Radius;
+        radius7 /= canvasInfo.Radius;
+        
+        ShaderStrokePaint.StrokeWidth = strokeWidth * 1.75f;
+        ShaderStrokePaint.Color = new(0xFFFFFFFF);
+        
+        int id = (int)settings.JudgementLineColor;
+        SKColor sweepColorA = new(NoteColors.JudgeLineStartFromId(id));
+        SKColor sweepColorB = new(NoteColors.JudgeLineEndFromId(id));
+        float angle = NoteColors.JudgeLineTiltFromId(id);
+
+        SKColor[] sweepColors = [sweepColorA, sweepColorB, sweepColorA, sweepColorB, sweepColorA];
+        SKColor[] shadeColors = [ShadeColorA, ShadeColorB, ShadeColorC, ShadeColorD, ShadeColorD, ShadeColorC, ShadeColorB, ShadeColorA];
+        float[] shadePositions = [radius0, radius1, radius2, radius3, radius4, radius5, radius6, radius7];
+        
+        SKShader sweepGradient = SKShader.CreateSweepGradient(canvasInfo.Center, sweepColors, SKShaderTileMode.Repeat, 0 + angle, 360 + angle);
+        SKShader shadeGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, shadeColors, shadePositions, SKShaderTileMode.Clamp);
+        ShaderStrokePaint.Shader = SKShader.CreateCompose(shadeGradient, sweepGradient, SKBlendMode.Modulate);
+        
+        return ShaderStrokePaint;
+    }
+
+    internal static SKPaint GetGuideLInePaint(CanvasInfo canvasInfo)
+    {
+        ShaderStrokePaint.Color = new(0xFFFFFFFF);
+        ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale;
+
+        SKColor[] colors = [NoteColorLaneGuideLineA, NoteColorLaneGuideLineB];
+        float[] positions = [0.0f, 0.7f];
+        
+        ShaderStrokePaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
+        return ShaderStrokePaint;
     }
 }

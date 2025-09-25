@@ -22,7 +22,7 @@ public class CanvasInfo
     /// <summary>
     /// The radius to the center of the judgement line in pixels.
     /// </summary>
-    public float ScaledRadius => Radius * 0.913f;
+    public float JudgementLineRadius => Radius * 0.913f;
 
     /// <summary>
     /// The relative scale of the canvas.
