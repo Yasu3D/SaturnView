@@ -17,6 +17,8 @@ public static class NoteColors
 
     public const uint LaneGuideLineA = 0xFF3B3E56;
     public const uint LaneGuideLineB = 0x003B3E56;
+    public const uint LaneBaseA = 0xFF16182C;
+    public const uint LaneBaseB = 0xFF1B1C2F;
 
     public const uint SyncConnectorLight = 0xFFEFFFFF;
     public const uint SyncConnectorBase = 0xFF18EFFF;

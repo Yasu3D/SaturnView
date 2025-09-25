@@ -18,6 +18,8 @@ internal static class NotePaints
     
     private static readonly SKColor NoteColorLaneGuideLineA = new(NoteColors.LaneGuideLineA);
     private static readonly SKColor NoteColorLaneGuideLineB = new(NoteColors.LaneGuideLineB);
+    private static readonly SKColor NoteColorLaneBaseA = new(NoteColors.LaneBaseA);
+    private static readonly SKColor NoteColorLaneBaseB = new(NoteColors.LaneBaseB);
     
     private static readonly SKColor NoteColorSyncConnectorLight = new(NoteColors.SyncConnectorLight);
     private static readonly SKColor NoteColorSyncConnectorBase = new(NoteColors.SyncConnectorBase);
@@ -562,15 +564,53 @@ internal static class NotePaints
         return ShaderStrokePaint;
     }
 
-    internal static SKPaint GetGuideLInePaint(CanvasInfo canvasInfo)
+    internal static SKPaint GetGuideLinePaint(CanvasInfo canvasInfo)
     {
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
         ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale;
 
-        SKColor[] colors = [NoteColorLaneGuideLineA, NoteColorLaneGuideLineB];
-        float[] positions = [0.0f, 0.7f];
+        SKColor[] colors = [NoteColorLaneGuideLineB, NoteColorLaneGuideLineA];
+        float[] positions = [0.1f, 1.0f];
         
         ShaderStrokePaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
         return ShaderStrokePaint;
+    }
+
+    internal static SKPaint GetLanePaint(CanvasInfo canvasInfo, RenderSettings settings, float time)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            // TODO: Low performance version of LanePaint.
+        }
+        
+        ShaderFillPaint.Color = new(0xFFFFFFFF);
+        
+        SKColor[] alphaColors = [new(0x00FFFFFF), new(0xFFFFFFFF)];
+        float[] alphaPositions = [0.1f, 0.35f];
+
+        int stripeCount = 9;
+        float interval = 1.0f / stripeCount;
+
+        float speed = 0.0004f;
+        float t = (time * speed) % interval * 2;
+        
+        SKColor[] scrollColors = new SKColor[stripeCount * 2 + 2];
+        float[] scrollPositions = new float[stripeCount * 2 + 2];
+        
+        for (int i = 0; i <= stripeCount; i++)
+        {
+            bool even = i % 2 == 0;
+
+            scrollColors[i * 2] = even ? NoteColorLaneBaseA : NoteColorLaneBaseB;
+            scrollColors[i * 2 + 1] = even ? NoteColorLaneBaseB : NoteColorLaneBaseA;
+
+            scrollPositions[i * 2] = Renderer3D.Perspective((i - 1) * interval + t);
+            scrollPositions[i * 2 + 1] = scrollPositions[i * 2] + 0.001f;
+        }
+        
+        SKShader alphaGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, alphaColors, alphaPositions, SKShaderTileMode.Clamp);
+        SKShader colorGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, scrollColors, scrollPositions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = SKShader.CreateCompose(colorGradient, alphaGradient, SKBlendMode.Modulate);
+        return ShaderFillPaint;
     }
 }

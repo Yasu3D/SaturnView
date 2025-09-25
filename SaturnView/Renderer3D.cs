@@ -19,10 +19,14 @@ public static class Renderer3D
     
     public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor clearColor, Chart chart, float time)
     {
-        canvas.Clear(clearColor);
-        canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = SKColors.DimGray.WithAlpha(0x10) });
+        Stopwatch stopwatch = Stopwatch.StartNew();
         
-        DrawLanes(canvas, canvasInfo, settings, 0, 60);
+        canvas.Clear(clearColor);
+        canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
+        
+        
+        DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
+        
         
         lock (chart)
         {
@@ -34,7 +38,7 @@ public static class Renderer3D
             SnapBackwardNote snapBackward = new(new(0), 30, 14, BonusType.Normal, JudgementType.Normal);
             SyncNote sync = new(new(0), 43, 4);
             
-            Stopwatch stopwatch = Stopwatch.StartNew();
+            
             
             DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.865f),  0.865f,  false,  1);
             DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.874f),  0.874f,  false,  1);
@@ -44,10 +48,10 @@ public static class Renderer3D
             DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.9495f), 0.9495f, true, 1);
             
             //DrawMeasureLine(canvas, canvasInfo, Perspective(1), 1, false);
-            
-            stopwatch.Stop();
-            Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
         }
+        
+        stopwatch.Stop();
+        Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
     }
 
     private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, IPositionable note, float perspectiveScale, float linearScale, bool sync, float opacity)
@@ -478,41 +482,59 @@ public static class Renderer3D
         }
     }
 
-    private static void DrawLanes(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, int position, int size)
+    private static void DrawLanes(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, int position, int size, float time)
     {
         if (size == 0) return;
-
+        
+        // Lane Background
+        SKRect rect = new(canvasInfo.Center.X - canvasInfo.Radius, canvasInfo.Center.Y - canvasInfo.Radius, canvasInfo.Center.X + canvasInfo.Radius, canvasInfo.Center.Y + canvasInfo.Radius);
+        canvas.DrawArc(rect, position * -6, size * -6, true, NotePaints.GetLanePaint(canvasInfo, settings, time));
+        
+        // Guide Lines
         if (settings.GuideLineType != RenderSettings.GuideLineTypeOption.None)
         {
-            SKPaint guideLinePaint = NotePaints.GetGuideLInePaint(canvasInfo);
+            SKPaint guideLinePaint = NotePaints.GetGuideLinePaint(canvasInfo);
             
             for (int i = position; i < position + size; i++)
             {
                 // Type A: always draw.
                 
                 // Type B: draw every 2nd lane.
-                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.B && (i - 1) % 2 != 0) continue;
+                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.B && (i + 1) % 2 != 0) continue;
                 
                 // Type C: draw every 3rd lane.
                 if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.C && i % 3 != 0) continue;
 
                 // Type D: draw every 4th lane.
-                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.D && i % 4 != 0) continue;
+                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.D && (i + 1) % 4 != 0) continue;
                 
                 // Type E: draw every 5th lane.
                 if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.E && i % 5 != 0) continue;
 
                 // Type F: draw every 10th lane.
-                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.F && i % 10 != 0) continue;
+                if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.F && (i + 5) % 10 != 0) continue;
 
                 // Type G: draw every 15th lane.
                 if (settings.GuideLineType == RenderSettings.GuideLineTypeOption.G && i % 15 != 0) continue;
 
-                SKPoint p = PointOnArc(canvasInfo.Center, canvasInfo.JudgementLineRadius, i * -6);
-                canvas.DrawLine(canvasInfo.Center, p, guideLinePaint);
+                // This batches drawcalls for lines together where possible.
+                // 
+                if (i - 30 >= position) continue;
+                if (i + 30 < position + size)
+                {
+                    SKPoint p0 = PointOnArc(canvasInfo.Center, canvasInfo.JudgementLineRadius, i * -6);
+                    SKPoint p1 = PointOnArc(canvasInfo.Center, canvasInfo.JudgementLineRadius, i * -6 - 180);
+                    canvas.DrawLine(p0, p1, guideLinePaint);
+                }
+                else
+                {
+                    SKPoint p = PointOnArc(canvasInfo.Center, canvasInfo.JudgementLineRadius, i * -6);
+                    canvas.DrawLine(canvasInfo.Center, p, guideLinePaint);
+                }
             }
         }
         
+        // Judgement Line
         if (size == 60)
         {
             canvas.DrawCircle(canvasInfo.Center, canvasInfo.JudgementLineRadius, NotePaints.GetJudgementLinePaint(canvasInfo, settings));
@@ -536,7 +558,7 @@ public static class Renderer3D
         );
     }
 
-    private static float Perspective(float x)
+    internal static float Perspective(float x)
     {
         // Huge thanks to CG505 for figuring out the perspective math:
         // https://www.desmos.com/calculator/9a0srmgktj
