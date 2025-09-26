@@ -25,7 +25,7 @@ public static class Renderer3D
         canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
         
         
-        DrawLanes(canvas, canvasInfo, settings, 30, 45, time);
+        DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
         
         
         lock (chart)
@@ -37,18 +37,25 @@ public static class Renderer3D
             SnapForwardNote  snapForward  = new(new(0), 46, 14, BonusType.Normal, JudgementType.Normal);
             SnapBackwardNote snapBackward = new(new(0), 30, 14, BonusType.Normal, JudgementType.Normal);
             SyncNote sync = new(new(0), 43, 4);
+
+            SlideClockwiseNote slideClockwise = new(new(0), 30, 14, BonusType.Bonus, JudgementType.Normal);
+            SlideCounterclockwiseNote slideCounterclockwise = new(new(0), 46, 14, BonusType.R, JudgementType.Normal);
+
+            HoldPointNote holdEnd = new(new(0), 45, 15, null, HoldPointRenderType.Visible);
             
-            
-            
-            DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.865f),  0.865f,  false,  1);
-            DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.874f),  0.874f,  false,  1);
+            DrawNote(canvas, canvasInfo, settings, slideClockwise,  Perspective(0.865f),  0.865f,  false,  1);
+            DrawNote(canvas, canvasInfo, settings, slideCounterclockwise, Perspective(0.874f),  0.874f,  false,  1);
 
             DrawSyncConnector(canvas, canvasInfo, settings, sync, Perspective(0.9495f), 1);
             DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.9495f), 0.9495f, true, 1);
             DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.9495f), 0.9495f, true, 1);
             
+            DrawHoldEndNote(canvas, canvasInfo, settings, holdEnd, Perspective(1), 1);
+            
             //DrawMeasureLine(canvas, canvasInfo, Perspective(1), 1, false);
         }
+
+        DrawInterface(canvas, canvasInfo, settings, entry, time);
         
         stopwatch.Stop();
         //Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
@@ -75,7 +82,7 @@ public static class Renderer3D
         if (colorId == -1) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = perspectiveScale * canvasInfo.Scale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
 
         // Sync Outline
         if (sync)
@@ -446,6 +453,78 @@ public static class Renderer3D
         }
     }
 
+    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
+    {
+        if (perspectiveScale <= 0) return;
+
+        int colorId = (int)settings.HoldNoteColor;
+        
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+
+        if (note.Size == 60)
+        {
+            if (settings.LowPerformanceMode)
+            {
+                canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetHoldEndBaseStrokePaint(colorId, pixelScale, opacity));
+            }
+            else
+            {
+                float radius0 = radius * 0.984f;
+                float radius1 = radius * 1.016f;
+                
+                canvas.DrawCircle(canvasInfo.Center, radius,  NotePaints.GetHoldEndBaseStrokePaint(colorId, pixelScale * 0.8f, opacity));
+                canvas.DrawCircle(canvasInfo.Center, radius0, NotePaints.GetHoldEndOutlinePaint(colorId, pixelScale, opacity));
+                canvas.DrawCircle(canvasInfo.Center, radius1, NotePaints.GetHoldEndOutlinePaint(colorId, pixelScale, opacity));
+            }
+        }
+        else
+        {
+            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+            
+            if (settings.LowPerformanceMode)
+            {
+                float start = note.Position * -6 - 3; 
+                float sweep = Math.Min(0, note.Size * -6 + 6);
+
+                canvas.DrawArc(rect, start, sweep, false, NotePaints.GetHoldEndBaseStrokePaint(colorId, pixelScale, opacity));
+            }
+            else
+            {
+                float radius0 = radius * 0.984f;
+                float radius1 = radius * 1.016f;
+                
+                SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
+                SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
+
+                SKPath path = new();
+
+                if (note.Size == 1)
+                {
+                    SKPoint p0 = PointOnArc(canvasInfo.Center, radius, (note.Position + 0.35f) * -6);
+
+                    path.ArcTo(rect0, note.Position * -6 - 6, 2.4f, true);
+                    path.LineTo(p0);
+                    path.ArcTo(rect1, note.Position * -6 - 3.6f, -2.4f, false);
+                }
+                else
+                {
+                    SKPoint p0 = PointOnArc(canvasInfo.Center, radius, (note.Position + 0.35f) * -6);
+                    SKPoint p1 = PointOnArc(canvasInfo.Center, radius, (note.Position + note.Size - 0.35f) * -6);
+                    
+                    path.MoveTo(p0);
+                    path.ArcTo(rect0, (note.Position + 0.6f) * -6, (note.Size - 1.2f) * -6, false);
+                    path.LineTo(p1);
+                    path.ArcTo(rect1, (note.Position + note.Size - 0.6f) * -6, (note.Size - 1.2f) * 6, false);
+                    path.Close();
+                }
+                
+                canvas.DrawPath(path, NotePaints.GetHoldEndBaseFillPaint(colorId, opacity));
+                canvas.DrawPath(path, NotePaints.GetHoldEndOutlinePaint(colorId, pixelScale, opacity));
+            }
+        }
+    }
+    
     private static void DrawSyncConnector(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
         if (perspectiveScale <= 0) return;
@@ -547,6 +626,65 @@ public static class Renderer3D
             
             canvas.DrawArc(judgementLineRect, start, sweep, false, NotePaints.GetJudgementLinePaint(canvasInfo, settings));
         }
+    }
+
+    private static void DrawInterface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Entry entry, float time)
+    {
+        if (entry.ChartEnd.Time > 0)
+        {
+            float radius = 0.98113f * canvasInfo.Radius;
+            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+
+            float t = time / entry.ChartEnd.Time;
+            canvas.DrawArc(rect, 270, 360 - t * 360, false, NotePaints.GetSongTimerPaint(canvasInfo.Scale));
+        }
+
+        float textRadius = canvasInfo.JudgementLineRadius * 0.987f;
+            
+        SKPath path = new();
+        path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, textRadius);
+
+        string difficultyString = entry.Difficulty switch
+        {
+            Difficulty.None => "N O N E / Lv.",
+            Difficulty.Normal => "N O R M A L / Lv.",
+            Difficulty.Hard => "H A R D / Lv.",
+            Difficulty.Expert => "E X P E R T / Lv.",
+            Difficulty.Inferno => "I N F E R N O / Lv.",
+            Difficulty.WorldsEnd => "W O R L D ' S  E N D / Lv.",
+            _ => "N O N E / Lv.",
+        };
+        
+        float circumference = textRadius * float.Pi;
+
+        float titleAngle = circumference * 0.865f;
+        float levelAngle = circumference * 0.837f;
+        float difficultyAngle = entry.Difficulty switch
+        {
+            Difficulty.None => 0.8f,
+            Difficulty.Normal => 0.783f,
+            Difficulty.Hard => 0.796f,
+            Difficulty.Expert => 0.788f,
+            Difficulty.Inferno => 0.781f,
+            Difficulty.WorldsEnd => 0.76f,
+            _ => 0.8f,
+        };
+        difficultyAngle *= circumference;
+        
+        uint diffTextColor = entry.Difficulty switch
+        {
+            Difficulty.None => 0xFFBFBFBF,
+            Difficulty.Normal => 0xFF1B7CFF,
+            Difficulty.Hard => 0xFFFFC300,
+            Difficulty.Expert => 0xFFFF0084,
+            Difficulty.Inferno => 0xFF400084,
+            Difficulty.WorldsEnd => 0xFF000000,
+            _ => 0xFFBFBFBF,
+        };
+        
+        canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+        canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+        canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(0xFFFB67B7));
     }
     
     private static SKPoint PointOnArc(SKPoint center, float radius, float angle)

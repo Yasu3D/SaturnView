@@ -29,66 +29,92 @@ internal static class NotePaints
     private static readonly SKColor NoteColorLightMagentaBase    = new(NoteColors.LightMagentaBase);
     private static readonly SKColor NoteColorLightMagentaLight   = new(NoteColors.LightMagentaLight);
     private static readonly SKColor NoteColorLightMagentaDark    = new(NoteColors.LightMagentaDark);
+    private static readonly SKColor NoteColorLightMagentaHoldEndLight = new(NoteColors.LightMagentaHoldEndLight);
+    private static readonly SKColor NoteColorLightMagentaHoldEndDark  = new(NoteColors.LightMagentaHoldEndDark);
     
     private static readonly SKColor NoteColorLightYellowAverage = new(NoteColors.LightYellowAverage);
     private static readonly SKColor NoteColorLightYellowBase    = new(NoteColors.LightYellowBase);
     private static readonly SKColor NoteColorLightYellowLight   = new(NoteColors.LightYellowLight);
     private static readonly SKColor NoteColorLightYellowDark    = new(NoteColors.LightYellowDark);
+    private static readonly SKColor NoteColorLightYellowHoldEndLight = new(NoteColors.LightYellowHoldEndLight);
+    private static readonly SKColor NoteColorLightYellowHoldEndDark  = new(NoteColors.LightYellowHoldEndDark);
     
     private static readonly SKColor NoteColorOrangeAverage = new(NoteColors.OrangeAverage);
     private static readonly SKColor NoteColorOrangeBase    = new(NoteColors.OrangeBase);
     private static readonly SKColor NoteColorOrangeLight   = new(NoteColors.OrangeLight);
     private static readonly SKColor NoteColorOrangeDark    = new(NoteColors.OrangeDark);
+    private static readonly SKColor NoteColorOrangeHoldEndLight = new(NoteColors.OrangeHoldEndLight);
+    private static readonly SKColor NoteColorOrangeHoldEndDark  = new(NoteColors.OrangeHoldEndDark);
     
     private static readonly SKColor NoteColorLimeAverage = new(NoteColors.LimeAverage);
     private static readonly SKColor NoteColorLimeBase    = new(NoteColors.LimeBase);
     private static readonly SKColor NoteColorLimeLight   = new(NoteColors.LimeLight);
     private static readonly SKColor NoteColorLimeDark    = new(NoteColors.LimeDark);
+    private static readonly SKColor NoteColorLimeHoldEndLight = new(NoteColors.LimeHoldEndLight);
+    private static readonly SKColor NoteColorLimeHoldEndDark  = new(NoteColors.LimeHoldEndDark);
     
     private static readonly SKColor NoteColorRedAverage = new(NoteColors.RedAverage);
     private static readonly SKColor NoteColorRedBase    = new(NoteColors.RedBase);
     private static readonly SKColor NoteColorRedLight   = new(NoteColors.RedLight);
     private static readonly SKColor NoteColorRedDark    = new(NoteColors.RedDark);
+    private static readonly SKColor NoteColorRedHoldEndLight = new(NoteColors.RedHoldEndLight);
+    private static readonly SKColor NoteColorRedHoldEndDark  = new(NoteColors.RedHoldEndDark);
     
     private static readonly SKColor NoteColorSkyBlueAverage = new(NoteColors.SkyBlueAverage);
     private static readonly SKColor NoteColorSkyBlueBase    = new(NoteColors.SkyBlueBase);
     private static readonly SKColor NoteColorSkyBlueLight   = new(NoteColors.SkyBlueLight);
     private static readonly SKColor NoteColorSkyBlueDark    = new(NoteColors.SkyBlueDark);
+    private static readonly SKColor NoteColorSkyBlueHoldEndLight = new(NoteColors.SkyBlueHoldEndLight);
+    private static readonly SKColor NoteColorSkyBlueHoldEndDark  = new(NoteColors.SkyBlueHoldEndDark);
     
     private static readonly SKColor NoteColorDarkYellowAverage = new(NoteColors.DarkYellowAverage);
     private static readonly SKColor NoteColorDarkYellowBase    = new(NoteColors.DarkYellowBase);
     private static readonly SKColor NoteColorDarkYellowLight   = new(NoteColors.DarkYellowLight);
     private static readonly SKColor NoteColorDarkYellowDark    = new(NoteColors.DarkYellowDark);
+    private static readonly SKColor NoteColorDarkYellowHoldEndLight = new(NoteColors.DarkYellowHoldEndLight);
+    private static readonly SKColor NoteColorDarkYellowHoldEndDark  = new(NoteColors.DarkYellowHoldEndDark);
     
     private static readonly SKColor NoteColorLightRedAverage = new(NoteColors.LightRedAverage);
     private static readonly SKColor NoteColorLightRedBase    = new(NoteColors.LightRedBase);
     private static readonly SKColor NoteColorLightRedLight   = new(NoteColors.LightRedLight);
     private static readonly SKColor NoteColorLightRedDark    = new(NoteColors.LightRedDark);
+    private static readonly SKColor NoteColorLightRedHoldEndLight = new(NoteColors.LightRedHoldEndLight);
+    private static readonly SKColor NoteColorLightRedHoldEndDark  = new(NoteColors.LightRedHoldEndDark);
     
     private static readonly SKColor NoteColorYellowAverage = new(NoteColors.YellowAverage);
     private static readonly SKColor NoteColorYellowBase    = new(NoteColors.YellowBase);
     private static readonly SKColor NoteColorYellowLight   = new(NoteColors.YellowLight);
     private static readonly SKColor NoteColorYellowDark    = new(NoteColors.YellowDark);
+    private static readonly SKColor NoteColorYellowHoldEndLight = new(NoteColors.YellowHoldEndLight);
+    private static readonly SKColor NoteColorYellowHoldEndDark  = new(NoteColors.YellowHoldEndDark);
     
     private static readonly SKColor NoteColorPureGreenAverage = new(NoteColors.PureGreenAverage);
     private static readonly SKColor NoteColorPureGreenBase    = new(NoteColors.PureGreenBase);
     private static readonly SKColor NoteColorPureGreenLight   = new(NoteColors.PureGreenLight);
     private static readonly SKColor NoteColorPureGreenDark    = new(NoteColors.PureGreenDark);
+    private static readonly SKColor NoteColorPureGreenHoldEndLight = new(NoteColors.PureGreenHoldEndLight);
+    private static readonly SKColor NoteColorPureGreenHoldEndDark  = new(NoteColors.PureGreenHoldEndDark);
     
     private static readonly SKColor NoteColorBrightBlueAverage = new(NoteColors.BrightBlueAverage);
     private static readonly SKColor NoteColorBrightBlueBase    = new(NoteColors.BrightBlueBase);
     private static readonly SKColor NoteColorBrightBlueLight   = new(NoteColors.BrightBlueLight);
     private static readonly SKColor NoteColorBrightBlueDark    = new(NoteColors.BrightBlueDark);
+    private static readonly SKColor NoteColorBrightBlueHoldEndLight = new(NoteColors.BrightBlueHoldEndLight);
+    private static readonly SKColor NoteColorBrightBlueHoldEndDark  = new(NoteColors.BrightBlueHoldEndDark);
     
     private static readonly SKColor NoteColorLightBlueAverage = new(NoteColors.LightBlueAverage);
     private static readonly SKColor NoteColorLightBlueBase    = new(NoteColors.LightBlueBase);
     private static readonly SKColor NoteColorLightBlueLight   = new(NoteColors.LightBlueLight);
     private static readonly SKColor NoteColorLightBlueDark    = new(NoteColors.LightBlueDark);
+    private static readonly SKColor NoteColorLightBlueHoldEndLight = new(NoteColors.LightBlueHoldEndLight);
+    private static readonly SKColor NoteColorLightBlueHoldEndDark  = new(NoteColors.LightBlueHoldEndDark);
     
     private static readonly SKColor NoteColorLightGrayAverage = new(NoteColors.LightGrayAverage);
     private static readonly SKColor NoteColorLightGrayBase    = new(NoteColors.LightGrayBase);
     private static readonly SKColor NoteColorLightGrayLight   = new(NoteColors.LightGrayLight);
     private static readonly SKColor NoteColorLightGrayDark    = new(NoteColors.LightGrayDark);
+    private static readonly SKColor NoteColorLightGrayHoldEndLight = new(NoteColors.LightGrayHoldEndLight);
+    private static readonly SKColor NoteColorLightGrayHoldEndDark  = new(NoteColors.LightGrayHoldEndDark);
 
     private static readonly SKColor ShadeColorA = new(0x00FFFFFF);
     private static readonly SKColor ShadeColorB = new(0x50FFFFFF);
@@ -168,6 +194,42 @@ internal static class NotePaints
         12 => NoteColorLightGrayLight,
         _ => NoteColorLightMagentaLight,
     };
+    
+    private static SKColor GetNoteColorHoldEndLight(int id) => id switch
+    {
+        0 => NoteColorLightMagentaHoldEndLight,
+        1 => NoteColorLightYellowHoldEndLight,
+        2 => NoteColorOrangeHoldEndLight,
+        3 => NoteColorLimeHoldEndLight,
+        4 => NoteColorRedHoldEndLight,
+        5 => NoteColorSkyBlueHoldEndLight,
+        6 => NoteColorDarkYellowHoldEndLight,
+        7 => NoteColorLightRedHoldEndLight,
+        8 => NoteColorYellowHoldEndLight,
+        9 => NoteColorPureGreenHoldEndLight,
+        10 => NoteColorBrightBlueHoldEndLight,
+        11 => NoteColorLightBlueHoldEndLight,
+        12 => NoteColorLightGrayHoldEndLight,
+        _ => NoteColorLightMagentaHoldEndLight,
+    };
+    
+    private static SKColor GetNoteColorHoldEndDark(int id) => id switch
+    {
+        0 => NoteColorLightMagentaHoldEndDark,
+        1 => NoteColorLightYellowHoldEndDark,
+        2 => NoteColorOrangeHoldEndDark,
+        3 => NoteColorLimeHoldEndDark,
+        4 => NoteColorRedHoldEndDark,
+        5 => NoteColorSkyBlueHoldEndDark,
+        6 => NoteColorDarkYellowHoldEndDark,
+        7 => NoteColorLightRedHoldEndDark,
+        8 => NoteColorYellowHoldEndDark,
+        9 => NoteColorPureGreenHoldEndDark,
+        10 => NoteColorBrightBlueHoldEndDark,
+        11 => NoteColorLightBlueHoldEndDark,
+        12 => NoteColorLightGrayHoldEndDark,
+        _ => NoteColorLightMagentaHoldEndDark,
+    };
 
     internal static readonly float[] NoteStrokeWidths     = [ 16.0f, 22.0f, 34.0f, 46.0f, 58.0f ];
     
@@ -238,12 +300,15 @@ internal static class NotePaints
         Color = new(0xFF00FFFF),
         Style = SKPaintStyle.Fill,
     };
+
+    private static readonly SKFont InterfaceFont = new(SKTypeface.Default);
     
     internal static SKPaint GetNoteCapPaint(CanvasInfo canvasInfo, RenderSettings settings, float scaleScaledByScreen, float rawScale, float opacity)
     {
         if (settings.LowPerformanceMode)
         {
             FlatStrokePaint.StrokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * scaleScaledByScreen;
+            FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
             FlatStrokePaint.Color = NoteColorCapBase;
 
             if (opacity != 1)
@@ -287,6 +352,7 @@ internal static class NotePaints
         if (settings.LowPerformanceMode)
         {
             FlatStrokePaint.StrokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * pixelScale;
+            FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
             FlatStrokePaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
             
             return FlatStrokePaint;
@@ -375,6 +441,7 @@ internal static class NotePaints
         if (settings.LowPerformanceMode)
         {
             FlatStrokePaint.Color = NoteColorRNoteGlow.WithAlpha((byte)(255 * opacity * 0.86f));
+            FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
             FlatStrokePaint.StrokeWidth = 70 * scaleScaledByScreen;
 
             return FlatStrokePaint;
@@ -392,6 +459,7 @@ internal static class NotePaints
     internal static SKPaint GetSnapStrokePaint(int colorId, float pixelScale, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 2.5f * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = GetNoteColorDark(colorId).WithAlpha((byte)(opacity * 255));
         
         return FlatStrokePaint;
@@ -429,6 +497,7 @@ internal static class NotePaints
     internal static SKPaint GetSlideStrokePaint(int colorId, float pixelScale, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 5f * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = GetNoteColorDark(colorId).WithAlpha((byte)(opacity * 255));
         
         return FlatStrokePaint;
@@ -471,6 +540,7 @@ internal static class NotePaints
         if (settings.LowPerformanceMode)
         {
             FlatStrokePaint.StrokeWidth = 10 * pixelScale;
+            FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
             FlatStrokePaint.Color = NoteColorSyncOutline.WithAlpha((byte)(opacity * 255));
             return FlatStrokePaint;
         }
@@ -507,6 +577,7 @@ internal static class NotePaints
     internal static SKPaint GetMeasureLinePaint(CanvasInfo canvasInfo, float linearScale)
     {
         FlatStrokePaint.StrokeWidth = 3 * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = NoteColorMeasureLine;
 
         return FlatStrokePaint;
@@ -515,6 +586,7 @@ internal static class NotePaints
     internal static SKPaint GetBeatLinePaint(CanvasInfo canvasInfo, float linearScale)
     {
         FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = NoteColorBeatLine;
 
         return FlatStrokePaint;
@@ -580,7 +652,8 @@ internal static class NotePaints
     {
         if (settings.LowPerformanceMode)
         {
-            // TODO: Low performance version of LanePaint.
+            FlatFillPaint.Color = NoteColorLaneBaseA;
+            return FlatFillPaint;
         }
         
         ShaderFillPaint.Color = new(0xFFFFFFFF);
@@ -612,5 +685,52 @@ internal static class NotePaints
         SKShader colorGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, scrollColors, scrollPositions, SKShaderTileMode.Clamp);
         ShaderFillPaint.Shader = SKShader.CreateCompose(colorGradient, alphaGradient, SKBlendMode.Modulate);
         return ShaderFillPaint;
+    }
+
+    internal static SKPaint GetHoldEndBaseStrokePaint(int colorId, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 20 * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Round;
+        FlatStrokePaint.Color = GetNoteColorHoldEndLight(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetHoldEndBaseFillPaint(int colorId, float opacity)
+    {
+        FlatFillPaint.Color = GetNoteColorHoldEndLight(colorId).WithAlpha((byte)(opacity * 255));
+        return FlatFillPaint;
+    }
+
+    internal static SKPaint GetHoldEndOutlinePaint(int colorId, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 3.5f * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = GetNoteColorHoldEndDark(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetSongTimerPaint(float pixelScale)
+    {
+        FlatStrokePaint.Color = new(0x80000000);
+        FlatStrokePaint.StrokeWidth = 10.5f * pixelScale;
+        
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetTextPaint(uint color)
+    {
+        FlatFillPaint.Color = new(color);
+        
+        return FlatFillPaint;
+    }
+    
+    internal static SKFont GetBoldFont(float scale)
+    {
+        InterfaceFont.Size = scale;
+        InterfaceFont.Embolden = true;
+        
+        return InterfaceFont;
     }
 }
