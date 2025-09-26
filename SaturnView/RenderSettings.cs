@@ -80,22 +80,6 @@ public class RenderSettings
 #endregion Enum Definitions
 
     /// <summary>
-    /// How many times per second the viewport is updated.
-    /// </summary>
-    public int RefreshRate
-    {
-        get => refreshRate;
-        set
-        {
-            if (refreshRate == value) return;
-            
-            refreshRate = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private int refreshRate = 60;
-
-    /// <summary>
     /// Simplifies chart visuals to lower the performance cost.
     /// </summary>
     public bool LowPerformanceMode
@@ -135,8 +119,8 @@ public class RenderSettings
         get => judgementLineColor;
         set
         {
-            if (judgementLineColor != value) return;
-
+            if (judgementLineColor == value) return;
+            
             judgementLineColor = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }

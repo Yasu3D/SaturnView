@@ -17,7 +17,7 @@ public static class Renderer3D
         [ 0.910f, 0.922f, 1.080f, 1.092f ],
     ];
     
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor clearColor, Chart chart, float time)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor clearColor, Chart chart, Entry entry, float time)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
         
@@ -25,7 +25,7 @@ public static class Renderer3D
         canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
         
         
-        DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
+        DrawLanes(canvas, canvasInfo, settings, 30, 45, time);
         
         
         lock (chart)
@@ -51,7 +51,7 @@ public static class Renderer3D
         }
         
         stopwatch.Stop();
-        Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
+        //Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
     }
 
     private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, IPositionable note, float perspectiveScale, float linearScale, bool sync, float opacity)
