@@ -13,4 +13,10 @@
     <ItemGroup>
       <ProjectReference Include="..\..\SaturnData\SaturnData\SaturnData.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Content Update="Assets\noto_plus_1.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
 </Project>

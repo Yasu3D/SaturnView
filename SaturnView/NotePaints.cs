@@ -301,7 +301,7 @@ internal static class NotePaints
         Style = SKPaintStyle.Fill,
     };
 
-    private static readonly SKFont InterfaceFont = new(SKTypeface.Default);
+    private static readonly SKFont InterfaceFont = new(SKTypeface.FromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/noto_plus_1.ttf")));
     
     internal static SKPaint GetNoteCapPaint(CanvasInfo canvasInfo, RenderSettings settings, float scaleScaledByScreen, float rawScale, float opacity)
     {
@@ -708,6 +708,15 @@ internal static class NotePaints
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = GetNoteColorHoldEndDark(colorId).WithAlpha((byte)(opacity * 255));
         
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetHoldPointPaint(float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 4f * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = new(0xEE, 0xEE, 0xEE, (byte)(opacity * 255));
+
         return FlatStrokePaint;
     }
     

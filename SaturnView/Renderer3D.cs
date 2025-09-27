@@ -41,16 +41,20 @@ public static class Renderer3D
             SlideClockwiseNote slideClockwise = new(new(0), 30, 14, BonusType.Bonus, JudgementType.Normal);
             SlideCounterclockwiseNote slideCounterclockwise = new(new(0), 46, 14, BonusType.R, JudgementType.Normal);
 
-            HoldPointNote holdEnd = new(new(0), 45, 15, null, HoldPointRenderType.Visible);
+            HoldPointNote holdEnd = new(new(0), 46, 14, null, HoldPointRenderType.Visible);
             
-            DrawNote(canvas, canvasInfo, settings, slideClockwise,  Perspective(0.865f),  0.865f,  false,  1);
-            DrawNote(canvas, canvasInfo, settings, slideCounterclockwise, Perspective(0.874f),  0.874f,  false,  1);
+            //DrawNote(canvas, canvasInfo, settings, slideClockwise,  Perspective(0.865f),  0.865f,  false,  1);
+            //DrawNote(canvas, canvasInfo, settings, slideCounterclockwise, Perspective(0.874f),  0.874f,  false,  1);
 
-            DrawSyncConnector(canvas, canvasInfo, settings, sync, Perspective(0.9495f), 1);
-            DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.9495f), 0.9495f, true, 1);
-            DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.9495f), 0.9495f, true, 1);
+            //DrawSyncConnector(canvas, canvasInfo, settings, sync, Perspective(0.9495f), 1);
+            //DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.9495f), 0.9495f, true, 1);
+            //DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.9495f), 0.9495f, true, 1);
+
+            holdEnd.RenderType = HoldPointRenderType.Visible;
+            DrawHoldPointNote(canvas, canvasInfo, settings, holdEnd, Perspective(1), 1);
             
-            DrawHoldEndNote(canvas, canvasInfo, settings, holdEnd, Perspective(1), 1);
+            holdEnd.RenderType = HoldPointRenderType.Hidden;
+            DrawHoldPointNote(canvas, canvasInfo, settings, holdEnd, Perspective(0.95f), 0.95f);
             
             //DrawMeasureLine(canvas, canvasInfo, Perspective(1), 1, false);
         }
@@ -524,6 +528,37 @@ public static class Renderer3D
             }
         }
     }
+
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
+    {
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float radius0 = radius * 0.98f;
+        float radius1 = radius * 1.02f;
+        float capRadius = (radius1 - radius0) * 0.5f;
+        
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+
+        float startAngle = (note.Position + 0.5f) * -6;
+        float sweepAngle = (note.Size - 1) * -6;
+        float endAngle = startAngle + sweepAngle;
+        
+        SKRect longArcRect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
+        SKRect longArcRect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
+        
+        SKPoint capPoint0 = PointOnArc(canvasInfo.Center, radius, startAngle);
+        SKPoint capPoint1 = PointOnArc(canvasInfo.Center, radius, endAngle);
+        SKRect capRect0 = new(capPoint0.X - capRadius, capPoint0.Y - capRadius, capPoint0.X + capRadius, capPoint0.Y + capRadius);
+        SKRect capRect1 = new(capPoint1.X - capRadius, capPoint1.Y - capRadius, capPoint1.X + capRadius, capPoint1.Y + capRadius);
+        
+        SKPath path = new();
+        
+        path.ArcTo(longArcRect0, startAngle, sweepAngle, true);
+        path.ArcTo(capRect1, endAngle - 180, 180, false);
+        path.ArcTo(longArcRect1, endAngle, -sweepAngle, false);
+        path.ArcTo(capRect0, startAngle, 180, false);
+
+        canvas.DrawPath(path, NotePaints.GetHoldPointPaint(pixelScale, opacity));
+    }
     
     private static void DrawSyncConnector(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
@@ -640,19 +675,21 @@ public static class Renderer3D
         }
 
         float textRadius = canvasInfo.JudgementLineRadius * 0.987f;
-            
+        SKRect textRect = new(canvasInfo.Center.X - textRadius, canvasInfo.Center.Y - textRadius, canvasInfo.Center.X + textRadius, canvasInfo.Center.Y + textRadius);
+        
         SKPath path = new();
-        path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, textRadius);
+        path.ArcTo(textRect, 0, 359, true);
+        path.ArcTo(textRect, 359, 359, false);
 
         string difficultyString = entry.Difficulty switch
         {
-            Difficulty.None => "N O N E / Lv.",
+            Difficulty.None => "",
             Difficulty.Normal => "N O R M A L / Lv.",
             Difficulty.Hard => "H A R D / Lv.",
             Difficulty.Expert => "E X P E R T / Lv.",
             Difficulty.Inferno => "I N F E R N O / Lv.",
             Difficulty.WorldsEnd => "W O R L D ' S  E N D / Lv.",
-            _ => "N O N E / Lv.",
+            _ => "",
         };
         
         float circumference = textRadius * float.Pi;
@@ -661,13 +698,13 @@ public static class Renderer3D
         float levelAngle = circumference * 0.837f;
         float difficultyAngle = entry.Difficulty switch
         {
-            Difficulty.None => 0.8f,
-            Difficulty.Normal => 0.783f,
-            Difficulty.Hard => 0.796f,
-            Difficulty.Expert => 0.788f,
-            Difficulty.Inferno => 0.781f,
-            Difficulty.WorldsEnd => 0.76f,
-            _ => 0.8f,
+            Difficulty.None => 0f,
+            Difficulty.Normal => 0.7815f,
+            Difficulty.Hard => 0.7945f,
+            Difficulty.Expert => 0.7843f,
+            Difficulty.Inferno => 0.7782f,
+            Difficulty.WorldsEnd => 0.7565f,
+            _ => 0f,
         };
         difficultyAngle *= circumference;
         
@@ -681,7 +718,7 @@ public static class Renderer3D
             Difficulty.WorldsEnd => 0xFF000000,
             _ => 0xFFBFBFBF,
         };
-        
+
         canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
         canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
         canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(0xFFFB67B7));
