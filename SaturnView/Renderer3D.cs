@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using SaturnData.Notation;
 using SaturnData.Notation.Core;
+using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
 using SkiaSharp;
@@ -17,57 +19,281 @@ public static class Renderer3D
         [ 0.910f, 0.922f, 1.080f, 1.092f ],
     ];
     
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor clearColor, Chart chart, Entry entry, float time)
+    /// <summary>
+    /// Renders a snapshot of a chart at the provided timestamp.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="canvasInfo">Various attributes of the canvas.</param>
+    /// <param name="settings">The render settings to follow.</param>
+    /// <param name="clearColor">The background color of the canvas.</param>
+    /// <param name="chart">The chart to draw.</param>
+    /// <param name="entry">The entry to draw.</param>
+    /// <param name="time">The time of the snapshot to draw.</param>
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor clearColor, Chart chart, Entry entry, float time, bool playing)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
         
         canvas.Clear(clearColor);
         canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
         
-        
-        DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
-        
-        
         lock (chart)
         {
-            
-            //ChainNote note = new(new(0), 0, 15, BonusType.R, JudgementType.Normal);
-            //DrawNote(canvas, settings, note, canvasInfo, Perspective(1.00f), 1);
-            
-            SnapForwardNote  snapForward  = new(new(0), 46, 14, BonusType.Normal, JudgementType.Normal);
-            SnapBackwardNote snapBackward = new(new(0), 30, 14, BonusType.Normal, JudgementType.Normal);
-            SyncNote sync = new(new(0), 43, 4);
-
-            SlideClockwiseNote slideClockwise = new(new(0), 30, 14, BonusType.Bonus, JudgementType.Normal);
-            SlideCounterclockwiseNote slideCounterclockwise = new(new(0), 46, 14, BonusType.R, JudgementType.Normal);
-
-            HoldPointNote holdEnd = new(new(0), 46, 14, null, HoldPointRenderType.Visible);
-            
-            //DrawNote(canvas, canvasInfo, settings, slideClockwise,  Perspective(0.865f),  0.865f,  false,  1);
-            //DrawNote(canvas, canvasInfo, settings, slideCounterclockwise, Perspective(0.874f),  0.874f,  false,  1);
-
-            //DrawSyncConnector(canvas, canvasInfo, settings, sync, Perspective(0.9495f), 1);
-            //DrawNote(canvas, canvasInfo, settings, snapForward,  Perspective(0.9495f), 0.9495f, true, 1);
-            //DrawNote(canvas, canvasInfo, settings, snapBackward, Perspective(0.9495f), 0.9495f, true, 1);
-
-            holdEnd.RenderType = HoldPointRenderType.Visible;
-            DrawHoldPointNote(canvas, canvasInfo, settings, holdEnd, Perspective(1), 1);
-            
-            holdEnd.RenderType = HoldPointRenderType.Hidden;
-            DrawHoldPointNote(canvas, canvasInfo, settings, holdEnd, Perspective(0.95f), 0.95f);
-            
-            //DrawMeasureLine(canvas, canvasInfo, Perspective(1), 1, false);
+            renderLanes();
+            renderNotes();
         }
-
+        
         DrawInterface(canvas, canvasInfo, settings, entry, time);
         
         stopwatch.Stop();
-        //Console.WriteLine(stopwatch.ElapsedTicks / 10000.0f);
+        Console.WriteLine((1000.0f / (stopwatch.ElapsedTicks / 10000.0f)).ToString("0.0"));
+        return;
+        
+        void renderLanes()
+        {
+            bool[] lanes = new bool[60];
+            
+            foreach (Note note in chart.LaneToggles)
+            {
+                if (note is not ILaneToggle laneToggle) continue;
+                if (note is not ITimeable timeable) continue;
+                if (note is not IPositionable positionable) continue;
+                
+                bool state = note is LaneShowNote; // not fully explicit but good enough.
+                
+                float delta = time - timeable.Timestamp.Time;
+                float duration = laneToggle.Direction switch
+                {
+                    LaneSweepDirection.Counterclockwise => positionable.Size * 8.3333333f,
+                    LaneSweepDirection.Clockwise => positionable.Size * 8.3333333f,
+                    LaneSweepDirection.Center => positionable.Size * 4.1666666f,
+                    LaneSweepDirection.Instant => 0,
+                    _ => 0,
+                };
+
+                // Instant or after the sweep. Set lanes without animating.
+                if (duration == 0 || delta > duration)
+                {
+                    for (int i = positionable.Position; i < positionable.Position + positionable.Size; i++)
+                    {
+                        lanes[i % 60] = state;
+                    }
+
+                    continue;
+                }
+
+                float progress = delta / duration;
+                
+                // In range for a sweep animation. Set lanes based on animation.
+                if (laneToggle.Direction is LaneSweepDirection.Center)
+                {
+                    float halfSize = positionable.Size * 0.5f;
+                    int floor = (int)halfSize;
+                    int steps = (int)MathF.Ceiling(halfSize);
+                    int centerClockwise = positionable.Position + floor;
+                    int centerCounterclockwise = positionable.Size % 2 != 0 ? centerClockwise : centerClockwise + 1;
+                    int offset = positionable.Size % 2 != 0 ? 60 : 59;
+
+                    for (int i = 0; i < (int)(steps * progress); i++)
+                    {
+                        lanes[(centerClockwise - i + offset) % 60] = state;
+                        lanes[(centerCounterclockwise + i + offset) % 60] = state;
+                    }
+                }
+                else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
+                {
+                    for (int i = 0; i < (int)(positionable.Size * progress); i++)
+                    {
+                        lanes[(positionable.Position + positionable.Size - i + 59) % 60] = state;
+                    }
+                }
+                else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
+                {
+                    for (int i = 0; i < (int)(positionable.Size * progress); i++)
+                    {
+                        lanes[(i + positionable.Position + 60) % 60] = state;
+                    }
+                }
+            }
+
+            bool allActive = true;
+            bool allInactive = true;
+            
+            for (int i = 0; i < 60; i++)
+            {
+                if (!allActive && !allInactive) break;
+                
+                if (!lanes[i]) allActive = false;
+                if (lanes[i]) allInactive = false;
+            }
+
+            if (allActive)
+            {
+                DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
+            }
+            else if (!allInactive)
+            {
+                bool lastState = lanes[59];
+                bool batchActive = false;
+
+                int position = 0;
+                int size = 0;
+
+                int firstBatchPosition = -1;
+                
+                // Fancy batching to draw large chunks of lanes all at once.
+                for (int i = 0; i < 120; i++)
+                {
+                    // Stop once position of first batch is reached again.
+                    if (i % 60 == firstBatchPosition) break;
+                    
+                    bool currentState = lanes[i % 60];
+                    
+                    // Begin of new batch
+                    if (!lastState && currentState)
+                    {
+                        batchActive = true;
+                        position = i % 60;
+                        size = 0;
+                        
+                        if (firstBatchPosition == -1)
+                        {
+                            firstBatchPosition = position;
+                        }
+                    }
+
+                    if (batchActive && lastState && !currentState)
+                    {
+                        batchActive = false;
+                        DrawLanes(canvas, canvasInfo, settings, position, size, time);
+                    }
+                    
+                    if (batchActive)
+                    {
+                        size++;
+                    }
+
+                    lastState = currentState;
+                }
+            }
+        }
+
+        void renderNotes()
+        {
+            float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
+            
+            List<RenderNote> notesToDraw = [];
+            List<RenderNote> holdsToDraw = [];
+
+            for (int l = 0; l < chart.Layers.Count; l++)
+            {
+                Layer layer = chart.Layers[l];
+                VisibilityChangeEvent? visibilityChange = NotationUtils.LastVisibilityChange(layer, time);
+                if (visibilityChange != null && visibilityChange.Visible == false) continue;
+                
+                float scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
+
+                for (int n = 0; n < layer.Notes.Count; n++)
+                {
+                    Note note = layer.Notes[n];
+                    if (note is not ITimeable timeable) continue;
+                    if (note is not IPositionable positionable) continue;
+
+                    if (positionable is HoldNote holdNote && holdNote.Points.Count != 0)
+                    {
+                        if (holdNote.Points[^1].Timestamp.Time < time) continue;
+                        if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
+                        if (holdNote.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
+
+                        holdsToDraw.Add(new(holdNote, layer, l, 0, false, false));
+                        
+                        float t0 = 1 - ((holdNote.Points[0].Timestamp.ScaledTime - scaledTime) / viewDistance);
+                        float t1 = 1 - ((holdNote.Points[^1].Timestamp.ScaledTime - scaledTime) / viewDistance);
+
+                        // Hold Start
+                        if (t0 is >= 0 and <= 1)
+                        {
+                            Note? prev = n > 0 ? layer.Notes[n - 1] : null;
+                            Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
+                            bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
+
+                            notesToDraw.Add(new(note, layer, l, t0, sync, false));
+                        }
+
+                        // Hold End
+                        if (t1 is >= 0 and <= 1)
+                        {
+                            notesToDraw.Add(new(holdNote.Points[^1], layer, l, t1, false, true));
+                        }
+
+                        // Hold Points
+                        for (int j = 1; j < holdNote.Points.Count - 1; j++)
+                        {
+                            HoldPointNote point = holdNote.Points[j];
+                            float t = 1 - ((point.Timestamp.ScaledTime - scaledTime) / viewDistance);
+
+                            notesToDraw.Add(new(point, layer, l, t, false, false));
+                        }
+                    }
+                    else
+                    {
+                        if (timeable.Timestamp.Time < time) continue;
+                        if (timeable.Timestamp.ScaledTime < scaledTime) continue;
+                        if (timeable.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
+
+                        float t = 1 - ((timeable.Timestamp.ScaledTime - scaledTime) / viewDistance);
+
+                        if (t is < 0 or > 1) continue;
+
+                        Note? prev = n > 0 ? layer.Notes[n - 1] : null;
+                        Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
+                        bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
+
+                        notesToDraw.Add(new(note, layer, l, t, sync, false));
+                    }
+                }
+            }
+
+            notesToDraw = notesToDraw
+                .OrderBy(x => x.LayerIndex)
+                .ThenBy(x => x.Scale)
+                .ThenByDescending(x => x.Note is HoldNote or HoldPointNote)
+                .ThenByDescending(x => ((IPositionable)x.Note).Size)
+                .ToList();
+
+            foreach (RenderNote renderNote in holdsToDraw)
+            {
+                if (renderNote.Note is not HoldNote holdNote) continue;
+
+                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderNote.Layer, time, playing);
+            }
+            
+            foreach (RenderNote renderNote in notesToDraw)
+            {
+                if (renderNote.Note is HoldPointNote holdPointNote)
+                {
+                    
+                    if (renderNote.IsHoldEnd)
+                    {
+                        DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, Perspective(renderNote.Scale), 1);
+                    }
+                    else if (!playing)
+                    {
+                        DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, Perspective(renderNote.Scale), 1);
+                    }
+                }
+                
+                DrawNote(canvas, canvasInfo, settings, renderNote.Note, Perspective(renderNote.Scale), renderNote.Scale, renderNote.Sync, 1);
+            }
+        }
     }
 
-    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, IPositionable note, float perspectiveScale, float linearScale, bool sync, float opacity)
+    /// <summary>
+    /// Draws a standard note body, sync outline, r-effect, and arrows.
+    /// </summary>
+    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity)
     {
-        if (perspectiveScale <= 0) return;
+        if (perspectiveScale is <= 0 or > 1) return;
+        if (note is not IPositionable positionable) return;
         
         IPlayable? playable = note as IPlayable;
         
@@ -87,6 +313,45 @@ public static class Renderer3D
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = canvasInfo.Scale * perspectiveScale;
+        
+        // Note Body
+        if (positionable.Size == 60)
+        {
+            // R-Effect Glow
+            if (playable != null && playable.BonusType == BonusType.R)
+            {
+                canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetRNotePaint(settings, pixelScale, opacity));
+            }
+
+            // Body
+            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetNoteBasePaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
+        }
+        else
+        {
+            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+            
+            float start = (positionable.Position + 1) * -6; 
+            float sweep = Math.Min(0, (positionable.Size - 2) * -6);
+            
+            // R-Effect Glow
+            if (playable != null && playable.BonusType == BonusType.R)
+            {
+                canvas.DrawArc(rect, start + 3, sweep - 6, false, NotePaints.GetRNotePaint(settings, pixelScale, opacity));
+            }
+            
+            // Body
+            canvas.DrawArc(rect, start, sweep, false, NotePaints.GetNoteBasePaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
+
+            // Caps
+            float capStart = positionable.Position * -6 - 4.5f;
+            canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
+
+            if (positionable.Size > 1)
+            {
+                capStart = (positionable.Position + positionable.Size - 1) * -6;
+                canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
+            }
+        }
 
         // Sync Outline
         if (sync)
@@ -101,8 +366,8 @@ public static class Renderer3D
             SKRect rect2 = new(canvasInfo.Center.X - radius2, canvasInfo.Center.Y - radius2, canvasInfo.Center.X + radius2, canvasInfo.Center.Y + radius2);
             SKRect rect3 = new(canvasInfo.Center.X - radius3, canvasInfo.Center.Y - radius3, canvasInfo.Center.X + radius3, canvasInfo.Center.Y + radius3);
             
-            float startAngle = note.Position * -6;
-            float sweepAngle = note.Size * -6;
+            float startAngle = positionable.Position * -6;
+            float sweepAngle = positionable.Size * -6;
             
             float endAngle = startAngle + sweepAngle;
             
@@ -135,59 +400,20 @@ public static class Renderer3D
             canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
         }
         
-        // Note Body
-        if (note.Size == 60)
-        {
-            // R-Effect Glow
-            if (playable != null && playable.BonusType == BonusType.R)
-            {
-                canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetRNotePaint(settings, pixelScale, opacity));
-            }
-
-            // Body
-            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetNoteBasePaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
-        }
-        else
-        {
-            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
-            
-            float start = (note.Position + 1) * -6; 
-            float sweep = Math.Min(0, (note.Size - 2) * -6);
-            
-            // R-Effect Glow
-            if (playable != null && playable.BonusType == BonusType.R)
-            {
-                canvas.DrawArc(rect, start + 3, sweep - 6, false, NotePaints.GetRNotePaint(settings, pixelScale, opacity));
-            }
-            
-            // Body
-            canvas.DrawArc(rect, start, sweep, false, NotePaints.GetNoteBasePaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
-
-            // Caps
-            float capStart = note.Position * -6 - 4.5f;
-            canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
-
-            if (note.Size > 1)
-            {
-                capStart = (note.Position + note.Size - 1) * -6;
-                canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
-            }
-        }
-
         // Chain Stripes
         if (note is ChainNote)
         {
-            int stripes = note.Size * 2;
+            int stripes = positionable.Size * 2;
 
             float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
             float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-            float start = (note.Position + 1) * -6;
+            float start = (positionable.Position + 1) * -6;
             
             SKPath path = new();
 
             for (int i = 0; i < stripes; i++)
             {
-                if (note.Size != 60)
+                if (positionable.Size != 60)
                 {
                     if (i == 0) continue; // skip first stripe
                     if (i >= stripes - 3) continue; // skip last 3 stripes
@@ -239,12 +465,12 @@ public static class Renderer3D
             float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
             float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
 
-            int count = note.Size == 60 
-                ? note.Size 
-                : note.Size - 2;
-            float start = note.Size == 60 
-                ? note.Position * -6
-                : note.Position * -6 - 6;
+            int count = positionable.Size == 60 
+                ? positionable.Size 
+                : positionable.Size - 2;
+            float start = positionable.Size == 60 
+                ? positionable.Position * -6
+                : positionable.Position * -6 - 6;
             
             for (int i = 0; i < count; i++)
             {
@@ -266,7 +492,7 @@ public static class Renderer3D
         }
         
         // Snap Arrows
-        if (note is SnapForwardNote or SnapBackwardNote && note.Size > 2)
+        if (note is SnapForwardNote or SnapBackwardNote && positionable.Size > 2)
         {
             bool flip = note is SnapBackwardNote;
             
@@ -279,10 +505,10 @@ public static class Renderer3D
             float radius6 = flip ? radius * 0.766f : radius * 0.920f;
             float radius7 = flip ? radius * 0.725f : radius * 0.960f;
             
-            int count = note.Size / 3;
-            float startPosition = note.Position * -6;
+            int count = positionable.Size / 3;
+            float startPosition = positionable.Position * -6;
             
-            int m = note.Size % 3;
+            int m = positionable.Size % 3;
             
             if (m == 0)
             {
@@ -369,9 +595,9 @@ public static class Renderer3D
             float radius1 = radius * 0.864f;
             float radius2 = radius * 0.938f;
 
-            float arrowCount = note.Size * 0.5f + 1;
+            float arrowCount = positionable.Size * 0.5f + 1;
 
-            float start = note.Position * -6;
+            float startAngle = positionable.Size * 6;
             
             SKPath path = new();
             SKPath maskPath = new();
@@ -381,14 +607,14 @@ public static class Renderer3D
             float maskRadius;
             SKPoint maskPoint;
             
-            for (int i = 0; i <= note.Size; i++)
+            for (int i = 0; i <= positionable.Size; i++)
             {
                 float x = flip
-                    ? (float)i / note.Size
-                    : 1 - (float)i / note.Size;
+                    ? (float)i / positionable.Size
+                    : 1 - (float)i / positionable.Size;
                 
-                maskAngle = (note.Position + i) * -6;
-                maskRadius = radius1 + (radius2 - radius1) * SlideArrowMask(x);
+                maskAngle = startAngle + i * -6;
+                maskRadius = radius1 + (radius2 - radius1) * slideArrowMask(x);
 
                 maskPoint = PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
                 if (i == 0) maskPath.MoveTo(maskPoint);
@@ -396,19 +622,19 @@ public static class Renderer3D
             }
             
             // center point
-            maskAngle = (note.Position + note.Size) * -6;
+            maskAngle = startAngle + positionable.Size * -6;
             maskPoint = PointOnArc(canvasInfo.Center, radius1, maskAngle);
             maskPath.LineTo(maskPoint);
             
             // outer side
-            for (int i = note.Size; i >= 0; i--)
+            for (int i = positionable.Size; i >= 0; i--)
             {
                 float x = flip
-                    ? (float)i / note.Size
-                    : 1 - (float)i / note.Size;
+                    ? (float)i / positionable.Size
+                    : 1 - (float)i / positionable.Size;
                 
-                maskAngle = (note.Position + i) * -6;
-                maskRadius = radius1 + (radius0 - radius1) * SlideArrowMask(x);
+                maskAngle = startAngle + i * -6;
+                maskRadius = radius1 + (radius0 - radius1) * slideArrowMask(x);
 
                 maskPoint = PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
                 maskPath.LineTo(maskPoint);
@@ -424,7 +650,7 @@ public static class Renderer3D
                 //   \     \
                 //   p4_____p3
                 
-                float angle = start + (scroll - i - 0.5f) * 12;
+                float angle = startAngle + (scroll - i - 0.5f) * 12;
                 float offset = flip ? -6 : 6;
                 
                 SKPoint p0 = PointOnArc(canvasInfo.Center, radius0, angle         );
@@ -442,11 +668,14 @@ public static class Renderer3D
                 path.LineTo(p5);
                 path.Close();
             }
-
-            canvas.Save();
-            canvas.ClipPath(maskPath, SKClipOperation.Intersect, true);
             
-            canvas.DrawPath(path, NotePaints.GetSlideFillPaint(canvasInfo, settings, note.Position, note.Size, colorId, opacity, flip));
+            
+            canvas.Save();
+            
+            canvas.RotateDegrees((positionable.Position + positionable.Size) * -6, canvasInfo.Center.X, canvasInfo.Center.Y);
+
+            canvas.ClipPath(maskPath, SKClipOperation.Intersect, true);
+            canvas.DrawPath(path, NotePaints.GetSlideFillPaint(canvasInfo, settings, positionable.Size, colorId, opacity, flip));
             
             if (!settings.LowPerformanceMode)
             {
@@ -454,12 +683,22 @@ public static class Renderer3D
             }
             
             canvas.Restore();
+            
+            float slideArrowMask(float x)
+            {
+                return x < 0.88f 
+                    ? (0.653f * x + 0.175f) / 0.75f 
+                    : (-6.25f * x + 6.25f) / 0.75f;
+            }
         }
     }
 
+    /// <summary>
+    /// Draws a hold end note.
+    /// </summary>
     private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale <= 0) return;
+        if (perspectiveScale is <= 0 or > 1) return;
 
         int colorId = (int)settings.HoldNoteColor;
         
@@ -529,8 +768,13 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws a hold control point.
+    /// </summary>
     private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
+        if (perspectiveScale is <= 0 or > 1) return;
+        
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float radius0 = radius * 0.98f;
         float radius1 = radius * 1.02f;
@@ -557,12 +801,163 @@ public static class Renderer3D
         path.ArcTo(longArcRect1, endAngle, -sweepAngle, false);
         path.ArcTo(capRect0, startAngle, 180, false);
 
-        canvas.DrawPath(path, NotePaints.GetHoldPointPaint(pixelScale, opacity));
+        canvas.DrawPath(path, NotePaints.GetHoldPointPaint(pixelScale, note.RenderType, opacity));
+    }
+
+    /// <summary>
+    /// Draws a hold note surface.
+    /// </summary>
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing)
+    {
+        List<SKPoint> vertexScreenCoords = [];
+        List<SKPoint> vertexTextureCoords = [];
+
+        HoldPointNote[] points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToArray();
+        
+        int maxSize = hold.MaxSize;
+        float scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
+        int arcs = 0;
+        
+        bool active = hold.Timestamp.Time < time && playing;
+        
+        // For every hold point, but the last.
+        for (int y = 0; y < points.Length - 1; y++)
+        {
+            RenderHoldPoint start = new(hold, points[y], maxSize);
+            RenderHoldPoint end = new(hold, points[y + 1], maxSize);
+
+            if (start.GlobalTime < time && end.GlobalTime > time)
+            {
+                // Judgement line is between start and end. Insert a third point on the judgement line.
+                // Then generate from start to center, and center to end.
+                float t = InverseLerp(start.GlobalTime, end.GlobalTime, time);
+                
+                RenderHoldPoint center = new()
+                {
+                    GlobalTime = time, 
+                    GlobalScaledTime = scaledTime, 
+                    LocalTime = Lerp(start.LocalTime, end.LocalTime, t),
+                    Interval  = Lerp(start.Interval,  end.Interval,  t),
+                    Start = LerpCyclic(start.Start, end.Start, t, 360),
+                };
+
+                generatePart(start, center);
+                generatePart(center, end);
+            }
+            else
+            {
+                generatePart(start, end);
+            }
+        }
+        
+        // Generate arc for last point.
+        RenderHoldPoint last = new(hold, points[^1], maxSize);
+        generateArc(last.GlobalTime, last.GlobalScaledTime, last.LocalTime, last.Start, last.Interval);
+
+        SKPoint[] triangles = new SKPoint[maxSize * arcs * 6];
+        SKPoint[] textureCoords = new SKPoint[maxSize * arcs * 6];
+
+        int vert = 0;
+        int tris = 0;
+        
+        for (int y = 0; y < arcs - 1; y++)
+        {
+            for (int x = 0; x < maxSize; x++)
+            {
+                triangles[tris + 0] = vertexScreenCoords[vert];
+                triangles[tris + 1] = vertexScreenCoords[vert + 1];
+                triangles[tris + 2] = vertexScreenCoords[vert + maxSize + 1];
+
+                triangles[tris + 5] = vertexScreenCoords[vert + 1];
+                triangles[tris + 4] = vertexScreenCoords[vert + maxSize + 1];
+                triangles[tris + 3] = vertexScreenCoords[vert + maxSize + 2];
+                
+                textureCoords[tris + 0] = vertexTextureCoords[vert];
+                textureCoords[tris + 1] = vertexTextureCoords[vert + 1];
+                textureCoords[tris + 2] = vertexTextureCoords[vert + maxSize + 1];
+
+                textureCoords[tris + 5] = vertexTextureCoords[vert + 1];
+                textureCoords[tris + 4] = vertexTextureCoords[vert + maxSize + 1];
+                textureCoords[tris + 3] = vertexTextureCoords[vert + maxSize + 2];
+
+                vert++;
+                tris += 6;
+            }
+
+            vert++;
+        }
+        
+        canvas.Save();
+
+        SKRect rect = new(canvasInfo.Center.X - canvasInfo.Radius, canvasInfo.Center.Y - canvasInfo.Radius, canvasInfo.Center.X + canvasInfo.Radius, canvasInfo.Center.Y + canvasInfo.Radius);
+        SKRoundRect roundRect = new(rect, canvasInfo.Radius);
+        
+        canvas.ClipRoundRect(roundRect);
+        canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, active ? NotePaints.HoldSurfacePaintActive : NotePaints.HoldSurfacePaint);
+        
+        canvas.Restore();
+        return;
+
+        void generatePart(RenderHoldPoint start, RenderHoldPoint end)
+        {
+            float interval = 1;
+
+            bool differentTime = start.GlobalTime != end.GlobalTime;
+            bool differentShape = start.Start != end.Start || start.Interval != end.Interval;
+            
+            if (differentTime && differentShape)
+            {
+                interval = 18.0f / (end.GlobalTime - start.GlobalTime);
+            }
+            
+            // For every imaginary "sub point" between start and end.
+            for (float t = 0; t < 1; t += interval)
+            {
+                float globalTime       = Lerp(start.GlobalTime,       end.GlobalTime,       t);
+                float globalScaledTime = Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
+                float localTime        = Lerp(start.LocalTime,        end.LocalTime,        t);
+                float intervalAngle    = Lerp(start.Interval,         end.Interval,         t);
+                float startAngle       = LerpCyclic(start.Start, end.Start, t, 360);
+
+                generateArc(globalTime, globalScaledTime, localTime, startAngle, intervalAngle);
+            }
+        }
+
+        void generateArc(float globalTime, float globalScaledTime, float localTime, float startAngle, float intervalAngle)
+        {
+            arcs++;
+            
+            float delta = time > globalTime
+                ? globalTime - time
+                : globalScaledTime - scaledTime;
+
+            float scale = InverseLerp(3333.333f / (settings.NoteSpeed * 0.1f), 0, delta);
+            scale = Math.Max(0, scale);
+            scale = Perspective(scale);
+
+            float radius = canvasInfo.JudgementLineRadius * scale;
+
+            for (int x = 0; x <= maxSize; x++)
+            {
+                float angle = startAngle + intervalAngle * x;
+                SKPoint screen = PointOnArc(canvasInfo.Center, radius, angle);
+
+                float texX = 512 * (int)settings.HoldNoteColor / 13.0f;
+                float texY = 512 * (1 - localTime);
+                SKPoint tex = new(texX, texY);
+
+                vertexScreenCoords.Add(screen);
+                vertexTextureCoords.Add(tex);
+            }
+        }
     }
     
+    /// <summary>
+    /// Draws a sync connector.
+    /// </summary>
     private static void DrawSyncConnector(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale <= 0) return;
+        if (perspectiveScale is <= 0 or > 1) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = perspectiveScale * canvasInfo.Scale;
@@ -582,8 +977,13 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws a measure or beat line.
+    /// </summary>
     private static void DrawMeasureLine(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine)
     {
+        if (perspectiveScale is <= 0 or > 1) return;
+        
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
 
         if (isBeatLine)
@@ -596,6 +996,9 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws a row of lanes.
+    /// </summary>
     private static void DrawLanes(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, int position, int size, float time)
     {
         if (size == 0) return;
@@ -663,6 +1066,9 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws part of the in-game UI.
+    /// </summary>
     private static void DrawInterface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Entry entry, float time)
     {
         if (entry.ChartEnd.Time > 0)
@@ -724,6 +1130,14 @@ public static class Renderer3D
         canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(0xFFFB67B7));
     }
     
+    
+    /// <summary>
+    /// Returns a point on an imaginary arc/circle.
+    /// </summary>
+    /// <param name="center">The center of the arc.</param>
+    /// <param name="radius">The radius of the arc.</param>
+    /// <param name="angle">The angle of the point.</param>
+    /// <returns></returns>
     private static SKPoint PointOnArc(SKPoint center, float radius, float angle)
     {
         return new
@@ -733,17 +1147,67 @@ public static class Renderer3D
         );
     }
 
+    /// <summary>
+    /// Applies perspective distortion to a linear scale value.
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
     internal static float Perspective(float x)
     {
         // Huge thanks to CG505 for figuring out the perspective math:
         // https://www.desmos.com/calculator/9a0srmgktj
+        x = Math.Min(1.3f, x);
         return 3.325f * x / (13.825f - 10.5f * x);
     }
 
-    private static float SlideArrowMask(float x)
+    internal static float Lerp(float a, float b, float t) => a + t * (b - a);
+    
+    internal static float LerpCyclic(float a, float b, float t, float m)
     {
-        return x < 0.88f 
-            ? (0.653f * x + 0.175f) / 0.75f 
-            : (-6.25f * x + 6.25f) / 0.75f;
+        if (Math.Abs(a - b) <= m * 0.5f) return a + t * (b - a);
+        
+        if (a > b) b += m;
+        else a += m;
+
+        return a + t * (b - a);
     }
+    
+    internal static float InverseLerp(float a, float b, float x) => a == b ? 0 : (x - a) / (b - a);
+}
+
+file struct RenderNote(Note note, Layer layer, int layerIndex, float scale, bool sync, bool isHoldEnd)
+{
+    public readonly Note Note = note;
+    public readonly Layer Layer = layer;
+    public readonly int LayerIndex = layerIndex;
+    public readonly float Scale = scale;
+    public readonly bool Sync = sync;
+    public readonly bool IsHoldEnd = isHoldEnd;
+}
+
+file struct RenderHoldPoint
+{
+    internal RenderHoldPoint(HoldNote hold, HoldPointNote point, int maxSize)
+    {
+        GlobalTime = point.Timestamp.Time;
+        GlobalScaledTime = point.Timestamp.ScaledTime;
+
+        LocalTime = hold.Points.Count > 1 && hold.Points[0].Timestamp.Time != hold.Points[^1].Timestamp.Time
+            ? (point.Timestamp.Time - hold.Points[0].Timestamp.Time) / (hold.Points[^1].Timestamp.Time - hold.Points[0].Timestamp.Time)
+            : 0;
+        
+        Start = point.Size == 60 
+            ? point.Position * -6f 
+            : point.Position * -6f - 4.2f;
+        
+        Interval = point.Size == 60 
+            ? point.Size * -6f / maxSize 
+            : (point.Size * -6f + 8.4f) / maxSize;
+    }
+
+    public float GlobalTime;
+    public float GlobalScaledTime;
+    public float LocalTime;
+    public float Start;
+    public float Interval;
 }

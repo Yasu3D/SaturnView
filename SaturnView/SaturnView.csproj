@@ -11,12 +11,20 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\SaturnData\SaturnData\SaturnData.csproj" />
+        <ProjectReference Include="..\..\SaturnData\SaturnData\SaturnData.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="Assets\noto_plus_1.ttf">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
+        <Content Update="Assets\noto_plus_1.ttf">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="Assets\hold_gradient.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        
+        <Content Include="Assets\hold_gradient_active.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

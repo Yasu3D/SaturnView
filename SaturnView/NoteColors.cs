@@ -8,7 +8,7 @@ public static class NoteColors
     public const uint CapBase = 0xFF4EACF7;
     public const uint CapDark  = 0xFF0093E7;
 
-    public const uint ChainStripe = 0x80000000;
+    public const uint ChainStripe = 0x60000000;
     public const uint RNoteGlow = 0xFFFFFFC0;
     public const uint SyncOutline = 0xFF3CFFFF;
     

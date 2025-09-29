@@ -1,3 +1,4 @@
+using SaturnData.Notation.Notes;
 using SkiaSharp;
 
 namespace SaturnView;
@@ -116,10 +117,10 @@ internal static class NotePaints
     private static readonly SKColor NoteColorLightGrayHoldEndLight = new(NoteColors.LightGrayHoldEndLight);
     private static readonly SKColor NoteColorLightGrayHoldEndDark  = new(NoteColors.LightGrayHoldEndDark);
 
-    private static readonly SKColor ShadeColorA = new(0x00FFFFFF);
-    private static readonly SKColor ShadeColorB = new(0x50FFFFFF);
-    private static readonly SKColor ShadeColorC = new(0xFFFFFFFF);
-    private static readonly SKColor ShadeColorD = new(0xFFAAAAAA);
+    private static readonly SKColor JudgementLineShadeColorA = new(0x00FFFFFF);
+    private static readonly SKColor JudgementLineShadeColorB = new(0x50FFFFFF);
+    private static readonly SKColor JudgementLineShadeColorC = new(0xFFFFFFFF);
+    private static readonly SKColor JudgementLineShadeColorD = new(0xFFAAAAAA);
     
 #endregion Color Definitions
     
@@ -276,6 +277,34 @@ internal static class NotePaints
         BlendMode = SKBlendMode.Plus,
     };
 
+    public static readonly SKPaint HoldSurfacePaint = new()
+    {
+        IsAntialias = false,
+        Color = new(0xCFFFFFFF),
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/hold_gradient.png")
+            )
+        ),
+        BlendMode = SKBlendMode.SrcOver,
+    };
+    
+    public static readonly SKPaint HoldSurfacePaintActive = new()
+    {
+        IsAntialias = false,
+        Color = new(0xCFFFFFFF),
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/hold_gradient_active.png")
+            )
+        ),
+        BlendMode = SKBlendMode.SrcOver,
+    };
+    
     public static readonly SKPaint DebugPaint = new()
     {
         IsAntialias = false,
@@ -291,7 +320,7 @@ internal static class NotePaints
         Color = new(0xFFFF0000),
         Style = SKPaintStyle.Stroke,
         StrokeCap = SKStrokeCap.Butt,
-        StrokeWidth = 1,
+        StrokeWidth = 5,
     };
     
     public static readonly SKPaint DebugPaint3 = new()
@@ -432,7 +461,7 @@ internal static class NotePaints
     
     internal static SKPaint GetChainStripePaint(float opacity)
     {
-        FlatFillPaint.Color = NoteColorChainStripe.WithAlpha((byte)(opacity * 255));
+        FlatFillPaint.Color = NoteColorChainStripe.WithAlpha((byte)(opacity * 128));
         return FlatFillPaint;
     }
 
@@ -503,14 +532,14 @@ internal static class NotePaints
         return FlatStrokePaint;
     }
     
-    internal static SKPaint GetSlideFillPaint(CanvasInfo canvasInfo, RenderSettings settings, int position, int size, int colorId, float opacity, bool flip)
+    internal static SKPaint GetSlideFillPaint(CanvasInfo canvasInfo, RenderSettings settings, int size, int colorId, float opacity, bool flip)
     {
         if (settings.LowPerformanceMode)
         {
             FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
             return FlatFillPaint;
         }
-
+        
         byte alpha = (byte)(opacity * 255);
         ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
         
@@ -519,12 +548,10 @@ internal static class NotePaints
         
         SKColor[] colors = flip ? [colorLight, colorBase] : [colorBase, colorLight];
         float[] positions = flip ? [0.0f, 0.4f] : [0.6f, 1.0f];
-
-        float startAngle = 360 + position * -6;
-        float endAngle = startAngle + size * 6;
         
-        SKShader shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Repeat, startAngle, endAngle);
-        ShaderFillPaint.Shader = shader;
+        float sweepAngle = size * 6;
+        
+        ShaderFillPaint.Shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Decal, 0, sweepAngle);
 
         return ShaderFillPaint;
     }
@@ -626,7 +653,7 @@ internal static class NotePaints
         float angle = NoteColors.JudgeLineTiltFromId(id);
 
         SKColor[] sweepColors = [sweepColorA, sweepColorB, sweepColorA, sweepColorB, sweepColorA];
-        SKColor[] shadeColors = [ShadeColorA, ShadeColorB, ShadeColorC, ShadeColorD, ShadeColorD, ShadeColorC, ShadeColorB, ShadeColorA];
+        SKColor[] shadeColors = [JudgementLineShadeColorA, JudgementLineShadeColorB, JudgementLineShadeColorC, JudgementLineShadeColorD, JudgementLineShadeColorD, JudgementLineShadeColorC, JudgementLineShadeColorB, JudgementLineShadeColorA];
         float[] shadePositions = [radius0, radius1, radius2, radius3, radius4, radius5, radius6, radius7];
         
         SKShader sweepGradient = SKShader.CreateSweepGradient(canvasInfo.Center, sweepColors, SKShaderTileMode.Repeat, 0 + angle, 360 + angle);
@@ -711,11 +738,13 @@ internal static class NotePaints
         return FlatStrokePaint;
     }
 
-    internal static SKPaint GetHoldPointPaint(float pixelScale, float opacity)
+    internal static SKPaint GetHoldPointPaint(float pixelScale, HoldPointRenderType renderType, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 4f * pixelScale;
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = new(0xEE, 0xEE, 0xEE, (byte)(opacity * 255));
+        FlatStrokePaint.Color = renderType == HoldPointRenderType.Visible
+            ? new(0xEE, 0xEE, 0xEE, (byte)(opacity * 255))
+            : new(0x55, 0x55, 0x55, (byte)(opacity * 255));
 
         return FlatStrokePaint;
     }
