@@ -562,6 +562,14 @@ internal static class NotePaints
         return FlatFillPaint;
     }
 
+    internal static SKPaint GetSyncOutlineStrokePaint(float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 6.36f * pixelScale;
+        FlatStrokePaint.Color = NoteColorSyncOutline.WithAlpha((byte)(opacity * 255));
+
+        return FlatStrokePaint;
+    }
+
     internal static SKPaint GetSyncConnectorPaint(CanvasInfo canvasInfo, RenderSettings settings, float pixelScale, float rawScale, float opacity)
     {
         if (settings.LowPerformanceMode)

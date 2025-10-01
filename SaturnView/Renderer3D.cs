@@ -12,11 +12,11 @@ public static class Renderer3D
 {
     private static readonly float[][] SyncOutlineRadius = 
     [
-        [ 0.971f, 0.983f, 1.014f, 1.026f ],
-        [ 0.963f, 0.975f, 1.025f, 1.037f ],
-        [ 0.946f, 0.958f, 1.043f, 1.055f ],
-        [ 0.926f, 0.938f, 1.063f, 1.075f ],
-        [ 0.910f, 0.922f, 1.080f, 1.092f ],
+        [0.971f, 0.983f, 1.014f, 1.026f, 0.977f, 1.020f],
+        [0.963f, 0.975f, 1.025f, 1.037f, 0.969f, 1.031f],
+        [0.946f, 0.958f, 1.043f, 1.055f, 0.952f, 1.049f],
+        [0.926f, 0.938f, 1.063f, 1.075f, 0.932f, 1.069f],
+        [0.910f, 0.922f, 1.080f, 1.092f, 0.915f, 1.086f],
     ];
     
     /// <summary>
@@ -182,6 +182,7 @@ public static class Renderer3D
             float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
             
             List<RenderNote> notesToDraw = [];
+            List<RenderNote> holdEndsToDraw = [];
             List<RenderNote> holdsToDraw = [];
 
             for (int l = 0; l < chart.Layers.Count; l++)
@@ -204,7 +205,7 @@ public static class Renderer3D
                         if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
                         if (holdNote.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
 
-                        holdsToDraw.Add(new(holdNote, layer, l, 0, false, false));
+                        holdsToDraw.Add(new(holdNote, layer, l, 0, false));
                         
                         float t0 = 1 - ((holdNote.Points[0].Timestamp.ScaledTime - scaledTime) / viewDistance);
                         float t1 = 1 - ((holdNote.Points[^1].Timestamp.ScaledTime - scaledTime) / viewDistance);
@@ -216,13 +217,13 @@ public static class Renderer3D
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
                             bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
 
-                            notesToDraw.Add(new(note, layer, l, t0, sync, false));
+                            notesToDraw.Add(new(note, layer, l, t0, sync));
                         }
 
                         // Hold End
                         if (t1 is >= 0 and <= 1)
                         {
-                            notesToDraw.Add(new(holdNote.Points[^1], layer, l, t1, false, true));
+                            holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, t1, false));
                         }
 
                         // Hold Points
@@ -231,7 +232,7 @@ public static class Renderer3D
                             HoldPointNote point = holdNote.Points[j];
                             float t = 1 - ((point.Timestamp.ScaledTime - scaledTime) / viewDistance);
 
-                            notesToDraw.Add(new(point, layer, l, t, false, false));
+                            notesToDraw.Add(new(point, layer, l, t, false));
                         }
                     }
                     else
@@ -240,26 +241,47 @@ public static class Renderer3D
                         if (timeable.Timestamp.ScaledTime < scaledTime) continue;
                         if (timeable.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
 
-                        float t = 1 - ((timeable.Timestamp.ScaledTime - scaledTime) / viewDistance);
-
+                        float t = 1 - (timeable.Timestamp.ScaledTime - scaledTime) / viewDistance;
+                        
                         if (t is < 0 or > 1) continue;
 
                         Note? prev = n > 0 ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
                         bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
 
-                        notesToDraw.Add(new(note, layer, l, t, sync, false));
+                        notesToDraw.Add(new(note, layer, l, t, sync));
                     }
+                }
+
+                foreach (Note note in layer.GeneratedNotes)
+                {
+                    if (note is not ITimeable timeable) continue;
+
+                    if (timeable.Timestamp.Time < time) continue;
+                    if (timeable.Timestamp.ScaledTime < scaledTime) continue;
+                    if (timeable.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
+                    
+                    float t = 1 - (timeable.Timestamp.ScaledTime - scaledTime) / viewDistance;
+
+                    notesToDraw.Add(new(note, layer, l, t, false));
                 }
             }
 
             notesToDraw = notesToDraw
                 .OrderBy(x => x.LayerIndex)
                 .ThenBy(x => x.Scale)
+                .ThenByDescending(x => x.Note is SyncNote)
                 .ThenByDescending(x => x.Note is HoldNote or HoldPointNote)
-                .ThenByDescending(x => ((IPositionable)x.Note).Size)
+                .ThenByDescending(x => (x.Note as IPositionable)?.Size ?? 60)
                 .ToList();
 
+            foreach (RenderNote renderNote in holdEndsToDraw)
+            {
+                if (renderNote.Note is not HoldPointNote holdPointNote) continue;
+                
+                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, Perspective(renderNote.Scale), 1);
+            }
+            
             foreach (RenderNote renderNote in holdsToDraw)
             {
                 if (renderNote.Note is not HoldNote holdNote) continue;
@@ -271,18 +293,20 @@ public static class Renderer3D
             {
                 if (renderNote.Note is HoldPointNote holdPointNote)
                 {
-                    
-                    if (renderNote.IsHoldEnd)
-                    {
-                        DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, Perspective(renderNote.Scale), 1);
-                    }
-                    else if (!playing)
-                    {
-                        DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, Perspective(renderNote.Scale), 1);
-                    }
+                    DrawHoldPointNote(canvas, canvasInfo, holdPointNote, Perspective(renderNote.Scale), 1);
                 }
-                
-                DrawNote(canvas, canvasInfo, settings, renderNote.Note, Perspective(renderNote.Scale), renderNote.Scale, renderNote.Sync, 1);
+                else if (renderNote.Note is SyncNote syncNote)
+                {
+                    DrawSyncNote(canvas, canvasInfo, settings, syncNote, Perspective(renderNote.Scale), 1);
+                }
+                else if (renderNote.Note is MeasureLineNote)
+                {
+                    DrawMeasureLineNote(canvas, canvasInfo, Perspective(renderNote.Scale), renderNote.Scale, false);
+                }
+                else
+                {
+                    DrawNote(canvas, canvasInfo, settings, renderNote.Note, Perspective(renderNote.Scale), renderNote.Scale, renderNote.Sync, 1);
+                }
             }
         }
     }
@@ -356,48 +380,60 @@ public static class Renderer3D
         // Sync Outline
         if (sync)
         {
-            float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][0];
-            float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][1];
-            float radius2 = radius * SyncOutlineRadius[(int)settings.NoteThickness][2];
-            float radius3 = radius * SyncOutlineRadius[(int)settings.NoteThickness][3];
-            
-            SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
-            SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
-            SKRect rect2 = new(canvasInfo.Center.X - radius2, canvasInfo.Center.Y - radius2, canvasInfo.Center.X + radius2, canvasInfo.Center.Y + radius2);
-            SKRect rect3 = new(canvasInfo.Center.X - radius3, canvasInfo.Center.Y - radius3, canvasInfo.Center.X + radius3, canvasInfo.Center.Y + radius3);
-            
-            float startAngle = positionable.Position * -6;
-            float sweepAngle = positionable.Size * -6;
-            
-            float endAngle = startAngle + sweepAngle;
-            
-            SKPath path = new();
-            
-            SKPoint control0 = PointOnArc(canvasInfo.Center, radius, endAngle + 0.25f);
-            SKPoint p0 = PointOnArc(canvasInfo.Center, radius3, endAngle + 2.5f);
+            if (positionable.Size == 60)
+            {
+                 float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4];
+                 float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5];
 
-            SKPoint control1 = PointOnArc(canvasInfo.Center, radius, startAngle - 0.25f);
-            SKPoint p1 = PointOnArc(canvasInfo.Center, radius0, startAngle - 2.5f);
-            
-            SKPoint control2 = PointOnArc(canvasInfo.Center, radius, startAngle - 1.1f);
-            SKPoint p2 = PointOnArc(canvasInfo.Center, radius2, startAngle - 2.55f);
-            
-            SKPoint control3 = PointOnArc(canvasInfo.Center, radius, endAngle + 1.1f);
-            SKPoint p3 = PointOnArc(canvasInfo.Center, radius1, endAngle + 2.55f);
+                 SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
+                 canvas.DrawCircle(canvasInfo.Center, radius0, paint);
+                 canvas.DrawCircle(canvasInfo.Center, radius1, paint);
+            }
+            else
+            {
+                float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][0];
+                float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][1];
+                float radius2 = radius * SyncOutlineRadius[(int)settings.NoteThickness][2];
+                float radius3 = radius * SyncOutlineRadius[(int)settings.NoteThickness][3];
+                
+                SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
+                SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
+                SKRect rect2 = new(canvasInfo.Center.X - radius2, canvasInfo.Center.Y - radius2, canvasInfo.Center.X + radius2, canvasInfo.Center.Y + radius2);
+                SKRect rect3 = new(canvasInfo.Center.X - radius3, canvasInfo.Center.Y - radius3, canvasInfo.Center.X + radius3, canvasInfo.Center.Y + radius3);
+                
+                float startAngle = positionable.Position * -6;
+                float sweepAngle = positionable.Size * -6;
+                
+                float endAngle = startAngle + sweepAngle;
+                
+                SKPath path = new();
+                
+                SKPoint control0 = PointOnArc(canvasInfo.Center, radius, endAngle + 0.25f);
+                SKPoint p0 = PointOnArc(canvasInfo.Center, radius3, endAngle + 2.5f);
 
-            path.ArcTo(rect0, startAngle - 2.5f, sweepAngle + 5f, true);
-            path.QuadTo(control0, p0);
-            path.ArcTo(rect3, endAngle + 2.5f, -sweepAngle - 5f, false);
-            path.QuadTo(control1, p1);
-            path.Close();
-            
-            path.ArcTo(rect1, endAngle + 2.55f, -sweepAngle - 5.1f, true);
-            path.QuadTo(control2, p2);
-            path.ArcTo(rect2, startAngle - 2.55f, sweepAngle + 5.1f, false);
-            path.QuadTo(control3, p3);
-            path.Close();
-            
-            canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
+                SKPoint control1 = PointOnArc(canvasInfo.Center, radius, startAngle - 0.25f);
+                SKPoint p1 = PointOnArc(canvasInfo.Center, radius0, startAngle - 2.5f);
+                
+                SKPoint control2 = PointOnArc(canvasInfo.Center, radius, startAngle - 1.1f);
+                SKPoint p2 = PointOnArc(canvasInfo.Center, radius2, startAngle - 2.55f);
+                
+                SKPoint control3 = PointOnArc(canvasInfo.Center, radius, endAngle + 1.1f);
+                SKPoint p3 = PointOnArc(canvasInfo.Center, radius1, endAngle + 2.55f);
+
+                path.ArcTo(rect0, startAngle - 2.5f, sweepAngle + 5f, true);
+                path.QuadTo(control0, p0);
+                path.ArcTo(rect3, endAngle + 2.5f, -sweepAngle - 5f, false);
+                path.QuadTo(control1, p1);
+                path.Close();
+                
+                path.ArcTo(rect1, endAngle + 2.55f, -sweepAngle - 5.1f, true);
+                path.QuadTo(control2, p2);
+                path.ArcTo(rect2, startAngle - 2.55f, sweepAngle + 5.1f, false);
+                path.QuadTo(control3, p3);
+                path.Close();
+                
+                canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
+            }
         }
         
         // Chain Stripes
@@ -771,7 +807,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold control point.
     /// </summary>
-    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, HoldPointNote note, float perspectiveScale, float opacity)
     {
         if (perspectiveScale is <= 0 or > 1) return;
         
@@ -955,7 +991,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a sync connector.
     /// </summary>
-    private static void DrawSyncConnector(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
+    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
         if (perspectiveScale is <= 0 or > 1) return;
         
@@ -980,7 +1016,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a measure or beat line.
     /// </summary>
-    private static void DrawMeasureLine(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine)
+    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine)
     {
         if (perspectiveScale is <= 0 or > 1) return;
         
@@ -1175,14 +1211,13 @@ public static class Renderer3D
     internal static float InverseLerp(float a, float b, float x) => a == b ? 0 : (x - a) / (b - a);
 }
 
-file struct RenderNote(Note note, Layer layer, int layerIndex, float scale, bool sync, bool isHoldEnd)
+file struct RenderNote(Note note, Layer layer, int layerIndex, float scale, bool sync)
 {
     public readonly Note Note = note;
     public readonly Layer Layer = layer;
     public readonly int LayerIndex = layerIndex;
     public readonly float Scale = scale;
     public readonly bool Sync = sync;
-    public readonly bool IsHoldEnd = isHoldEnd;
 }
 
 file struct RenderHoldPoint
