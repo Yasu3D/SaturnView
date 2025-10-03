@@ -344,6 +344,22 @@ public class RenderSettings
     private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
     
     /// <summary>
+    /// Should scroll speed changes be visible?
+    /// </summary>
+    public bool ShowSpeedChanges
+    {
+        get => showSpeedChanges;
+        set
+        {
+            if (showSpeedChanges == value) return;
+            
+            showSpeedChanges = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSpeedChanges = false;
+    
+    /// <summary>
     /// Should judgement windows be shown?
     /// </summary>
     public bool ShowJudgementWindows
@@ -358,7 +374,6 @@ public class RenderSettings
         }
     }
     private bool showJudgementWindows = true;
-
 
     /// <summary>
     /// Should MARVELOUS judgement windows be shown?
@@ -570,6 +585,48 @@ public class RenderSettings
     private bool showSnapBackwardNotes = true;
     
     /// <summary>
+    /// Should Sync notes be shown?
+    /// </summary>
+    public bool ShowSyncNotes
+    {
+        get => showSyncNotes;
+        set 
+        {
+            showSyncNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSyncNotes = true;
+    
+    /// <summary>
+    /// Should Measure Line notes be shown?
+    /// </summary>
+    public bool ShowMeasureLineNotes
+    {
+        get => showMeasureLineNotes;
+        set 
+        {
+            showMeasureLineNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showMeasureLineNotes = true;
+
+    /// <summary>
+    /// Should Beat Lines be shown?
+    /// </summary>
+    public bool ShowBeatLineNotes
+    {
+        get => showBeatLineNotes;
+        set 
+        {
+            showBeatLineNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showBeatLineNotes = true;
+    
+    /// <summary>
     /// Should Lane Show notes be shown?
     /// </summary>
     public bool ShowLaneShowNotes
@@ -600,98 +657,98 @@ public class RenderSettings
     /// <summary>
     /// Should Tempo changes be shown?
     /// </summary>
-    public bool ShowTempoChanges
+    public bool ShowTempoChangeEvents
     {
-        get => showTempoChanges;
+        get => showTempoChangeEvents;
         set 
         {
-            showTempoChanges = value;
+            showTempoChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showTempoChanges = true;
+    private bool showTempoChangeEvents = true;
     
     /// <summary>
     /// Should Metre changes be shown?
     /// </summary>
-    public bool ShowMetreChanges
+    public bool ShowMetreChangeEvents
     {
-        get => showMetreChanges;
+        get => showMetreChangeEvents;
         set 
         {
-            showMetreChanges = value;
+            showMetreChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showMetreChanges = true;
+    private bool showMetreChangeEvents = true;
     
     /// <summary>
     /// Should Speed changes be shown?
     /// </summary>
-    public bool ShowSpeedChanges
+    public bool ShowSpeedChangeEvents
     {
-        get => showSpeedChanges;
+        get => showSpeedChangeEvents;
         set 
         {
-            showSpeedChanges = value;
+            showSpeedChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showSpeedChanges = true;
+    private bool showSpeedChangeEvents = true;
     
     /// <summary>
     /// Should Visibility changes be shown?
     /// </summary>
-    public bool ShowVisibilityChanges
+    public bool ShowVisibilityChangeEvents
     {
-        get => showVisibilityChanges;
+        get => showVisibilityChangeEvents;
         set 
         {
-            showVisibilityChanges = value;
+            showVisibilityChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showVisibilityChanges = true;
+    private bool showVisibilityChangeEvents = true;
     
     /// <summary>
     /// Should Reverse effects be shown?
     /// </summary>
-    public bool ShowReverseEffects
+    public bool ShowReverseEffectEvents
     {
-        get => showReverseEffects;
+        get => showReverseEffectEvents;
         set 
         {
-            showReverseEffects = value;
+            showReverseEffectEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showReverseEffects = true;
+    private bool showReverseEffectEvents = true;
     
     /// <summary>
     /// Should Stop effects be shown?
     /// </summary>
-    public bool ShowStopEffects
+    public bool ShowStopEffectEvents
     {
-        get => showStopEffects;
+        get => showStopEffectEvents;
         set 
         {
-            showStopEffects = value;
+            showStopEffectEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showStopEffects = true;
+    private bool showStopEffectEvents = true;
     
     /// <summary>
     /// Should Tutorial tags be shown?
     /// </summary>
-    public bool ShowTutorialMarkers
+    public bool ShowTutorialMarkerEvents
     {
-        get => showTutorialMarkers;
+        get => showTutorialMarkerEvents;
         set 
         {
-            showTutorialMarkers = value;
+            showTutorialMarkerEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showTutorialMarkers = true;
+    private bool showTutorialMarkerEvents = true;
 }

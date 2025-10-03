@@ -277,10 +277,9 @@ internal static class NotePaints
         BlendMode = SKBlendMode.Plus,
     };
 
-    public static readonly SKPaint HoldSurfacePaint = new()
+    private static readonly SKPaint HoldSurfacePaint = new()
     {
         IsAntialias = false,
-        Color = new(0xCFFFFFFF),
         Shader = SKShader.CreateImage
         (
             SKImage.FromEncodedData
@@ -291,10 +290,9 @@ internal static class NotePaints
         BlendMode = SKBlendMode.SrcOver,
     };
     
-    public static readonly SKPaint HoldSurfacePaintActive = new()
+    private static readonly SKPaint HoldSurfacePaintActive = new()
     {
         IsAntialias = false,
-        Color = new(0xCFFFFFFF),
         Shader = SKShader.CreateImage
         (
             SKImage.FromEncodedData
@@ -609,20 +607,20 @@ internal static class NotePaints
         return ShaderStrokePaint;
     }
 
-    internal static SKPaint GetMeasureLinePaint(CanvasInfo canvasInfo, float linearScale)
+    internal static SKPaint GetMeasureLinePaint(CanvasInfo canvasInfo, float linearScale, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 3 * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = NoteColorMeasureLine;
+        FlatStrokePaint.Color = NoteColorMeasureLine.WithAlpha((byte)(opacity * 255));
 
         return FlatStrokePaint;
     }
 
-    internal static SKPaint GetBeatLinePaint(CanvasInfo canvasInfo, float linearScale)
+    internal static SKPaint GetBeatLinePaint(CanvasInfo canvasInfo, float linearScale, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = NoteColorBeatLine;
+        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 255));
 
         return FlatStrokePaint;
     }
@@ -712,7 +710,7 @@ internal static class NotePaints
             scrollColors[i * 2] = even ? NoteColorLaneBaseA : NoteColorLaneBaseB;
             scrollColors[i * 2 + 1] = even ? NoteColorLaneBaseB : NoteColorLaneBaseA;
 
-            scrollPositions[i * 2] = Renderer3D.Perspective((i - 1) * interval + t);
+            scrollPositions[i * 2] = RenderUtils.Perspective((i - 1) * interval + t);
             scrollPositions[i * 2 + 1] = scrollPositions[i * 2] + 0.001f;
         }
         
@@ -755,6 +753,20 @@ internal static class NotePaints
             : new(0x55, 0x55, 0x55, (byte)(opacity * 255));
 
         return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetHoldSurfacePaint(bool active, float opacity)
+    {
+        if (active)
+        {
+            HoldSurfacePaintActive.Color = new(0xFF, 0xFF, 0xFF, (byte)(opacity * 207));
+            return HoldSurfacePaintActive;
+        }
+        else
+        {
+            HoldSurfacePaint.Color = new(0xFF, 0xFF, 0xFF, (byte)(opacity * 207));
+            return HoldSurfacePaint;
+        }
     }
     
     internal static SKPaint GetSongTimerPaint(float pixelScale)

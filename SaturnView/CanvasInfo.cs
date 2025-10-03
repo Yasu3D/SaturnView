@@ -33,4 +33,9 @@ public class CanvasInfo
     /// The center point of the canvas.
     /// </summary>
     public SKPoint Center;
+
+    /// <summary>
+    /// The background color of the canvas.
+    /// </summary>
+    public SKColor BackgroundColor;
 }
