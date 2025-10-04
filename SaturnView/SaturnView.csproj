@@ -26,5 +26,11 @@
         <Content Include="Assets\hold_gradient_active.png">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        
+        <None Remove="Assets\noto_plus_1.ttf" />
+        
+        <Content Include="Assets\noto_plus_1.ttf">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

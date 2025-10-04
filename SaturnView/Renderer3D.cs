@@ -8,6 +8,16 @@ using SkiaSharp;
 
 namespace SaturnView;
 
+// TODO:
+// Implement Bonus Spin
+// Optimize Paths into Meshes
+// Offset edges of hold control points a bit?
+// Make sync outlines more accurate with meshes
+// Event Markers
+// Visualizations
+// Lane Toggles
+// Background(s?)
+
 public static class Renderer3D
 {
     private static readonly float[][] SyncOutlineRadius = 
@@ -326,11 +336,12 @@ public static class Renderer3D
                 }
             }
 
+            
             notesToDraw = notesToDraw
                 .OrderBy(x => x.IsVisible)
                 .ThenBy(x => x.LayerIndex)
                 .ThenBy(x => x.Scale)
-                .ThenByDescending(x => x.Object is SyncNote)
+                .ThenByDescending(x => x.Object is SyncNote or MeasureLineNote)
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
@@ -505,25 +516,22 @@ public static class Renderer3D
             float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
             float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
             float start = (positionable.Position + 1) * -6;
-            
-            SKPath path = new();
 
-            for (int i = 0; i < stripes; i++)
+            List<SKPoint> vertices = [];
+
+            for (int i = 1; i < stripes - 3; i++)
             {
                 if (positionable.Size != 60)
                 {
-                    if (i == 0) continue; // skip first stripe
-                    if (i >= stripes - 3) continue; // skip last 3 stripes
-
                     if (i == 1)
                     {
                         SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 3);
                         SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 1.5f);
                         SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 3);
 
-                        path.MoveTo(p4);
-                        path.LineTo(p5);
-                        path.LineTo(p6);
+                        vertices.Add(p4);
+                        vertices.Add(p5);
+                        vertices.Add(p6);
                     }
                     
                     if (i == stripes - 4)
@@ -532,10 +540,10 @@ public static class Renderer3D
                         SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
                         SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
                         
-                        path.MoveTo(p4);
-                        path.LineTo(p5);
-                        path.LineTo(p6);
-
+                        vertices.Add(p4);
+                        vertices.Add(p5);
+                        vertices.Add(p6);
+                        
                         continue;
                     }
                 }
@@ -544,14 +552,17 @@ public static class Renderer3D
                 SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 - 1.5f);
                 SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
                 SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
+
+                vertices.Add(p0);
+                vertices.Add(p1);
+                vertices.Add(p2);
                 
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-                path.LineTo(p3);
+                vertices.Add(p0);
+                vertices.Add(p2);
+                vertices.Add(p3);
             }
             
-            canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));
+            canvas.DrawVertices(SKVertexMode.Triangles, vertices.ToArray(), null, NotePaints.GetChainStripePaint(opacity));
         }
 
         // Bonus Triangles
