@@ -10,7 +10,6 @@ namespace SaturnView;
 
 // TODO:
 // Implement Bonus Spin
-// Offset edges of hold control points a bit?
 // Make sync outlines more accurate with meshes
 // Event Markers
 // Visualizations
