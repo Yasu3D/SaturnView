@@ -928,6 +928,8 @@ public static class Renderer3D
         List<SKPoint> vertexTextureCoords = [];
 
         HoldPointNote[] points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToArray();
+
+        float visibleTime = 3333.333f / (settings.NoteSpeed * 0.1f);
         
         float scaledTime = settings.ShowSpeedChanges ? Timestamp.ScaledTimeFromTime(layer, time) : time;
         int maxSize = hold.MaxSize;
@@ -1015,6 +1017,11 @@ public static class Renderer3D
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
         {
+            float startScale = RenderUtils.InverseLerp(scaledTime, scaledTime + visibleTime, start.GlobalScaledTime);
+            float endScale = RenderUtils.InverseLerp(scaledTime, scaledTime + visibleTime, end.GlobalScaledTime);
+
+            if (startScale < 0 && endScale < 0) return;
+            
             float interval = 1;
 
             bool differentTime = start.GlobalTime != end.GlobalTime;
@@ -1046,7 +1053,7 @@ public static class Renderer3D
                 ? globalTime - time
                 : globalScaledTime - scaledTime;
 
-            float scale = RenderUtils.InverseLerp(3333.333f / (settings.NoteSpeed * 0.1f), 0, delta);
+            float scale = RenderUtils.InverseLerp(visibleTime, 0, delta);
             scale = Math.Max(0, scale);
             scale = RenderUtils.Perspective(scale);
 
