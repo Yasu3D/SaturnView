@@ -10,7 +10,6 @@ namespace SaturnView;
 
 // TODO:
 // Implement Bonus Spin
-// Make sync outlines more accurate with meshes
 // Event Markers
 // Visualizations
 // Lane Toggles
