@@ -10,7 +10,6 @@ namespace SaturnView;
 
 // TODO:
 // Implement Bonus Spin
-// Optimize Paths into Meshes
 // Offset edges of hold control points a bit?
 // Make sync outlines more accurate with meshes
 // Event Markers
@@ -65,6 +64,8 @@ public static class Renderer3D
         {
             frameCounter = 0;
             fps = (1000.0f / (stopwatch.ElapsedTicks / 10000.0f)).ToString("0.0");
+            fps += "  |  ";
+            fps += (stopwatch.ElapsedTicks / 10000.0f).ToString("0.000");
         }
         
         //Console.WriteLine((1000.0f / (stopwatch.ElapsedTicks / 10000.0f)).ToString("0.0"));
@@ -365,7 +366,7 @@ public static class Renderer3D
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
-                    DrawHoldPointNote(canvas, canvasInfo, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
@@ -454,12 +455,12 @@ public static class Renderer3D
         {
             if (positionable.Size == 60)
             {
-                 float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4];
-                 float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5];
+                float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4];
+                float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5];
 
-                 SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
-                 canvas.DrawCircle(canvasInfo.Center, radius0, paint);
-                 canvas.DrawCircle(canvasInfo.Center, radius1, paint);
+                SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
+                canvas.DrawCircle(canvasInfo.Center, radius0, paint);
+                canvas.DrawCircle(canvasInfo.Center, radius1, paint);
             }
             else
             {
@@ -517,21 +518,24 @@ public static class Renderer3D
             float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
             float start = (positionable.Position + 1) * -6;
 
-            List<SKPoint> vertices = [];
+            SKPath path = new();
 
-            for (int i = 1; i < stripes - 3; i++)
+            for (int i = 0; i < stripes; i++)
             {
                 if (positionable.Size != 60)
                 {
+                    if (i == 0) continue;
+                    if (i >= stripes - 3) continue;
+                    
                     if (i == 1)
                     {
                         SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 3);
                         SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 1.5f);
                         SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 3);
 
-                        vertices.Add(p4);
-                        vertices.Add(p5);
-                        vertices.Add(p6);
+                        path.MoveTo(p4);
+                        path.LineTo(p5);
+                        path.LineTo(p6);
                     }
                     
                     if (i == stripes - 4)
@@ -540,9 +544,9 @@ public static class Renderer3D
                         SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
                         SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
                         
-                        vertices.Add(p4);
-                        vertices.Add(p5);
-                        vertices.Add(p6);
+                        path.MoveTo(p4);
+                        path.LineTo(p5);
+                        path.LineTo(p6);
                         
                         continue;
                     }
@@ -553,16 +557,13 @@ public static class Renderer3D
                 SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
                 SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
 
-                vertices.Add(p0);
-                vertices.Add(p1);
-                vertices.Add(p2);
-                
-                vertices.Add(p0);
-                vertices.Add(p2);
-                vertices.Add(p3);
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+                path.LineTo(p3);
             }
-            
-            canvas.DrawVertices(SKVertexMode.Triangles, vertices.ToArray(), null, NotePaints.GetChainStripePaint(opacity));
+
+            canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));
         }
 
         // Bonus Triangles
@@ -879,37 +880,45 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold control point.
     /// </summary>
-    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, HoldPointNote note, float perspectiveScale, float opacity)
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
         if (perspectiveScale is <= 0 or > 1) return;
-        
+
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float startAngle = (note.Position + 0.7f) * -6;
+        float sweepAngle = (note.Size - 1.4f) * -6;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        
+        if (settings.LowPerformanceMode)
+        {
+            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+            canvas.DrawArc(rect, startAngle, sweepAngle, false, NotePaints.GetHoldPointPaint(settings, pixelScale, note.RenderType, opacity));
+            
+            return;
+        }
+        
         float radius0 = radius * 0.98f;
         float radius1 = radius * 1.02f;
         float capRadius = (radius1 - radius0) * 0.5f;
-        
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
-
-        float startAngle = (note.Position + 0.5f) * -6;
-        float sweepAngle = (note.Size - 1) * -6;
+    
         float endAngle = startAngle + sweepAngle;
-        
+    
         SKRect longArcRect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
         SKRect longArcRect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
-        
+    
         SKPoint capPoint0 = RenderUtils.PointOnArc(canvasInfo.Center, radius, startAngle);
         SKPoint capPoint1 = RenderUtils.PointOnArc(canvasInfo.Center, radius, endAngle);
         SKRect capRect0 = new(capPoint0.X - capRadius, capPoint0.Y - capRadius, capPoint0.X + capRadius, capPoint0.Y + capRadius);
         SKRect capRect1 = new(capPoint1.X - capRadius, capPoint1.Y - capRadius, capPoint1.X + capRadius, capPoint1.Y + capRadius);
-        
+    
         SKPath path = new();
-        
+    
         path.ArcTo(longArcRect0, startAngle, sweepAngle, true);
         path.ArcTo(capRect1, endAngle - 180, 180, false);
         path.ArcTo(longArcRect1, endAngle, -sweepAngle, false);
         path.ArcTo(capRect0, startAngle, 180, false);
-
-        canvas.DrawPath(path, NotePaints.GetHoldPointPaint(pixelScale, note.RenderType, opacity));
+    
+        canvas.DrawPath(path, NotePaints.GetHoldPointPaint(settings, pixelScale, note.RenderType, opacity));
     }
 
     /// <summary>

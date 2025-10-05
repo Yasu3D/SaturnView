@@ -744,10 +744,14 @@ internal static class NotePaints
         return FlatStrokePaint;
     }
 
-    internal static SKPaint GetHoldPointPaint(float pixelScale, HoldPointRenderType renderType, float opacity)
+    internal static SKPaint GetHoldPointPaint(RenderSettings settings, float pixelScale, HoldPointRenderType renderType, float opacity)
     {
-        FlatStrokePaint.StrokeWidth = 4f * pixelScale;
+        FlatStrokePaint.StrokeWidth = settings.LowPerformanceMode
+        ? 14f * pixelScale
+        : 4f * pixelScale;
+        
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        
         FlatStrokePaint.Color = renderType == HoldPointRenderType.Visible
             ? new(0xEE, 0xEE, 0xEE, (byte)(opacity * 255))
             : new(0x55, 0x55, 0x55, (byte)(opacity * 255));
