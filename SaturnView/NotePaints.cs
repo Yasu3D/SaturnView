@@ -124,6 +124,14 @@ internal static class NotePaints
     private static readonly SKColor JudgementLineShadeColorC = new(0xFFFFFFFF);
     private static readonly SKColor JudgementLineShadeColorD = new(0xFFAAAAAA);
     
+    private static readonly SKColor EventColorTempoChangeEvent = new(NoteColors.TempoChangeEvent);
+    private static readonly SKColor EventColorMetreChangeEvent = new(NoteColors.MetreChangeEvent);
+    private static readonly SKColor EventColorTutorialMarkerEvent = new(NoteColors.TutorialMarkerEvent);
+    private static readonly SKColor EventColorSpeedChangeEvent = new(NoteColors.SpeedChangeEvent);
+    private static readonly SKColor EventColorVisibilityChangeEvent = new(NoteColors.VisibilityChangeEvent);
+    private static readonly SKColor EventColorReverseEffectEvent = new(NoteColors.ReverseEffectEvent);
+    private static readonly SKColor EventColorStopEffectEvent = new(NoteColors.StopEffectEvent);
+    
 #endregion Color Definitions
     
     private static SKColor GetNoteColorAverage(int id) => id switch
@@ -234,21 +242,21 @@ internal static class NotePaints
         _ => NoteColorLightMagentaHoldEndDark,
     };
 
-    private static SKColor GetEventColor(Event @event)
+    internal static SKColor GetEventColor(Event @event)
     {
         return @event switch
         {
-            TempoChangeEvent tempoChangeEvent => new(0xFFFF0000),
-            MetreChangeEvent metreChangeEvent => new(0xFF00FF00),
-            TutorialMarkerEvent tutorialMarkerEvent => new(0xFFFFFFFF),
+            TempoChangeEvent => EventColorTempoChangeEvent,
+            MetreChangeEvent => EventColorMetreChangeEvent,
+            TutorialMarkerEvent => EventColorTutorialMarkerEvent,
             
-            SpeedChangeEvent speedChangeEvent => new(0xFF0000FF),
-            VisibilityChangeEvent visibilityChangeEvent => new(0xFF00FFFF),
+            SpeedChangeEvent => EventColorSpeedChangeEvent,
+            VisibilityChangeEvent => EventColorVisibilityChangeEvent,
             
-            ReverseEffectEvent reverseEffectEvent => new(0xFFFF00FF),
-            StopEffectEvent stopEffectEvent => new(0xFFFFFF00),
+            ReverseEffectEvent => EventColorReverseEffectEvent,
+            StopEffectEvent => EventColorStopEffectEvent,
             
-            EffectSubEvent effectSubEvent => new(),
+            EffectSubEvent => new(),
             _ => new(0xFFFFFFFF),
         };
     }
@@ -802,7 +810,7 @@ internal static class NotePaints
 
         return FlatStrokePaint;
     }
-        
+    
     internal static SKPaint GetSongTimerPaint(float pixelScale)
     {
         FlatStrokePaint.StrokeWidth = 10.5f * pixelScale;
@@ -815,6 +823,13 @@ internal static class NotePaints
     internal static SKPaint GetTextPaint(uint color)
     {
         FlatFillPaint.Color = new(color);
+        
+        return FlatFillPaint;
+    }
+
+    internal static SKPaint GetTextPaint(SKColor color)
+    {
+        FlatFillPaint.Color = color;
         
         return FlatFillPaint;
     }

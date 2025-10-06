@@ -39,7 +39,7 @@ public static class Renderer3D
     /// <param name="chart">The chart to draw.</param>
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, Layer? focusedLayer, float time, bool playing)
     {
         float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
         
@@ -68,7 +68,6 @@ public static class Renderer3D
             fps += (stopwatch.ElapsedTicks / 10000.0f).ToString("0.000");
         }
         
-        //Console.WriteLine((1000.0f / (stopwatch.ElapsedTicks / 10000.0f)).ToString("0.0"));
         return;
         
         void renderLanes()
@@ -223,10 +222,6 @@ public static class Renderer3D
             for (int l = 0; l < chart.Layers.Count; l++)
             {
                 Layer layer = chart.Layers[l];
-                
-                VisibilityChangeEvent? visibilityChange = NotationUtils.LastVisibilityChange(layer, time);
-                if (visibilityChange != null && visibilityChange.Visible == false) continue;
-                
                 float scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
 
                 foreach (Event @event in layer.Events)
@@ -234,6 +229,9 @@ public static class Renderer3D
                     if (!RenderUtils.IsInTimeRange(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
                     notesToDraw.Add(new(@event, layer, l, t, false, RenderUtils.IsVisible(@event, settings)));
                 }
+                
+                VisibilityChangeEvent? visibilityChange = NotationUtils.LastVisibilityChange(layer, time);
+                if (visibilityChange != null && visibilityChange.Visible == false) continue;
                 
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
@@ -317,7 +315,6 @@ public static class Renderer3D
                     notesToDraw.Add(new(note, layer, l, t, false, RenderUtils.IsVisible(note, settings)));
                 }
             }
-
             
             notesToDraw = notesToDraw
                 .OrderBy(x => x.IsVisible)
@@ -1136,7 +1133,7 @@ public static class Renderer3D
     {
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = canvasInfo.Scale * perspectiveScale;
-
+        
         canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerPaint(@event, pixelScale, opacity));
 
         canvas.Save();
@@ -1144,26 +1141,34 @@ public static class Renderer3D
         if (@event is TempoChangeEvent tempoChangeEvent)
         {
             SKPath path = new();
-            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
-            canvas.RotateDegrees(75, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(tempoChangeEvent.Tempo.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFFFF0000));
-        }
-        else if (@event is SpeedChangeEvent speedChangeEvent)
-        {
-            SKPath path = new();
-            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
-            
-            canvas.RotateDegrees(105, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(speedChangeEvent.HiSpeed.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFF0000FF));
+            canvas.RotateDegrees(70, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath(tempoChangeEvent.Tempo.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(35 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
         }
         else if (@event is MetreChangeEvent metreChangeEvent)
         {
             SKPath path = new();
-            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
             canvas.RotateDegrees(90, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath($"{metreChangeEvent.Upper} / {metreChangeEvent.Lower}", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFF00FF00));
+            canvas.DrawTextOnPath($"{metreChangeEvent.Upper} / {metreChangeEvent.Lower}", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(35 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+        }
+        else if (@event is SpeedChangeEvent speedChangeEvent)
+        {
+            SKPath path = new();
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
+            
+            canvas.RotateDegrees(110, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath(speedChangeEvent.HiSpeed.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(35 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+        }
+        else if (@event is VisibilityChangeEvent visibilityChangeEvent)
+        {
+            SKPath path = new();
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
+
+            canvas.RotateDegrees(130, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath(visibilityChangeEvent.Visible ? "VISIBLE" : "HIDDEN", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(35 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
         }
         
         canvas.Restore();
