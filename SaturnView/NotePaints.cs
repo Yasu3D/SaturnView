@@ -810,7 +810,20 @@ internal static class NotePaints
 
         return FlatStrokePaint;
     }
-    
+
+    internal static SKPaint GetEventMarkerFill(CanvasInfo canvasInfo, Event @event, float rawScale)
+    {
+        ShaderFillPaint.Color = new(0xFFFFFFFF);
+        
+        SKColor color = GetEventColor(@event);
+        
+        SKColor[] colors = [color.WithAlpha(0x00), color.WithAlpha(0x32)];
+        float[] positions = [rawScale * 0.75f, rawScale];
+        
+        ShaderFillPaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
+        return ShaderFillPaint;
+    }
+        
     internal static SKPaint GetSongTimerPaint(float pixelScale)
     {
         FlatStrokePaint.StrokeWidth = 10.5f * pixelScale;
