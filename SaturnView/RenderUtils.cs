@@ -50,6 +50,31 @@ internal static class RenderUtils
             _ => true,
         };
     }
+
+    internal static bool IsInTimeRange(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float t)
+    {
+        t = -1;
+
+        if (obj.Timestamp.Time < time) return false;
+        
+        if (showSpeedChanges)
+        {
+            if (obj.Timestamp.ScaledTime < scaledTime) return false;
+            if (obj.Timestamp.ScaledTime > scaledTime + viewDistance) return false;
+        }
+        else
+        {
+            if (obj.Timestamp.Time > time + viewDistance) return false;
+        }
+
+        t = showSpeedChanges
+            ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
+            : 1 - (obj.Timestamp.Time - time) / viewDistance;
+
+        if (t is < 0 or > 1) return false;
+        
+        return true;
+    }
     
     /// <summary>
     /// Applies perspective distortion to a linear scale value.

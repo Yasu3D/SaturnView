@@ -1,3 +1,5 @@
+using SaturnData.Notation.Core;
+using SaturnData.Notation.Events;
 using SaturnData.Notation.Notes;
 using SkiaSharp;
 
@@ -231,6 +233,25 @@ internal static class NotePaints
         12 => NoteColorLightGrayHoldEndDark,
         _ => NoteColorLightMagentaHoldEndDark,
     };
+
+    private static SKColor GetEventColor(Event @event)
+    {
+        return @event switch
+        {
+            TempoChangeEvent tempoChangeEvent => new(0xFFFF0000),
+            MetreChangeEvent metreChangeEvent => new(0xFF00FF00),
+            TutorialMarkerEvent tutorialMarkerEvent => new(0xFFFFFFFF),
+            
+            SpeedChangeEvent speedChangeEvent => new(0xFF0000FF),
+            VisibilityChangeEvent visibilityChangeEvent => new(0xFF00FFFF),
+            
+            ReverseEffectEvent reverseEffectEvent => new(0xFFFF00FF),
+            StopEffectEvent stopEffectEvent => new(0xFFFFFF00),
+            
+            EffectSubEvent effectSubEvent => new(),
+            _ => new(0xFFFFFFFF),
+        };
+    }
 
     internal static readonly float[] NoteStrokeWidths     = [ 16.0f, 22.0f, 34.0f, 46.0f, 58.0f ];
     
@@ -772,15 +793,25 @@ internal static class NotePaints
             return HoldSurfacePaint;
         }
     }
-    
+
+    internal static SKPaint GetEventMarkerPaint(Event @event, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 10 * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = GetEventColor(@event).WithAlpha((byte)(opacity * 255));
+
+        return FlatStrokePaint;
+    }
+        
     internal static SKPaint GetSongTimerPaint(float pixelScale)
     {
-        FlatStrokePaint.Color = new(0x80000000);
         FlatStrokePaint.StrokeWidth = 10.5f * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = new(0x80000000);
         
         return FlatStrokePaint;
     }
-
+    
     internal static SKPaint GetTextPaint(uint color)
     {
         FlatFillPaint.Color = new(color);
@@ -792,6 +823,14 @@ internal static class NotePaints
     {
         InterfaceFont.Size = scale;
         InterfaceFont.Embolden = true;
+        
+        return InterfaceFont;
+    }
+    
+    internal static SKFont GetStandardFont(float scale)
+    {
+        InterfaceFont.Size = scale;
+        InterfaceFont.Embolden = false;
         
         return InterfaceFont;
     }

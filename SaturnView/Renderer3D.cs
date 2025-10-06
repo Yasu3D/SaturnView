@@ -41,6 +41,8 @@ public static class Renderer3D
     /// <param name="time">The time of the snapshot to draw.</param>
     public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing)
     {
+        float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
+        
         Stopwatch stopwatch = Stopwatch.StartNew();
         
         canvas.Clear(canvasInfo.BackgroundColor);
@@ -49,7 +51,7 @@ public static class Renderer3D
         lock (chart)
         {
             renderLanes();
-            renderNotes();
+            renderObjects();
         }
         
         DrawInterface(canvas, canvasInfo, settings, entry, time);
@@ -203,15 +205,21 @@ public static class Renderer3D
                 }
             }
         }
-
-        void renderNotes()
+        
+        void renderObjects()
         {
-            float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
+            if (chart.Layers.Count == 0) return;
             
             List<RenderObject> notesToDraw = [];
             List<RenderObject> holdEndsToDraw = [];
             List<RenderObject> holdsToDraw = [];
-
+            
+            foreach (Event @event in chart.Events)
+            {
+                if (!RenderUtils.IsInTimeRange(@event, false, viewDistance, time, 0, out float t)) continue;
+                notesToDraw.Add(new(@event, null, null, t, false, RenderUtils.IsVisible(@event, settings)));
+            }
+            
             for (int l = 0; l < chart.Layers.Count; l++)
             {
                 Layer layer = chart.Layers[l];
@@ -221,6 +229,12 @@ public static class Renderer3D
                 
                 float scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
 
+                foreach (Event @event in layer.Events)
+                {
+                    if (!RenderUtils.IsInTimeRange(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    notesToDraw.Add(new(@event, layer, l, t, false, RenderUtils.IsVisible(@event, settings)));
+                }
+                
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
                     Note note = layer.Notes[n];
@@ -286,24 +300,7 @@ public static class Renderer3D
                     else
                     {
                         // Normal Notes
-                        
-                        if (settings.ShowSpeedChanges)
-                        {
-                            if (note.Timestamp.Time < time) continue;
-                            if (note.Timestamp.ScaledTime < scaledTime) continue;
-                            if (note.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
-                        }
-                        else
-                        {
-                            if (note.Timestamp.Time < time) continue;
-                            if (note.Timestamp.Time > time + viewDistance) continue;
-                        }
-
-                        float t = settings.ShowSpeedChanges
-                            ? 1 - (note.Timestamp.ScaledTime - scaledTime) / viewDistance
-                            : 1 - (note.Timestamp.Time - time) / viewDistance;
-                        
-                        if (t is < 0 or > 1) continue;
+                        if (!RenderUtils.IsInTimeRange(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                         Note? prev = n > 0 ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -315,21 +312,7 @@ public static class Renderer3D
 
                 foreach (Note note in layer.GeneratedNotes)
                 {
-                    if (settings.ShowSpeedChanges)
-                    {
-                        if (note.Timestamp.Time < time) continue;
-                        if (note.Timestamp.ScaledTime < scaledTime) continue;
-                        if (note.Timestamp.ScaledTime > scaledTime + viewDistance) continue;
-                    }
-                    else
-                    {
-                        if (note.Timestamp.Time < time) continue;
-                        if (note.Timestamp.Time > time + viewDistance) continue;
-                    }
-
-                    float t = settings.ShowSpeedChanges
-                        ? 1 - (note.Timestamp.ScaledTime - scaledTime) / viewDistance
-                        : 1 - (note.Timestamp.Time - time) / viewDistance;
+                    if (!RenderUtils.IsInTimeRange(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                     notesToDraw.Add(new(note, layer, l, t, false, RenderUtils.IsVisible(note, settings)));
                 }
@@ -341,10 +324,11 @@ public static class Renderer3D
                 .ThenBy(x => x.LayerIndex)
                 .ThenBy(x => x.Scale)
                 .ThenByDescending(x => x.Object is SyncNote or MeasureLineNote)
+                .ThenByDescending(x => x.Object is Event)
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
-
+            
             foreach (RenderObject renderObject in holdEndsToDraw)
             {
                 if (renderObject.Object is not HoldPointNote holdPointNote) continue;
@@ -377,6 +361,10 @@ public static class Renderer3D
                 else if (renderObject.Object is Note note)
                 {
                     DrawNote(canvas, canvasInfo, settings, note, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, renderObject.Sync, renderObject.IsVisible ? 1 : 0.1f);
+                }
+                else if (renderObject.Object is Event @event)
+                {
+                    DrawEvent(canvas, canvasInfo, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
             }
         }
@@ -1118,6 +1106,43 @@ public static class Renderer3D
         }
     }
 
+    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float perspectiveScale, float opacity)
+    {
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+
+        canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerPaint(@event, pixelScale, opacity));
+
+        canvas.Save();
+        
+        if (@event is TempoChangeEvent tempoChangeEvent)
+        {
+            SKPath path = new();
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
+            
+            canvas.RotateDegrees(75, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath(tempoChangeEvent.Tempo.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFFFF0000));
+        }
+        else if (@event is SpeedChangeEvent speedChangeEvent)
+        {
+            SKPath path = new();
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
+            
+            canvas.RotateDegrees(105, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath(speedChangeEvent.HiSpeed.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFF0000FF));
+        }
+        else if (@event is MetreChangeEvent metreChangeEvent)
+        {
+            SKPath path = new();
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.91f);
+            
+            canvas.RotateDegrees(90, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawTextOnPath($"{metreChangeEvent.Upper} / {metreChangeEvent.Lower}", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(30 * pixelScale), NotePaints.GetTextPaint(0xFF00FF00));
+        }
+        
+        canvas.Restore();
+    }
+    
     /// <summary>
     /// Draws a row of lanes.
     /// </summary>
