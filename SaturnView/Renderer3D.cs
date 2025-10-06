@@ -1002,8 +1002,8 @@ public static class Renderer3D
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
         {
-            float startScale = RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, start.GlobalScaledTime);
-            float endScale = RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, end.GlobalScaledTime);
+            float startScale = getScale(start.GlobalTime, start.GlobalScaledTime);
+            float endScale = getScale(end.GlobalTime, end.GlobalScaledTime);
 
             if (startScale > 1.25f && endScale > 1.25f) return;
             
