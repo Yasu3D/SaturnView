@@ -958,7 +958,7 @@ public static class Renderer3D
         
         // Generate the final arc for last point.
         RenderHoldPoint last = new(hold, points[^1], maxSize);
-        generateArc(last.GlobalTime, last.GlobalScaledTime, last.LocalTime, last.Start, last.Interval);
+        generateArc(getScale(last.GlobalTime, last.GlobalScaledTime), last.LocalTime, last.Start, last.Interval);
         
         // Build mesh
         SKPoint[] triangles = new SKPoint[maxSize * arcs * 6];
@@ -1005,10 +1005,10 @@ public static class Renderer3D
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
         {
-            float startScale = RenderUtils.InverseLerp(scaledTime, scaledTime + visibleTime, start.GlobalScaledTime);
-            float endScale = RenderUtils.InverseLerp(scaledTime, scaledTime + visibleTime, end.GlobalScaledTime);
+            float startScale = RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, start.GlobalScaledTime);
+            float endScale = RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, end.GlobalScaledTime);
 
-            if (startScale < 0 && endScale < 0) return;
+            if (startScale > 1.25f && endScale > 1.25f) return;
             
             float interval = 1;
 
@@ -1023,28 +1023,45 @@ public static class Renderer3D
             // For every imaginary "sub point" between start and end.
             for (float t = 0; t < 1; t += interval)
             {
+                // Very brute-force optimization: Look ahead and behind by one step to see if the arc and its neighbors are entirely off-screen.
+                float previousT = t - interval;
+                float previousGlobalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       previousT);
+                float previousGlobalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, previousT);
+                float previousScale = getScale(previousGlobalTime, previousGlobalScaledTime);
+                
+                float nextT = t + interval;
+                float nextGlobalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       nextT);
+                float nextGlobalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, nextT);
+                float nextScale = getScale(nextGlobalTime, nextGlobalScaledTime);
+                
                 float globalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       t);
                 float globalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
+                float scale = getScale(globalTime, globalScaledTime);
+
+                if (scale < 0)
+                {
+                    if (nextScale < 0 && nextT < 1) continue;
+                    if (previousScale < 0 && previousT >= 0) continue;
+                }
+                else if (scale > 1.25f)
+                {
+                    if (nextScale > 1.25f && nextT < 1) continue;
+                    if (previousScale > 1.25f && previousT >= 0) continue;
+                }
+                
                 float localTime        = RenderUtils.Lerp(start.LocalTime,        end.LocalTime,        t);
                 float intervalAngle    = RenderUtils.Lerp(start.Interval,         end.Interval,         t);
                 float startAngle       = RenderUtils.LerpCyclic(start.Start, end.Start, t, 360);
 
-                generateArc(globalTime, globalScaledTime, localTime, startAngle, intervalAngle);
+                generateArc(scale, localTime, startAngle, intervalAngle);
             }
         }
-
-        void generateArc(float globalTime, float globalScaledTime, float localTime, float startAngle, float intervalAngle)
+        
+        void generateArc(float scale, float localTime, float startAngle, float intervalAngle)
         {
-            arcs++;
-
-            float delta = time > globalTime || !settings.ShowSpeedChanges
-                ? globalTime - time
-                : globalScaledTime - scaledTime;
-
-            float scale = RenderUtils.InverseLerp(visibleTime, 0, delta);
             scale = Math.Max(0, scale);
             scale = RenderUtils.Perspective(scale);
-
+            
             float radius = canvasInfo.JudgementLineRadius * scale;
 
             for (int x = 0; x <= maxSize; x++)
@@ -1059,6 +1076,15 @@ public static class Renderer3D
                 vertexScreenCoords.Add(screen);
                 vertexTextureCoords.Add(tex);
             }
+            
+            arcs++;
+        }
+
+        float getScale(float globalTime, float globalScaledTime)
+        {
+            return !settings.ShowSpeedChanges || time > globalTime
+                ? RenderUtils.InverseLerp(time + visibleTime, time, globalTime)
+                : RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
         }
     }
     
