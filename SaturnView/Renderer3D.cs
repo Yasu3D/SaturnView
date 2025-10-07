@@ -12,7 +12,7 @@ namespace SaturnView;
 // Implement Bonus Spin/VFX
 // Event Markers with sub-events
 // Visualizations
-// Lane Toggles
+// > 1 culling jank
 // Background(s?)
 
 public static class Renderer3D
@@ -67,28 +67,27 @@ public static class Renderer3D
             fps += "  |  ";
             fps += (stopwatch.ElapsedTicks / 10000.0f).ToString("0.000");
         }
-        
+
         return;
         
         void renderLanes()
         {
+            // Skip Animations and draw all lanes.
             if (settings.IgnoreLaneToggleAnimations)
             {
                 DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
                 return;
             }
             
+            // Get the current state of all lanes.
             bool[] lanes = new bool[60];
-            
             foreach (Note note in chart.LaneToggles)
             {
+                if (note.Timestamp.Time > time) continue;
                 if (note is not ILaneToggle laneToggle) continue;
-                if (note is not ITimeable timeable) continue;
                 if (note is not IPositionable positionable) continue;
                 
-                bool state = note is LaneShowNote; // not fully explicit but good enough.
-                
-                float delta = time - timeable.Timestamp.Time;
+                float delta = time - note.Timestamp.Time;
                 float duration = laneToggle.Direction switch
                 {
                     LaneSweepDirection.Counterclockwise => positionable.Size * 8.3333333f,
@@ -97,6 +96,8 @@ public static class Renderer3D
                     LaneSweepDirection.Instant => 0,
                     _ => 0,
                 };
+                
+                bool state = note is LaneShowNote; // not fully explicit but good enough.
 
                 // Instant or after the sweep. Set lanes without animating.
                 if (duration == 0 || delta > duration)
@@ -143,65 +144,68 @@ public static class Renderer3D
                 }
             }
 
-            bool allActive = true;
-            bool allInactive = true;
-            
+            // Check if all lanes are shown or hidden.
+            bool allShown = true;
+            bool allHidden = true;
             for (int i = 0; i < 60; i++)
             {
-                if (!allActive && !allInactive) break;
+                if (!allShown && !allHidden) break;
                 
-                if (!lanes[i]) allActive = false;
-                if (lanes[i]) allInactive = false;
+                if (!lanes[i]) allShown = false;
+                if (lanes[i]) allHidden = false;
             }
 
-            if (allActive)
+            // Skip drawing entirely.
+            if (allHidden) return;
+            
+            // Skip batching and draw all lanes.
+            if (allShown)
             {
                 DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
+                return;
             }
-            else if (!allInactive)
+
+            // Attempt batching to draw large chunks of lanes all at once.
+            bool lastState = lanes[59];
+            bool batchActive = false;
+
+            int position = 0;
+            int size = 0;
+
+            int firstBatchPosition = -1;
+            
+            for (int i = 0; i < 120; i++)
             {
-                bool lastState = lanes[59];
-                bool batchActive = false;
-
-                int position = 0;
-                int size = 0;
-
-                int firstBatchPosition = -1;
+                // Stop once position of first batch is reached again.
+                if (i % 60 == firstBatchPosition) break;
                 
-                // Fancy batching to draw large chunks of lanes all at once.
-                for (int i = 0; i < 120; i++)
+                bool currentState = lanes[i % 60];
+                
+                // Begin of new batch
+                if (!lastState && currentState)
                 {
-                    // Stop once position of first batch is reached again.
-                    if (i % 60 == firstBatchPosition) break;
+                    batchActive = true;
+                    position = i % 60;
+                    size = 0;
                     
-                    bool currentState = lanes[i % 60];
-                    
-                    // Begin of new batch
-                    if (!lastState && currentState)
+                    if (firstBatchPosition == -1)
                     {
-                        batchActive = true;
-                        position = i % 60;
-                        size = 0;
-                        
-                        if (firstBatchPosition == -1)
-                        {
-                            firstBatchPosition = position;
-                        }
+                        firstBatchPosition = position;
                     }
-
-                    if (batchActive && lastState && !currentState)
-                    {
-                        batchActive = false;
-                        DrawLanes(canvas, canvasInfo, settings, position, size, time);
-                    }
-                    
-                    if (batchActive)
-                    {
-                        size++;
-                    }
-
-                    lastState = currentState;
                 }
+
+                if (batchActive && lastState && !currentState)
+                {
+                    batchActive = false;
+                    DrawLanes(canvas, canvasInfo, settings, position, size, time);
+                }
+                
+                if (batchActive)
+                {
+                    size++;
+                }
+
+                lastState = currentState;
             }
         }
         
@@ -213,32 +217,49 @@ public static class Renderer3D
             List<RenderObject> holdEndsToDraw = [];
             List<RenderObject> holdsToDraw = [];
             
+            float scaledTime = Timestamp.ScaledTimeFromTime(chart.Layers[0], time);
+            
+            // Find all visible global events.
+            foreach (Event @event in chart.Events)
+            {
+                if (settings.HideEventMarkersDuringPlayback && playing) break;
+                
+                if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
+                notesToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
+            }
+
+            // Find all visible lane toggles.
+            foreach (Note note in chart.LaneToggles)
+            {
+                if (settings.HideLaneToggleNotesDuringPlayback && playing) break;
+
+                if (!RenderUtils.GetProgress(note, false, viewDistance, time, 0, out float progress)) continue;
+                notesToDraw.Add(new(note, null, 0, progress, false, RenderUtils.IsVisible(note, settings)));
+            }
+            
+            // Find all visible objects in layers.
             for (int l = 0; l < chart.Layers.Count; l++)
             {
                 Layer layer = chart.Layers[l];
-                float scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
 
-                if (!settings.HideEventMarkersDuringPlayback || !playing)
+                if (l != 0)
                 {
-                    if (l == 0)
-                    {
-                        foreach (Event @event in chart.Events)
-                        {
-                            if (!RenderUtils.IsInTimeRange(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
-                            notesToDraw.Add(new(@event, layer, l, t, false, RenderUtils.IsVisible(@event, settings)));
-                        }
-                    }
+                    scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
+                }
+
+                // Find all visible events.
+                foreach (Event @event in layer.Events)
+                {
+                    if (settings.HideEventMarkersDuringPlayback && playing) break;
                     
-                    foreach (Event @event in layer.Events)
-                    {
-                        if (!RenderUtils.IsInTimeRange(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
-                        notesToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
-                    }
+                    if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    notesToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                 }
                 
                 VisibilityChangeEvent? visibilityChange = NotationUtils.LastVisibilityChange(layer, time);
                 if (visibilityChange != null && visibilityChange.Visible == false) continue;
                 
+                // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
                     Note note = layer.Notes[n];
@@ -246,7 +267,6 @@ public static class Renderer3D
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
-                        
                         if (settings.ShowSpeedChanges)
                         {
                             if (holdNote.Points[^1].Timestamp.Time < time) continue;
@@ -270,7 +290,7 @@ public static class Renderer3D
 
                         if (tStart is >= 0 and <= 1)
                         {
-                            Note? prev = n > 0 ? layer.Notes[n - 1] : null;
+                            Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
                             bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
 
@@ -288,25 +308,24 @@ public static class Renderer3D
                         }
 
                         // Hold Points
-                        if (!settings.HideHoldControlPointsDuringPlayback || !playing)
+                        for (int j = 1; j < holdNote.Points.Count - 1; j++)
                         {
-                            for (int j = 1; j < holdNote.Points.Count - 1; j++)
-                            {
-                                HoldPointNote point = holdNote.Points[j];
-                                float t = settings.ShowSpeedChanges
-                                    ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
-                                    : 1 - (point.Timestamp.Time - time) / viewDistance;
+                            if (settings.HideHoldControlPointsDuringPlayback && playing) break;
+                            
+                            HoldPointNote point = holdNote.Points[j];
+                            float t = settings.ShowSpeedChanges
+                                ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
+                                : 1 - (point.Timestamp.Time - time) / viewDistance;
 
-                                notesToDraw.Add(new(point, layer, l, t, false, isVisible));
-                            }
+                            notesToDraw.Add(new(point, layer, l, t, false, isVisible));
                         }
                     }
                     else
                     {
                         // Normal Notes
-                        if (!RenderUtils.IsInTimeRange(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
-                        Note? prev = n > 0 ? layer.Notes[n - 1] : null;
+                        Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
                         bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
 
@@ -314,9 +333,10 @@ public static class Renderer3D
                     }
                 }
 
+                // Find all visible generated notes.
                 foreach (Note note in layer.GeneratedNotes)
                 {
-                    if (!RenderUtils.IsInTimeRange(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                     notesToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings)));
                 }
@@ -328,6 +348,7 @@ public static class Renderer3D
                 .ThenBy(x => x.Scale)
                 .ThenByDescending(x => x.Object is SyncNote or MeasureLineNote)
                 .ThenByDescending(x => x.Object is Event)
+                .ThenByDescending(x => x.Object is ILaneToggle)
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
@@ -360,6 +381,10 @@ public static class Renderer3D
                 else if (renderObject.Object is MeasureLineNote)
                 {
                     DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, false, renderObject.IsVisible ? 1 : 0.1f);
+                }
+                else if (renderObject.Object is ILaneToggle laneToggle)
+                {
+                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
                 else if (renderObject.Object is Note note)
                 {
@@ -1145,7 +1170,7 @@ public static class Renderer3D
 
         if (opacity == 1)
         {
-            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerFill(canvasInfo, @event, perspectiveScale));
+            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerFillPaint(canvasInfo, @event, perspectiveScale));
         }
         canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerPaint(@event, pixelScale, opacity));
 
@@ -1157,7 +1182,7 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
             canvas.RotateDegrees(70, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(tempoChangeEvent.Tempo.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+            canvas.DrawTextOnPath(tempoChangeEvent.Tempo.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         else if (@event is MetreChangeEvent metreChangeEvent)
         {
@@ -1165,7 +1190,7 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
             canvas.RotateDegrees(90, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath($"{metreChangeEvent.Upper} / {metreChangeEvent.Lower}", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+            canvas.DrawTextOnPath($"{metreChangeEvent.Upper} / {metreChangeEvent.Lower}", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         else if (@event is SpeedChangeEvent speedChangeEvent)
         {
@@ -1173,7 +1198,7 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
             canvas.RotateDegrees(110, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(speedChangeEvent.HiSpeed.ToString("0.000"), path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+            canvas.DrawTextOnPath($"{speedChangeEvent.HiSpeed:0.000}x", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         else if (@event is VisibilityChangeEvent visibilityChangeEvent)
         {
@@ -1181,10 +1206,47 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
 
             canvas.RotateDegrees(130, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(visibilityChangeEvent.Visible ? "VISIBLE" : "HIDDEN", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event)));
+            canvas.DrawTextOnPath(visibilityChangeEvent.Visible ? "VISIBLE" : "HIDDEN", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         
         canvas.Restore();
+    }
+
+    /// <summary>
+    /// Draws a lane toggle note.
+    /// </summary>
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float perspectiveScale, float opacity)
+    {
+        // TODO: Don't cull immediately to respect sweep animation.
+        
+        if (!settings.VisualizeSweepAnimations && perspectiveScale is <= 0 or > 1) return;
+        if (laneToggle is not IPositionable positionable) return;
+
+        bool state = laneToggle is LaneShowNote;
+        
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+
+        // Sweep Visualization
+        if (settings.VisualizeSweepAnimations)
+        {
+            
+        }
+        
+        // Note body.
+        if (positionable.Size == 60)
+        {
+            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
+        }
+        else
+        {
+            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+            
+            float start = positionable.Position * -6; 
+            float sweep = positionable.Size * -6;
+
+            canvas.DrawArc(rect, start, sweep, false, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
+        }
     }
     
     /// <summary>

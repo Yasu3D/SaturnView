@@ -51,9 +51,9 @@ internal static class RenderUtils
         };
     }
 
-    internal static bool IsInTimeRange(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float t)
+    internal static bool GetProgress(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float progress)
     {
-        t = -1;
+        progress = -1;
 
         if (obj.Timestamp.Time < time) return false;
         
@@ -67,11 +67,11 @@ internal static class RenderUtils
             if (obj.Timestamp.Time > time + viewDistance) return false;
         }
 
-        t = showSpeedChanges
+        progress = showSpeedChanges
             ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
             : 1 - (obj.Timestamp.Time - time) / viewDistance;
 
-        if (t is < 0 or > 1) return false;
+        if (progress is < 0 or > 1) return false;
         
         return true;
     }

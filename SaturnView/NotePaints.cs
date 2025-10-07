@@ -1,5 +1,6 @@
 using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
+using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
 using SkiaSharp;
 
@@ -119,6 +120,9 @@ internal static class NotePaints
     private static readonly SKColor NoteColorLightGrayHoldEndLight = new(NoteColors.LightGrayHoldEndLight);
     private static readonly SKColor NoteColorLightGrayHoldEndDark  = new(NoteColors.LightGrayHoldEndDark);
 
+    private static readonly SKColor NoteColorLaneShow = new(NoteColors.LaneShow);
+    private static readonly SKColor NoteColorLaneHide = new(NoteColors.LaneHide);
+    
     private static readonly SKColor JudgementLineShadeColorA = new(0x00FFFFFF);
     private static readonly SKColor JudgementLineShadeColorB = new(0x50FFFFFF);
     private static readonly SKColor JudgementLineShadeColorC = new(0xFFFFFFFF);
@@ -811,7 +815,7 @@ internal static class NotePaints
         return FlatStrokePaint;
     }
 
-    internal static SKPaint GetEventMarkerFill(CanvasInfo canvasInfo, Event @event, float rawScale)
+    internal static SKPaint GetEventMarkerFillPaint(CanvasInfo canvasInfo, Event @event, float rawScale)
     {
         ShaderFillPaint.Color = new(0xFFFFFFFF);
         
@@ -823,7 +827,16 @@ internal static class NotePaints
         ShaderFillPaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
         return ShaderFillPaint;
     }
-        
+
+    internal static SKPaint GetLaneTogglePaint(bool state, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 34 * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = state ? NoteColorLaneShow.WithAlpha((byte)(opacity * 255)) : NoteColorLaneHide.WithAlpha((byte)(opacity * 255));
+
+        return FlatStrokePaint;
+    }
+    
     internal static SKPaint GetSongTimerPaint(float pixelScale)
     {
         FlatStrokePaint.StrokeWidth = 10.5f * pixelScale;

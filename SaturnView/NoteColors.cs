@@ -115,6 +115,9 @@ public static class NoteColors
     public const uint LightGrayHoldEndLight = 0xFF909090;
     public const uint LightGrayHoldEndDark = 0xFF484848;
 
+    public const uint LaneShow = 0xFF9B9CD1;
+    public const uint LaneHide = 0xFF373480;
+
     public const uint JudgeLineStartV0 = 0xFFAEAEAE;
     public const uint JudgeLineEndV0   = 0xFFDFDFDF;
     
