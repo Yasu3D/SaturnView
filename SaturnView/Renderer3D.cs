@@ -11,8 +11,9 @@ namespace SaturnView;
 // TODO:
 // Implement Bonus Spin/VFX
 // Event Markers with sub-events
-// Visualizations
+// Judgement window and Hold window Visualizations
 // > 1 culling jank
+// Hit testing
 // Background(s?)
 
 public static class Renderer3D
@@ -88,14 +89,7 @@ public static class Renderer3D
                 if (note is not IPositionable positionable) continue;
                 
                 float delta = time - note.Timestamp.Time;
-                float duration = laneToggle.Direction switch
-                {
-                    LaneSweepDirection.Counterclockwise => positionable.Size * 8.3333333f,
-                    LaneSweepDirection.Clockwise => positionable.Size * 8.3333333f,
-                    LaneSweepDirection.Center => positionable.Size * 4.1666666f,
-                    LaneSweepDirection.Instant => 0,
-                    _ => 0,
-                };
+                float duration = RenderUtils.GetSweepDuration(laneToggle.Direction, positionable.Size);
                 
                 bool state = note is LaneShowNote; // not fully explicit but good enough.
 
@@ -232,9 +226,16 @@ public static class Renderer3D
             foreach (Note note in chart.LaneToggles)
             {
                 if (settings.HideLaneToggleNotesDuringPlayback && playing) break;
+                if (note is not ILaneToggle laneToggle) continue;
+                if (note is not IPositionable positionable) continue;
+                
+                float tStart = 1 - (note.Timestamp.Time - time) / viewDistance;
+                float tEnd = 1 - (note.Timestamp.Time + RenderUtils.GetSweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
 
-                if (!RenderUtils.GetProgress(note, false, viewDistance, time, 0, out float progress)) continue;
-                notesToDraw.Add(new(note, null, 0, progress, false, RenderUtils.IsVisible(note, settings)));
+                if (tStart <= 0 && tEnd <= 0) continue;
+                if (tStart > 1 && tEnd > 1) continue;
+                
+                notesToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings)));
             }
             
             // Find all visible objects in layers.
@@ -345,10 +346,10 @@ public static class Renderer3D
             notesToDraw = notesToDraw
                 .OrderBy(x => x.IsVisible)
                 .ThenBy(x => x.LayerIndex)
+                .ThenByDescending(x => x.Object is ILaneToggle)
                 .ThenBy(x => x.Scale)
                 .ThenByDescending(x => x.Object is SyncNote or MeasureLineNote)
                 .ThenByDescending(x => x.Object is Event)
-                .ThenByDescending(x => x.Object is ILaneToggle)
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
@@ -378,13 +379,15 @@ public static class Renderer3D
                 {
                     DrawSyncNote(canvas, canvasInfo, settings, syncNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
-                else if (renderObject.Object is MeasureLineNote)
+                else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
-                    DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, false, renderObject.IsVisible ? 1 : 0.1f);
+                    if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) continue;
+                    
+                    DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : 0.1f);
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
-                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, time, viewDistance, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
                 else if (renderObject.Object is Note note)
                 {
@@ -1022,7 +1025,7 @@ public static class Renderer3D
         }
         
         // Draw mesh
-        SKRect rect = new(canvasInfo.Center.X - canvasInfo.Radius, canvasInfo.Center.Y - canvasInfo.Radius, canvasInfo.Center.X + canvasInfo.Radius, canvasInfo.Center.Y + canvasInfo.Radius);
+        SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
         SKRoundRect roundRect = new(rect, canvasInfo.Radius);
         
         canvas.Save();
@@ -1215,37 +1218,137 @@ public static class Renderer3D
     /// <summary>
     /// Draws a lane toggle note.
     /// </summary>
-    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float perspectiveScale, float opacity)
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity)
     {
-        // TODO: Don't cull immediately to respect sweep animation.
-        
-        if (!settings.VisualizeSweepAnimations && perspectiveScale is <= 0 or > 1) return;
+        if (laneToggle is not ITimeable timeable) return;
         if (laneToggle is not IPositionable positionable) return;
-
         bool state = laneToggle is LaneShowNote;
-        
-        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
 
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        
+        
         // Sweep Visualization
         if (settings.VisualizeSweepAnimations)
         {
+            SKPoint[] vertices = new SKPoint[positionable.Size * 6];
+            float startTime = timeable.Timestamp.Time;
             
+            if (laneToggle.Direction is LaneSweepDirection.Center)
+            {
+                int center = (int)Math.Ceiling(positionable.Size / 2.0f);
+                float duration = center * 8.3333333f;
+
+                bool even = positionable.Size % 2 == 0;
+                
+                for (int i = 0; i < positionable.Size; i++)
+                {
+                    float angle = (positionable.Position + i) * -6;
+
+                    float t = even
+                        ? i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 1) * 8.3333333f
+                        : i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 2) * 8.3333333f;
+                    
+                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                    stepScale = RenderUtils.Perspective(stepScale);
+                    
+                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                    stepRadius = Math.Max(0, stepRadius);
+                    
+                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+
+                    vertices[6 * i]     = p0;
+                    vertices[6 * i + 1] = p1;
+                    vertices[6 * i + 2] = p2;
+                    vertices[6 * i + 3] = p3;
+                    vertices[6 * i + 4] = p2;
+                    vertices[6 * i + 5] = p1;
+                }
+            }
+            else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
+            {
+                float duration = positionable.Size * 8.3333333f;
+                
+                for (int i = 0; i < positionable.Size; i++)
+                {
+                    float angle = (positionable.Position + i) * -6;
+                    float t = startTime + duration - i * 8.3333333f;
+
+                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                    stepScale = RenderUtils.Perspective(stepScale);
+                    
+                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                    stepRadius = Math.Max(0, stepRadius);
+                    
+                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+
+                    vertices[6 * i]     = p0;
+                    vertices[6 * i + 1] = p1;
+                    vertices[6 * i + 2] = p2;
+                    vertices[6 * i + 3] = p3;
+                    vertices[6 * i + 4] = p2;
+                    vertices[6 * i + 5] = p1;
+                }
+            }
+            else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
+            {
+                for (int i = 0; i < positionable.Size; i++)
+                {
+                    float angle = (positionable.Position + i) * -6;
+                    float t = startTime + (i + 1) * 8.3333333f;
+                    
+                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                    stepScale = RenderUtils.Perspective(stepScale);
+                    
+                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                    stepRadius = Math.Max(0, stepRadius);
+                    
+                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+
+                    vertices[6 * i]     = p0;
+                    vertices[6 * i + 1] = p1;
+                    vertices[6 * i + 2] = p2;
+                    vertices[6 * i + 3] = p3;
+                    vertices[6 * i + 4] = p2;
+                    vertices[6 * i + 5] = p1;
+                }
+            }
+
+            SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
+            SKRoundRect roundRect = new(rect, canvasInfo.Radius);
+
+            canvas.Save();
+            canvas.ClipRoundRect(roundRect);
+            canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetLaneToggleFillPaint(state, opacity));
+            canvas.Restore();
         }
         
         // Note body.
-        if (positionable.Size == 60)
+        if (perspectiveScale is > 0 and <= 1.01f)
         {
-            canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
-        }
-        else
-        {
-            SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+            float pixelScale = canvasInfo.Scale * perspectiveScale;
             
-            float start = positionable.Position * -6; 
-            float sweep = positionable.Size * -6;
+            if (positionable.Size == 60)
+            {
+                canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
+            }
+            else
+            {
+                SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+                
+                float start = positionable.Position * -6; 
+                float sweep = positionable.Size * -6;
 
-            canvas.DrawArc(rect, start, sweep, false, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
+                canvas.DrawArc(rect, start, sweep, false, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
+            }
         }
     }
     

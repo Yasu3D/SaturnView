@@ -653,7 +653,7 @@ internal static class NotePaints
     {
         FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 255));
+        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 70));
 
         return FlatStrokePaint;
     }
@@ -835,6 +835,13 @@ internal static class NotePaints
         FlatStrokePaint.Color = state ? NoteColorLaneShow.WithAlpha((byte)(opacity * 255)) : NoteColorLaneHide.WithAlpha((byte)(opacity * 255));
 
         return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetLaneToggleFillPaint(bool state, float opacity)
+    {
+        FlatFillPaint.Color = state ? NoteColorLaneShow.WithAlpha((byte)(opacity * 100)) : NoteColorLaneHide.WithAlpha((byte)(opacity * 100));
+
+        return FlatFillPaint;
     }
     
     internal static SKPaint GetSongTimerPaint(float pixelScale)

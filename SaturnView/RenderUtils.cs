@@ -75,6 +75,18 @@ internal static class RenderUtils
         
         return true;
     }
+
+    internal static float GetSweepDuration(LaneSweepDirection direction, int size)
+    {
+        return direction switch
+        {
+            LaneSweepDirection.Counterclockwise => size * 8.3333333f,
+            LaneSweepDirection.Clockwise => size * 8.3333333f,
+            LaneSweepDirection.Center => size * 4.1666666f,
+            LaneSweepDirection.Instant => 0,
+            _ => 0,
+        };
+    }
     
     /// <summary>
     /// Applies perspective distortion to a linear scale value.
