@@ -71,7 +71,7 @@ internal static class RenderUtils
             ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
             : 1 - (obj.Timestamp.Time - time) / viewDistance;
 
-        if (progress is < 0 or > 1) return false;
+        if (progress is < 0 or > 1.01f) return false;
         
         return true;
     }

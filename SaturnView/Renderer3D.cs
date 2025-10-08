@@ -12,7 +12,6 @@ namespace SaturnView;
 // Implement Bonus Spin/VFX
 // Event Markers with sub-events
 // Judgement window and Hold window Visualizations
-// > 1 culling jank
 // Hit testing
 // Background(s?)
 
@@ -233,7 +232,7 @@ public static class Renderer3D
                 float tEnd = 1 - (note.Timestamp.Time + RenderUtils.GetSweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
 
                 if (tStart <= 0 && tEnd <= 0) continue;
-                if (tStart > 1 && tEnd > 1) continue;
+                if (tStart > 1.01f && tEnd > 1.01f) continue;
                 
                 notesToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings)));
             }
@@ -406,7 +405,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1) return;
+        if (perspectiveScale is <= 0 or > 1.01f) return;
         if (note is not IPositionable positionable) return;
         
         IPlayable? playable = note as IPlayable;
@@ -824,7 +823,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1) return;
+        if (perspectiveScale is <= 0 or > 1.01f) return;
 
         int colorId = (int)settings.HoldNoteColor;
         
@@ -899,7 +898,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1) return;
+        if (perspectiveScale is <= 0 or > 1.01f) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float startAngle = (note.Position + 0.7f) * -6;
@@ -1124,7 +1123,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1) return;
+        if (perspectiveScale is <= 0 or > 1.01f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = perspectiveScale * canvasInfo.Scale;
@@ -1149,7 +1148,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1) return;
+        if (perspectiveScale is <= 0 or > 1.01f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
 
