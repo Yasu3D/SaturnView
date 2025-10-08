@@ -14,6 +14,7 @@ namespace SaturnView;
 // Judgement window and Hold window Visualizations
 // Hit testing
 // Background(s?)
+// Selection Outlines (+ PointerOver outlines?)
 
 public static class Renderer3D
 {

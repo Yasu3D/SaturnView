@@ -7,6 +7,8 @@ namespace SaturnView;
 
 internal static class RenderUtils
 {
+    // TODO: Docs
+    
     /// <summary>
     /// Determines if an object should be visible depending on the render settings.
     /// </summary>
@@ -50,7 +52,7 @@ internal static class RenderUtils
             _ => true,
         };
     }
-
+    
     internal static bool GetProgress(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float progress)
     {
         progress = -1;
