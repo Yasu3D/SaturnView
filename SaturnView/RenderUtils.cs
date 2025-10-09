@@ -55,20 +55,6 @@ internal static class RenderUtils
     
     internal static bool GetProgress(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float progress)
     {
-        progress = -1;
-
-        if (obj.Timestamp.Time < time) return false;
-        
-        if (showSpeedChanges)
-        {
-            if (obj.Timestamp.ScaledTime < scaledTime) return false;
-            if (obj.Timestamp.ScaledTime > scaledTime + viewDistance) return false;
-        }
-        else
-        {
-            if (obj.Timestamp.Time > time + viewDistance) return false;
-        }
-
         progress = showSpeedChanges
             ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
             : 1 - (obj.Timestamp.Time - time) / viewDistance;

@@ -359,10 +359,15 @@ internal static class NotePaints
             SpeedChangeEvent => EventColorSpeedChangeEvent,
             VisibilityChangeEvent => EventColorVisibilityChangeEvent,
             
-            ReverseEffectEvent => EventColorReverseEffectEvent,
             StopEffectEvent => EventColorStopEffectEvent,
+            ReverseEffectEvent => EventColorReverseEffectEvent,
             
-            EffectSubEvent => new(),
+            EffectSubEvent effectSubEvent => effectSubEvent.Parent switch
+            {
+                StopEffectEvent => EventColorStopEffectEvent,
+                ReverseEffectEvent => EventColorReverseEffectEvent,
+                _ => new(0xFFFFFFFF),
+            },
             _ => new(0xFFFFFFFF),
         };
     }
@@ -930,6 +935,13 @@ internal static class NotePaints
         return ShaderFillPaint;
     }
 
+    internal static SKPaint GetEventAreaPaint(Event @event, float opacity)
+    {
+        FlatFillPaint.Color = GetEventColor(@event).WithAlpha((byte)(opacity * 70));
+
+        return FlatFillPaint;
+    }
+    
     internal static SKPaint GetLaneTogglePaint(bool state, float pixelScale, float opacity)
     {
         FlatStrokePaint.StrokeWidth = 34 * pixelScale;

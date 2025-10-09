@@ -134,13 +134,13 @@ public static class NoteColors
 
     public const uint TempoChangeEvent = 0xFFFF6666;
     public const uint MetreChangeEvent = 0xFF22EE22;
-    public const uint TutorialMarkerEvent = 0xFFFFFFFF;
+    public const uint TutorialMarkerEvent = 0xFFFFE655;
     
     public const uint SpeedChangeEvent = 0xFF04B7FC;
     public const uint VisibilityChangeEvent = 0xFFFFAA55;
     
-    public const uint ReverseEffectEvent = 0xFFFFFFFF;
-    public const uint StopEffectEvent = 0xFFFFFFFF;
+    public const uint ReverseEffectEvent = 0xFFFF55CC;
+    public const uint StopEffectEvent = 0xFF4869FC;
 
     public static uint JudgeLineStartFromId(int id)
     {
