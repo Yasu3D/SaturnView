@@ -9,7 +9,7 @@ using SkiaSharp;
 namespace SaturnView;
 
 // TODO:
-// Implement Bonus Spin/VFX
+// Implement R Note FX
 // Event Markers with sub-events
 // Judgement window and Hold window Visualizations
 // Hit testing
@@ -210,6 +210,7 @@ public static class Renderer3D
             List<RenderObject> notesToDraw = [];
             List<RenderObject> holdEndsToDraw = [];
             List<RenderObject> holdsToDraw = [];
+            List<RenderBonusSweepEffect> bonusSweepEffectsToDraw = [];
             
             float scaledTime = Timestamp.ScaledTimeFromTime(chart.Layers[0], time);
             
@@ -265,6 +266,24 @@ public static class Renderer3D
                 {
                     Note note = layer.Notes[n];
 
+                    // Bonus Spin FX
+                    if (note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
+                    {
+                        float bpm = NotationUtils.LastTempoChange(chart, time)?.Tempo ?? 120;
+
+                        float duration = bpm >= 200
+                            ? 480000 / bpm
+                            : 240000 / bpm;
+
+                        if (note.Timestamp.Time < time && note.Timestamp.Time + duration > time && note is IPositionable positionable)
+                        {
+                            int startPosition = positionable.Position + positionable.Size / 2;
+                            bool isCounterclockwise = note is SlideCounterclockwiseNote;
+                            
+                            bonusSweepEffectsToDraw.Add(new(startPosition, note.Timestamp.Time, duration, isCounterclockwise));
+                        }
+                    }
+                    
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
@@ -397,6 +416,11 @@ public static class Renderer3D
                 {
                     DrawEvent(canvas, canvasInfo, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
                 }
+            }
+
+            foreach (RenderBonusSweepEffect sweepEffect in bonusSweepEffectsToDraw)
+            {
+                DrawBonusSweepEffect(canvas, canvasInfo, settings, sweepEffect.StartPosition, sweepEffect.StartTime, sweepEffect.Duration, sweepEffect.IsCounterclockwise, time);
             }
         }
     }
@@ -1485,6 +1509,53 @@ public static class Renderer3D
         canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
         canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(0xFFFB67B7));
     }
+
+    /// <summary>
+    /// Draws a bonus note sweep.
+    /// </summary>
+    private static void DrawBonusSweepEffect(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, int startPosition, float startTime, float duration, bool isCounterclockwise, float time)
+    {
+        if (time < startTime) return;
+        if (time > startTime + duration) return;
+        
+        SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
+
+        float delta = time - startTime;
+        float step = MathF.Ceiling(delta * 0.06f);
+
+        float offset;
+        float start;
+        float sweep;
+        float clamp;
+
+        if (isCounterclockwise)
+        {
+            offset = -step - startPosition;
+            
+            start = 0;
+            sweep = MathF.Min(15, step);
+            clamp = MathF.Ceiling(MathF.Min(0, -step + (duration - 250) * 0.06f));
+            
+            start -= clamp;
+            sweep += clamp;
+        }
+        else
+        {
+            offset = step - startPosition - 16;
+
+            start = 15;
+            sweep = -MathF.Min(15, step);
+            clamp = MathF.Ceiling(MathF.Min(0, -step + (duration - 250) * 0.06f));
+
+            start += clamp;
+            sweep += clamp;
+        }
+        
+        canvas.Save();
+            canvas.RotateDegrees(offset * 6, canvasInfo.Center.X, canvasInfo.Center.Y);
+            canvas.DrawArc(rect, start * 6, sweep * 6, true, NotePaints.GetBonusSweepEffectPaint(canvasInfo, isCounterclockwise));
+            canvas.Restore();
+    }
 }
 
 file struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
@@ -1525,4 +1596,12 @@ file struct RenderHoldPoint
     public float LocalTime;
     public float Start;
     public float Interval;
+}
+
+file struct RenderBonusSweepEffect(int startPosition, float startTime, float duration, bool isCounterclockwise)
+{
+    public readonly int StartPosition = startPosition;
+    public readonly float StartTime = startTime;
+    public readonly float Duration = duration;
+    public readonly bool IsCounterclockwise = isCounterclockwise;
 }

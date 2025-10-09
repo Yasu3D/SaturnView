@@ -135,6 +135,108 @@ internal static class NotePaints
     private static readonly SKColor EventColorVisibilityChangeEvent = new(NoteColors.VisibilityChangeEvent);
     private static readonly SKColor EventColorReverseEffectEvent = new(NoteColors.ReverseEffectEvent);
     private static readonly SKColor EventColorStopEffectEvent = new(NoteColors.StopEffectEvent);
+
+    private static readonly SKColor[] BonusSweepEffectColorsClockwise = 
+    [
+        new(NoteColors.BonusSweepEffect - 0xEE000000), 
+        new(NoteColors.BonusSweepEffect - 0xEE000000), 
+        new(NoteColors.BonusSweepEffect - 0xDD000000), 
+        new(NoteColors.BonusSweepEffect - 0xDD000000),
+        new(NoteColors.BonusSweepEffect - 0xCC000000), 
+        new(NoteColors.BonusSweepEffect - 0xCC000000),
+        new(NoteColors.BonusSweepEffect - 0xBB000000), 
+        new(NoteColors.BonusSweepEffect - 0xBB000000),
+        new(NoteColors.BonusSweepEffect - 0xAA000000), 
+        new(NoteColors.BonusSweepEffect - 0xAA000000),
+        new(NoteColors.BonusSweepEffect - 0x99000000), 
+        new(NoteColors.BonusSweepEffect - 0x99000000),
+        new(NoteColors.BonusSweepEffect - 0x88000000), 
+        new(NoteColors.BonusSweepEffect - 0x88000000),
+        new(NoteColors.BonusSweepEffect - 0x77000000), 
+        new(NoteColors.BonusSweepEffect - 0x77000000),
+        new(NoteColors.BonusSweepEffect - 0x66000000), 
+        new(NoteColors.BonusSweepEffect - 0x66000000),
+        new(NoteColors.BonusSweepEffect - 0x55000000), 
+        new(NoteColors.BonusSweepEffect - 0x55000000),
+        new(NoteColors.BonusSweepEffect - 0x44000000), 
+        new(NoteColors.BonusSweepEffect - 0x44000000),
+        new(NoteColors.BonusSweepEffect - 0x33000000), 
+        new(NoteColors.BonusSweepEffect - 0x33000000),
+        new(NoteColors.BonusSweepEffect - 0x22000000), 
+        new(NoteColors.BonusSweepEffect - 0x22000000),
+        new(NoteColors.BonusSweepEffect - 0x11000000), 
+        new(NoteColors.BonusSweepEffect - 0x11000000),
+        new(NoteColors.BonusSweepEffect), 
+        new(NoteColors.BonusSweepEffect),
+    ];
+    
+    private static readonly SKColor[] BonusSweepEffectColorsCounterclockwise = 
+    [
+        new(NoteColors.BonusSweepEffect), 
+        new(NoteColors.BonusSweepEffect), 
+        new(NoteColors.BonusSweepEffect - 0x11000000), 
+        new(NoteColors.BonusSweepEffect - 0x11000000),
+        new(NoteColors.BonusSweepEffect - 0x22000000), 
+        new(NoteColors.BonusSweepEffect - 0x22000000),
+        new(NoteColors.BonusSweepEffect - 0x33000000), 
+        new(NoteColors.BonusSweepEffect - 0x33000000),
+        new(NoteColors.BonusSweepEffect - 0x44000000), 
+        new(NoteColors.BonusSweepEffect - 0x44000000),
+        new(NoteColors.BonusSweepEffect - 0x55000000), 
+        new(NoteColors.BonusSweepEffect - 0x55000000),
+        new(NoteColors.BonusSweepEffect - 0x66000000), 
+        new(NoteColors.BonusSweepEffect - 0x66000000),
+        new(NoteColors.BonusSweepEffect - 0x77000000), 
+        new(NoteColors.BonusSweepEffect - 0x77000000),
+        new(NoteColors.BonusSweepEffect - 0x88000000), 
+        new(NoteColors.BonusSweepEffect - 0x88000000),
+        new(NoteColors.BonusSweepEffect - 0x99000000), 
+        new(NoteColors.BonusSweepEffect - 0x99000000),
+        new(NoteColors.BonusSweepEffect - 0xAA000000), 
+        new(NoteColors.BonusSweepEffect - 0xAA000000),
+        new(NoteColors.BonusSweepEffect - 0xBB000000), 
+        new(NoteColors.BonusSweepEffect - 0xBB000000),
+        new(NoteColors.BonusSweepEffect - 0xCC000000), 
+        new(NoteColors.BonusSweepEffect - 0xCC000000),
+        new(NoteColors.BonusSweepEffect - 0xDD000000), 
+        new(NoteColors.BonusSweepEffect - 0xDD000000),
+        new(NoteColors.BonusSweepEffect - 0xEE000000), 
+        new(NoteColors.BonusSweepEffect - 0xEE000000),
+    ];
+    
+    private static readonly float[] BonusSweepEffectPositions = 
+    [
+        0,
+        1.0f  / 15.0f - 0.0001f,
+        1.0f  / 15.0f,
+        2.0f  / 15.0f - 0.0001f,
+        2.0f  / 15.0f,
+        3.0f  / 15.0f - 0.0001f,
+        3.0f  / 15.0f,
+        4.0f  / 15.0f - 0.0001f,
+        4.0f  / 15.0f,
+        5.0f  / 15.0f - 0.0001f,
+        5.0f  / 15.0f,
+        6.0f  / 15.0f - 0.0001f,
+        6.0f  / 15.0f,
+        7.0f  / 15.0f - 0.0001f,
+        7.0f  / 15.0f,
+        8.0f  / 15.0f - 0.0001f,
+        8.0f  / 15.0f,
+        9.0f  / 15.0f - 0.0001f,
+        9.0f  / 15.0f,
+        10.0f / 15.0f - 0.0001f,
+        10.0f / 15.0f,
+        11.0f / 15.0f - 0.0001f,
+        11.0f / 15.0f,
+        12.0f / 15.0f - 0.0001f,
+        12.0f / 15.0f,
+        13.0f / 15.0f - 0.0001f,
+        13.0f / 15.0f,
+        14.0f / 15.0f - 0.0001f,
+        14.0f / 15.0f,
+        1,
+    ];
     
 #endregion Color Definitions
     
@@ -865,6 +967,17 @@ internal static class NotePaints
         FlatFillPaint.Color = color;
         
         return FlatFillPaint;
+    }
+
+    internal static SKPaint GetBonusSweepEffectPaint(CanvasInfo canvasInfo, bool isCounterClockwise)
+    {
+        SKShader sweepGradient = SKShader.CreateSweepGradient(canvasInfo.Center, isCounterClockwise ? BonusSweepEffectColorsCounterclockwise : BonusSweepEffectColorsClockwise, BonusSweepEffectPositions, SKShaderTileMode.Decal, 0, 90);
+        SKShader radialGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, [new(0x00FFFFFF), new(0xFFFFFFFF)], [0.1f, 1.0f], SKShaderTileMode.Clamp);
+
+        ShaderFillPaint.Color = new(0xFFFFFFFF);
+        ShaderFillPaint.Shader = SKShader.CreateCompose(sweepGradient, radialGradient, SKBlendMode.Modulate);
+        
+        return ShaderFillPaint;
     }
     
     internal static SKFont GetBoldFont(float scale)

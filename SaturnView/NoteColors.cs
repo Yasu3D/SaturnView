@@ -15,6 +15,8 @@ public static class NoteColors
     public const uint MeasureLine = 0xFFB6B6BC;
     public const uint BeatLine = 0x80B6B6BC;
 
+    public const uint BonusSweepEffect = 0xFFEE3D9C;
+
     public const uint LaneGuideLineA = 0xFF3B3E56;
     public const uint LaneGuideLineB = 0x003B3E56;
     public const uint LaneBaseA = 0xFF16182C;
