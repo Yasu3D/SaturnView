@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using SaturnData.Notation;
 using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
@@ -308,7 +307,7 @@ public static class Renderer3D
                     }
                 }
                 
-                VisibilityChangeEvent? visibilityChange = NotationUtils.LastVisibilityChange(layer, time);
+                VisibilityChangeEvent? visibilityChange = layer.LastVisibilityChange(time);
                 if (visibilityChange != null && visibilityChange.Visible == false) continue;
                 
                 // Find all visible notes.
@@ -319,7 +318,7 @@ public static class Renderer3D
                     // Bonus Spin FX
                     if (note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
                     {
-                        float bpm = NotationUtils.LastTempoChange(chart, time)?.Tempo ?? 120;
+                        float bpm = chart.LastTempoChange(time)?.Tempo ?? 120;
 
                         float duration = bpm >= 200
                             ? 480000 / bpm
@@ -358,7 +357,7 @@ public static class Renderer3D
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
-                            bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
+                            bool sync = note.IsSync(prev) || note.IsSync(next);
 
                             objectsToDraw.Add(new(note, layer, l, tStart, sync, isVisible));
                         }
@@ -389,7 +388,7 @@ public static class Renderer3D
 
                         Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
-                        bool sync = NotationUtils.IsSync(note, prev) || NotationUtils.IsSync(note, next);
+                        bool sync = note.IsSync(prev) || note.IsSync(next);
 
                         objectsToDraw.Add(new(note, layer, l, t, sync, layer.Visible && RenderUtils.IsVisible(note, settings)));
                     }
@@ -414,8 +413,6 @@ public static class Renderer3D
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
-
-            Console.WriteLine(eventAreasToDraw.Count);
             
             foreach (RenderObject renderObject in eventAreasToDraw)
             {
