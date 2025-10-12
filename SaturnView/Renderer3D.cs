@@ -295,6 +295,7 @@ public static class Renderer3D
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                         
+                        // Area Fill
                         if (reverseEffectEvent.SubEvents[0].Timestamp.Time <= time + viewDistance && reverseEffectEvent.SubEvents[2].Timestamp.Time >= time)
                         {
                             eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
@@ -1273,7 +1274,7 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
             
             canvas.RotateDegrees(110, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath($"{speedChangeEvent.HiSpeed:0.000}x", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
+            canvas.DrawTextOnPath($"{speedChangeEvent.Speed:0.000}x", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         else if (@event is VisibilityChangeEvent visibilityChangeEvent)
         {
