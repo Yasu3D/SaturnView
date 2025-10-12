@@ -53,9 +53,9 @@ internal static class RenderUtils
         };
     }
     
-    internal static bool GetProgress(ITimeable obj, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float progress)
+    internal static bool GetProgress(ITimeable obj, bool showEffects, float viewDistance, float time, float scaledTime, out float progress)
     {
-        progress = showSpeedChanges
+        progress = showEffects
             ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
             : 1 - (obj.Timestamp.Time - time) / viewDistance;
 

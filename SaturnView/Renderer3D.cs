@@ -316,7 +316,7 @@ public static class Renderer3D
                 if (settings.ShowEffects && lastVisibilityChange != null && !lastVisibilityChange.Visible) continue;
                 
                 ReverseEffectEvent? lastReverseEffect = layer.LastReverseEffect(time);
-                bool reverseActive = lastReverseEffect != null && lastReverseEffect.IsActive(time);
+                bool reverseActive = settings.ShowEffects && lastReverseEffect != null && lastReverseEffect.IsActive(time);
                 
                 // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
