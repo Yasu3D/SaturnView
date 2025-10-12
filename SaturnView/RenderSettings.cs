@@ -344,20 +344,20 @@ public class RenderSettings
     private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
     
     /// <summary>
-    /// Should scroll speed changes be visible?
+    /// Should scroll speed and visibility effects be visible?
     /// </summary>
-    public bool ShowSpeedChanges
+    public bool ShowEffects
     {
-        get => showSpeedChanges;
+        get => showEffects;
         set
         {
-            if (showSpeedChanges == value) return;
+            if (showEffects == value) return;
             
-            showSpeedChanges = value;
+            showEffects = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showSpeedChanges = false;
+    private bool showEffects = false;
     
     /// <summary>
     /// Should judgement windows be shown?

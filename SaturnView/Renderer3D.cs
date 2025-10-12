@@ -8,13 +8,13 @@ using SkiaSharp;
 namespace SaturnView;
 
 // TODO:
+// Improve Performance
 // Implement R Note FX
 // Judgement window and Hold window Visualizations
 // Hit testing
 // Background(s?)
 // Selection Outlines (+ PointerOver outlines?)
 // Adjustable "hidden" opacity?
-// Implement Stop and Reverse
 
 public static class Renderer3D
 {
@@ -48,6 +48,10 @@ public static class Renderer3D
         
         canvas.Clear(canvasInfo.BackgroundColor);
         canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
+
+        SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
+        SKRoundRect roundRect = new(rect, canvasInfo.Radius);
+        canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
         
         lock (chart)
         {
@@ -220,7 +224,7 @@ public static class Renderer3D
             {
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(@event, settings.ShowEffects, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
             }
 
@@ -303,18 +307,22 @@ public static class Renderer3D
                     }
                     else
                     {
-                        if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(@event, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                     }
                 }
                 
-                VisibilityChangeEvent? visibilityChange = layer.LastVisibilityChange(time);
-                if (visibilityChange != null && visibilityChange.Visible == false) continue;
+                VisibilityChangeEvent? lastVisibilityChange = layer.LastVisibilityChange(time);
+                if (settings.ShowEffects && lastVisibilityChange != null && !lastVisibilityChange.Visible) continue;
+                
+                ReverseEffectEvent? lastReverseEffect = layer.LastReverseEffect(time);
+                bool reverseActive = lastReverseEffect != null && lastReverseEffect.IsActive(time);
                 
                 // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
                     Note note = layer.Notes[n];
+                    if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
 
                     // Bonus Spin FX
                     if (note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
@@ -337,7 +345,7 @@ public static class Renderer3D
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
-                        if (settings.ShowSpeedChanges)
+                        if (settings.ShowEffects)
                         {
                             if (holdNote.Points[^1].Timestamp.Time < time) continue;
                             if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
@@ -354,7 +362,7 @@ public static class Renderer3D
                         holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
                         
                         // Hold Start
-                        if (RenderUtils.GetProgress(holdNote.Points[0], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
+                        if (RenderUtils.GetProgress(holdNote.Points[0], settings.ShowEffects, viewDistance, time, scaledTime, out float tStart))
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -364,7 +372,7 @@ public static class Renderer3D
                         }
 
                         // Hold End
-                        if (RenderUtils.GetProgress(holdNote.Points[^1], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
+                        if (RenderUtils.GetProgress(holdNote.Points[^1], settings.ShowEffects, viewDistance, time, scaledTime, out float tEnd))
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
@@ -375,7 +383,7 @@ public static class Renderer3D
                             if (settings.HideHoldControlPointsDuringPlayback && playing) break;
                             
                             HoldPointNote point = holdNote.Points[j];
-                            float t = settings.ShowSpeedChanges
+                            float t = settings.ShowEffects
                                 ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
                                 : 1 - (point.Timestamp.Time - time) / viewDistance;
 
@@ -385,7 +393,7 @@ public static class Renderer3D
                     else
                     {
                         // Normal Notes
-                        if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(note, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
 
                         Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -398,7 +406,8 @@ public static class Renderer3D
                 // Find all visible generated notes.
                 foreach (Note note in layer.GeneratedNotes)
                 {
-                    if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
+                    if (!RenderUtils.GetProgress(note, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
 
                     objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings)));
                 }
@@ -479,7 +488,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1.01f) return;
+        if (perspectiveScale is <= 0 or > 1.25f) return;
         if (note is not IPositionable positionable) return;
         
         IPlayable? playable = note as IPlayable;
@@ -897,7 +906,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1.01f) return;
+        if (perspectiveScale is <= 0 or > 1.25f) return;
 
         int colorId = (int)settings.HoldNoteColor;
         
@@ -972,7 +981,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1.01f) return;
+        if (perspectiveScale is <= 0 or > 1.25f) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float startAngle = (note.Position + 0.7f) * -6;
@@ -1023,7 +1032,7 @@ public static class Renderer3D
 
         float visibleTime = 3333.333f / (settings.NoteSpeed * 0.1f);
         
-        float scaledTime = settings.ShowSpeedChanges ? Timestamp.ScaledTimeFromTime(layer, time) : time;
+        float scaledTime = settings.ShowEffects ? Timestamp.ScaledTimeFromTime(layer, time) : time;
         int maxSize = hold.MaxSize;
         int arcs = 0;
         
@@ -1098,13 +1107,7 @@ public static class Renderer3D
         }
         
         // Draw mesh
-        SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
-        SKRoundRect roundRect = new(rect, canvasInfo.Radius);
-        
-        canvas.Save();
-        canvas.ClipRoundRect(roundRect);
         canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
-        canvas.Restore();
         return;
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
@@ -1186,7 +1189,7 @@ public static class Renderer3D
 
         float getScale(float globalTime, float globalScaledTime)
         {
-            return !settings.ShowSpeedChanges || time > globalTime
+            return !settings.ShowEffects || time > globalTime
                 ? RenderUtils.InverseLerp(time + visibleTime, time, globalTime)
                 : RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
         }
@@ -1197,7 +1200,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1.01f) return;
+        if (perspectiveScale is <= 0 or > 1.25f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = perspectiveScale * canvasInfo.Scale;
@@ -1222,7 +1225,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine, float opacity)
     {
-        if (perspectiveScale is <= 0 or > 1.01f) return;
+        if (perspectiveScale is <= 0 or > 1.25f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
 
@@ -1487,14 +1490,8 @@ public static class Renderer3D
                     vertices[6 * i + 5] = p1;
                 }
             }
-
-            SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
-            SKRoundRect roundRect = new(rect, canvasInfo.Radius);
-
-            canvas.Save();
-            canvas.ClipRoundRect(roundRect);
+            
             canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetLaneToggleFillPaint(state, opacity));
-            canvas.Restore();
         }
         
         // Note body.
