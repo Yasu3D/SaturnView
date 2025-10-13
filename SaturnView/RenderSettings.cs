@@ -144,18 +144,18 @@ public class RenderSettings
     private NoteThicknessOption noteThickness = NoteThicknessOption.Thickness3;
     
     /// <summary>
-    /// Should lane toggle animations be ignored?
+    /// Should lane toggle animations be shown?
     /// </summary>
-    public bool IgnoreLaneToggleAnimations
+    public bool ShowLaneToggleAnimations
     {
-        get => ignoreLaneToggleAnimations;
+        get => showLaneToggleAnimations;
         set 
         {
-            ignoreLaneToggleAnimations = value;
+            showLaneToggleAnimations = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool ignoreLaneToggleAnimations = false;
+    private bool showLaneToggleAnimations = true;
     
     /// <summary>
     /// Should event markers be hidden during playback?
@@ -342,22 +342,54 @@ public class RenderSettings
         }
     }
     private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
-    
+
     /// <summary>
-    /// Should scroll speed and visibility effects be visible?
+    /// The opacity of "hidden" objects.
     /// </summary>
-    public bool ShowEffects
+    public int HiddenOpacity
     {
-        get => showEffects;
+        get => hiddenOpacity;
         set
         {
-            if (showEffects == value) return;
+            if (hiddenOpacity == value) return;
             
-            showEffects = value;
+            hiddenOpacity = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showEffects = false;
+    private int hiddenOpacity = 1;
+    
+    /// <summary>
+    /// Should scroll speed changes be visible?
+    /// </summary>
+    public bool ShowSpeedChanges
+    {
+        get => showSpeedChanges;
+        set
+        {
+            if (showSpeedChanges == value) return;
+            
+            showSpeedChanges = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSpeedChanges = true;
+    
+    /// <summary>
+    /// Should visibility changes be visible?
+    /// </summary>
+    public bool ShowVisibilityChanges
+    {
+        get => showVisibilityChanges;
+        set
+        {
+            if (showVisibilityChanges == value) return;
+            
+            showVisibilityChanges = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showVisibilityChanges = true;
     
     /// <summary>
     /// Should judgement windows be shown?
@@ -459,18 +491,18 @@ public class RenderSettings
     /// <summary>
     /// Should the sweep animations of lane toggles be visualized?
     /// </summary>
-    public bool VisualizeSweepAnimations
+    public bool VisualizeLaneSweeps
     {
-        get => visualizeSweepAnimations;
+        get => visualizeLaneSweeps;
         set
         {
-            if (visualizeSweepAnimations == value) return;
+            if (visualizeLaneSweeps == value) return;
             
-            visualizeSweepAnimations = value;
+            visualizeLaneSweeps = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool visualizeSweepAnimations = true;
+    private bool visualizeLaneSweeps = true;
     
     /// <summary>
     /// Should Touch notes be shown?

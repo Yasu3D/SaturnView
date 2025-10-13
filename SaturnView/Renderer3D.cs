@@ -14,7 +14,6 @@ namespace SaturnView;
 // Hit testing
 // Background(s?)
 // Selection Outlines (+ PointerOver outlines?)
-// Adjustable "hidden" opacity?
 
 public static class Renderer3D
 {
@@ -78,7 +77,7 @@ public static class Renderer3D
         void renderLanes()
         {
             // Skip Animations and draw all lanes.
-            if (settings.IgnoreLaneToggleAnimations)
+            if (!settings.ShowLaneToggleAnimations)
             {
                 DrawLanes(canvas, canvasInfo, settings, 0, 60, time);
                 return;
@@ -224,7 +223,7 @@ public static class Renderer3D
             {
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(@event, settings.ShowEffects, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
             }
 
@@ -307,16 +306,16 @@ public static class Renderer3D
                     }
                     else
                     {
-                        if (!RenderUtils.GetProgress(@event, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                     }
                 }
                 
                 VisibilityChangeEvent? lastVisibilityChange = layer.LastVisibilityChange(time);
-                if (settings.ShowEffects && lastVisibilityChange != null && !lastVisibilityChange.Visible) continue;
+                if (settings.ShowVisibilityChanges && lastVisibilityChange != null && !lastVisibilityChange.Visible) continue;
                 
                 ReverseEffectEvent? lastReverseEffect = layer.LastReverseEffect(time);
-                bool reverseActive = settings.ShowEffects && lastReverseEffect != null && lastReverseEffect.IsActive(time);
+                bool reverseActive = settings.ShowSpeedChanges && lastReverseEffect != null && lastReverseEffect.IsActive(time);
                 
                 // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
@@ -345,7 +344,7 @@ public static class Renderer3D
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
-                        if (settings.ShowEffects)
+                        if (settings.ShowSpeedChanges)
                         {
                             if (holdNote.Points[^1].Timestamp.Time < time) continue;
                             if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
@@ -362,7 +361,7 @@ public static class Renderer3D
                         holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
                         
                         // Hold Start
-                        if (RenderUtils.GetProgress(holdNote.Points[0], settings.ShowEffects, viewDistance, time, scaledTime, out float tStart))
+                        if (RenderUtils.GetProgress(holdNote.Points[0], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -372,7 +371,7 @@ public static class Renderer3D
                         }
 
                         // Hold End
-                        if (RenderUtils.GetProgress(holdNote.Points[^1], settings.ShowEffects, viewDistance, time, scaledTime, out float tEnd))
+                        if (RenderUtils.GetProgress(holdNote.Points[^1], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
@@ -383,7 +382,7 @@ public static class Renderer3D
                             if (settings.HideHoldControlPointsDuringPlayback && playing) break;
                             
                             HoldPointNote point = holdNote.Points[j];
-                            float t = settings.ShowEffects
+                            float t = settings.ShowSpeedChanges
                                 ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
                                 : 1 - (point.Timestamp.Time - time) / viewDistance;
 
@@ -393,7 +392,7 @@ public static class Renderer3D
                     else
                     {
                         // Normal Notes
-                        if (!RenderUtils.GetProgress(note, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                         Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -407,7 +406,7 @@ public static class Renderer3D
                 foreach (Note note in layer.GeneratedNotes)
                 {
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
-                    if (!RenderUtils.GetProgress(note, settings.ShowEffects, viewDistance, time, scaledTime, out float t)) continue;
+                    if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                     objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings)));
                 }
@@ -428,14 +427,14 @@ public static class Renderer3D
             {
                 if (renderObject.Object is not Event @event) continue;
                 
-                DrawEventArea(canvas, canvasInfo, @event, time, viewDistance, renderObject.IsVisible ? 1 : 0.1f);
+                DrawEventArea(canvas, canvasInfo, @event, time, viewDistance, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
             }
             
             foreach (RenderObject renderObject in holdEndsToDraw)
             {
                 if (renderObject.Object is not HoldPointNote holdPointNote) continue;
                 
-                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
             }
             
             foreach (RenderObject renderObject in holdsToDraw)
@@ -443,36 +442,36 @@ public static class Renderer3D
                 if (renderObject.Object is not HoldNote holdNote) continue;
                 if (renderObject.Layer == null) continue;
                 
-                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : 0.1f);
+                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
             }
             
             foreach (RenderObject renderObject in objectsToDraw)
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
-                    DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
-                    DrawSyncNote(canvas, canvasInfo, settings, syncNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawSyncNote(canvas, canvasInfo, settings, syncNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
                     if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) continue;
                     
-                    DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : 0.1f);
+                    DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
-                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, time, viewDistance, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, time, viewDistance, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is Note note)
                 {
-                    DrawNote(canvas, canvasInfo, settings, note, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, renderObject.Sync, renderObject.IsVisible ? 1 : 0.1f);
+                    DrawNote(canvas, canvasInfo, settings, note, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, renderObject.Sync, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is Event @event)
                 {
-                    DrawEvent(canvas, canvasInfo, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : 0.1f);
+                    DrawEvent(canvas, canvasInfo, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
             }
 
@@ -488,6 +487,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity)
     {
+        if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
         if (note is not IPositionable positionable) return;
         
@@ -906,6 +906,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
+        if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
 
         int colorId = (int)settings.HoldNoteColor;
@@ -981,6 +982,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
     {
+        if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1025,6 +1027,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity)
     {
+        if (opacity == 0) return;
         List<SKPoint> vertexScreenCoords = [];
         List<SKPoint> vertexTextureCoords = [];
 
@@ -1032,7 +1035,7 @@ public static class Renderer3D
 
         float visibleTime = 3333.333f / (settings.NoteSpeed * 0.1f);
         
-        float scaledTime = settings.ShowEffects ? Timestamp.ScaledTimeFromTime(layer, time) : time;
+        float scaledTime = settings.ShowSpeedChanges ? Timestamp.ScaledTimeFromTime(layer, time) : time;
         int maxSize = hold.MaxSize;
         int arcs = 0;
         
@@ -1189,7 +1192,7 @@ public static class Renderer3D
 
         float getScale(float globalTime, float globalScaledTime)
         {
-            return !settings.ShowEffects || time > globalTime
+            return !settings.ShowSpeedChanges || time > globalTime
                 ? RenderUtils.InverseLerp(time + visibleTime, time, globalTime)
                 : RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
         }
@@ -1200,6 +1203,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
     {
+        if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1225,6 +1229,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine, float opacity)
     {
+        if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1244,6 +1249,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float perspectiveScale, float opacity)
     {
+        if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
         float pixelScale = canvasInfo.Scale * perspectiveScale;
 
@@ -1296,6 +1302,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawEventArea(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float time, float viewDistance, float opacity)
     {
+        if (opacity == 0) return;
         if (@event is StopEffectEvent stopEffectEvent && stopEffectEvent.SubEvents.Length == 2)
         {
             SKPoint[] vertices = new SKPoint[360];
@@ -1389,6 +1396,7 @@ public static class Renderer3D
     /// </summary>
     private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity)
     {
+        if (opacity == 0) return;
         if (laneToggle is not ITimeable timeable) return;
         if (laneToggle is not IPositionable positionable) return;
         bool state = laneToggle is LaneShowNote;
@@ -1397,7 +1405,7 @@ public static class Renderer3D
         
         
         // Sweep Visualization
-        if (settings.VisualizeSweepAnimations)
+        if (settings.VisualizeLaneSweeps)
         {
             SKPoint[] vertices = new SKPoint[positionable.Size * 6];
             float startTime = timeable.Timestamp.Time;

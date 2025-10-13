@@ -7,10 +7,8 @@ namespace SaturnView;
 
 internal static class RenderUtils
 {
-    // TODO: Docs
-    
     /// <summary>
-    /// Determines if an object should be visible depending on the render settings.
+    /// Returns if an object should be visible depending on the render settings.
     /// </summary>
     internal static bool IsVisible(ITimeable obj, RenderSettings settings)
     {
@@ -45,7 +43,7 @@ internal static class RenderUtils
             SnapBackwardNote => settings.ShowSnapBackwardNotes,
 
             SyncNote => settings.ShowSyncNotes,
-            MeasureLineNote => settings.ShowMeasureLineNotes,
+            MeasureLineNote measureLineNote => measureLineNote.IsBeatLine ? settings.ShowBeatLineNotes : settings.ShowMeasureLineNotes,
 
             LaneShowNote => settings.ShowLaneShowNotes,
             LaneHideNote => settings.ShowLaneHideNotes,
@@ -53,6 +51,9 @@ internal static class RenderUtils
         };
     }
     
+    /// <summary>
+    /// Returns if an object is within the currently visible area, and returns its linear scroll position as an <c>out</c> value.
+    /// </summary>
     internal static bool GetProgress(ITimeable obj, bool showEffects, float viewDistance, float time, float scaledTime, out float progress)
     {
         progress = showEffects
@@ -65,6 +66,9 @@ internal static class RenderUtils
         return true;
     }
 
+    /// <summary>
+    /// Returns the duration of a lane toggle sweep animation in milliseconds.
+    /// </summary>
     internal static float GetSweepDuration(LaneSweepDirection direction, int size)
     {
         return direction switch
