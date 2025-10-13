@@ -600,6 +600,7 @@ internal static class NotePaints
         
         SKShader shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors, positions, SKShaderTileMode.Clamp);
         ShaderFillPaint.Shader = shader;
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
 
         return ShaderFillPaint;
     }
@@ -664,6 +665,7 @@ internal static class NotePaints
         
         SKShader shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors, positions, SKShaderTileMode.Clamp);
         ShaderFillPaint.Shader = shader;
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
 
         return ShaderFillPaint;
     }
@@ -697,6 +699,7 @@ internal static class NotePaints
         float sweepAngle = size * 6;
         
         ShaderFillPaint.Shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Decal, 0, sweepAngle);
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
 
         return ShaderFillPaint;
     }
@@ -841,10 +844,10 @@ internal static class NotePaints
         SKColor[] alphaColors = [new(0x00FFFFFF), new(0xFFFFFFFF)];
         float[] alphaPositions = [0.1f, 0.35f];
 
-        int stripeCount = 9;
-        float interval = 1.0f / stripeCount;
+        const int stripeCount = 9;
+        const float interval = 1.0f / stripeCount;
 
-        float speed = 0.0004f;
+        const float speed = 0.0004f;
         float t = (time * speed) % interval * 2;
         
         SKColor[] scrollColors = new SKColor[stripeCount * 2 + 2];
@@ -864,6 +867,7 @@ internal static class NotePaints
         SKShader alphaGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, alphaColors, alphaPositions, SKShaderTileMode.Clamp);
         SKShader colorGradient = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, scrollColors, scrollPositions, SKShaderTileMode.Clamp);
         ShaderFillPaint.Shader = SKShader.CreateCompose(colorGradient, alphaGradient, SKBlendMode.Modulate);
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
         return ShaderFillPaint;
     }
 
@@ -939,6 +943,7 @@ internal static class NotePaints
         float[] positions = [rawScale * 0.75f, rawScale];
         
         ShaderFillPaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
         return ShaderFillPaint;
     }
 
@@ -995,6 +1000,7 @@ internal static class NotePaints
 
         ShaderFillPaint.Color = new(0xFFFFFFFF);
         ShaderFillPaint.Shader = SKShader.CreateCompose(sweepGradient, radialGradient, SKBlendMode.Modulate);
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
         
         return ShaderFillPaint;
     }
@@ -1036,6 +1042,34 @@ internal static class NotePaints
         }
        
         return FlatFillPaint;
+    }
+
+    internal static SKPaint GetRNoteFillPaint(CanvasInfo canvasInfo, float angle)
+    {
+        SKColor[] colors = [new(0xFF18BBFF), new(0xFFFF1D8C), new(0xFFFFCB00), new(0xFFFF1D8C), new(0xFF18BBFF)];
+        float[] positions = [0, 0.25f, 0.5f, 0.75f, 1];
+
+        ShaderFillPaint.Shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Repeat, angle, angle + 360);
+        ShaderFillPaint.BlendMode = SKBlendMode.Screen;
+        
+        return ShaderFillPaint;
+    }
+
+    internal static SKPaint GetRNoteGlowPaint(CanvasInfo canvasInfo, float angle, float inner, float outer, float opacity)
+    {
+        SKColor[] colors0 = [new(0xFF18BBFF), new(0xFFFF1D8C), new(0xFFFFCB00), new(0xFFFF1D8C), new(0xFF18BBFF)];
+        float[] positions0 = [0, 0.25f, 0.5f, 0.75f, 1];
+
+        SKColor[] colors1 = [new(0x00FFFFFF), new(0xFF, 0xFF, 0xFF, (byte)(255 * opacity)), new(0x00FFFFFF)];
+        float[] positions1 = [inner, (inner + outer) * 0.5f, outer];
+        
+        SKShader shader0 = SKShader.CreateSweepGradient(canvasInfo.Center, colors0, positions0, SKShaderTileMode.Repeat, angle, angle + 360);
+        SKShader shader1 = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors1, positions1, SKShaderTileMode.Clamp);
+
+        ShaderFillPaint.Shader = SKShader.CreateCompose(shader0, shader1, SKBlendMode.Modulate);
+        ShaderFillPaint.BlendMode = SKBlendMode.Screen;
+
+        return ShaderFillPaint;
     }
     
     internal static SKFont GetBoldFont(float scale)

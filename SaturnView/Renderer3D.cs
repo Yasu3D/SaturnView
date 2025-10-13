@@ -56,7 +56,7 @@ public static class Renderer3D
         }
         
         stopwatch.Stop();
-        
+
         DrawInterface(canvas, canvasInfo, settings, entry, time);
         canvas.DrawText($"{calcStopwatch.ElapsedTicks / 10000.0f}", new(canvasInfo.Width / 2, 30), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
         canvas.DrawText($"{Math.Max(0, (stopwatch.ElapsedTicks - calcStopwatch.ElapsedTicks)) / 10000.0f}", new(canvasInfo.Width / 2, 60), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
@@ -204,6 +204,7 @@ public static class Renderer3D
             List<RenderObject> holdsToDraw = [];
             List<RenderObject> eventAreasToDraw = [];
             List<RenderBonusSweepEffect> bonusSweepEffectsToDraw = [];
+            Note? activeRNote = null;
             
             float scaledTime = Timestamp.ScaledTimeFromTime(chart.Layers[0], time);
             
@@ -330,6 +331,15 @@ public static class Renderer3D
                         }
                     }
                     
+                    // R-Note FX
+                    if (note is IPlayable { BonusType: BonusType.R, JudgementType: not JudgementType.Fake })
+                    {
+                        if (note.Timestamp.Time <= time && note.Timestamp.Time + 550f > time)
+                        {
+                            activeRNote = note;
+                        }
+                    }
+                    
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
@@ -413,6 +423,11 @@ public static class Renderer3D
                 .ToList();
             
             calcStopwatch.Stop();
+            
+            if (activeRNote != null)
+            {
+                DrawRNoteEffect(canvas, canvasInfo, activeRNote.Timestamp.Time, time);
+            }
             
             foreach (RenderObject renderObject in eventAreasToDraw)
             {
@@ -1803,6 +1818,54 @@ public static class Renderer3D
         canvas.Save();
         canvas.RotateDegrees(offset * 6, canvasInfo.Center.X, canvasInfo.Center.Y);
         canvas.DrawArc(rect, start * 6, sweep * 6, true, NotePaints.GetBonusSweepEffectPaint(canvasInfo, isCounterclockwise));
+        canvas.Restore();
+    }
+
+    private static void DrawRNoteEffect(SKCanvas canvas, CanvasInfo canvasInfo, float startTime, float time)
+    {
+        if (time < startTime) return;
+        if (time > startTime + 550) return;
+        
+        const int squares = 21;
+        float squareWidth = canvasInfo.Width / squares;
+        float squareRadius = 10 * canvasInfo.Scale;
+
+        float t = RenderUtils.InverseLerp(startTime, startTime + 550, time);
+        t = 1 - MathF.Pow(1 - Math.Clamp(t, 0, 1), 3f);
+        
+        float scaleMultiplier = Math.Clamp(1 - MathF.Pow((2 * t - 1), 2), 0, 1);
+        float innerWave = Math.Clamp(0.5f * t + 0.2f, 0.3f, 0.8f);
+        float outerWave = 0.3f * t + 0.7f;
+
+        float angle = 180 + t * 180;
+
+        canvas.Save();
+        canvas.RotateDegrees(-12, canvasInfo.Center.X, canvasInfo.Center.Y);
+
+        canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, NotePaints.GetRNoteGlowPaint(canvasInfo, angle, innerWave, outerWave, scaleMultiplier));
+        
+        for (int x = 0; x < squares; x++)
+        for (int y = 0; y < squares; y++)
+        {
+            float tX = 2 * ((x + 0.5f) / squares) - 1;
+            float tY = 2 * ((y + 0.5f) / squares) - 1;
+            float tLength = MathF.Sqrt(tX * tX + tY * tY);
+
+            float scale = tLength < innerWave || tLength > outerWave
+                ? 0
+                : MathF.Sin((MathF.PI * (tLength - innerWave)) / (outerWave - innerWave));
+
+            scale *= scaleMultiplier;
+            
+            float width = squareWidth * scale;
+            float radius = squareRadius * scale;
+
+            float xOffset = x * squareWidth + (squareWidth - width) * 0.5f;
+            float yOffset = y * squareWidth + (squareWidth - width) * 0.5f;
+            
+            canvas.DrawRoundRect(xOffset, yOffset, width, width, radius, radius, NotePaints.GetRNoteFillPaint(canvasInfo, angle));
+        }
+        
         canvas.Restore();
     }
 }
