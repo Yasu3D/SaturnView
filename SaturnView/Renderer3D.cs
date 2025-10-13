@@ -9,7 +9,6 @@ namespace SaturnView;
 
 // TODO:
 // Improve Performance
-// Implement R Note FX
 // Judgement window and Hold window Visualizations
 // Hit testing
 // Background(s?)
