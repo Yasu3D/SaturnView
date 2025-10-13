@@ -13,7 +13,6 @@ namespace SaturnView;
 // Judgement window and Hold window Visualizations
 // Hit testing
 // Background(s?)
-// (+ PointerOver outlines?)
 
 public static class Renderer3D
 {
@@ -477,7 +476,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a standard note body, sync outline, r-effect, and arrows.
     /// </summary>
-    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -893,16 +892,18 @@ public static class Renderer3D
         }
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(note))
+        bool selected = selectedObjects != null && selectedObjects.Contains(note);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size, selected, pointerOver);
         }
     }
 
     /// <summary>
     /// Draws a hold end note.
     /// </summary>
-    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -975,16 +976,18 @@ public static class Renderer3D
         }
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(note))
+        bool selected = selectedObjects != null && selectedObjects.Contains(note);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
         }
     }
 
     /// <summary>
     /// Draws a hold control point.
     /// </summary>
-    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1026,16 +1029,18 @@ public static class Renderer3D
         canvas.DrawPath(path, NotePaints.GetHoldPointPaint(settings, pixelScale, note.RenderType, opacity));
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(note))
+        bool selected = selectedObjects != null && selectedObjects.Contains(note);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
         }
     }
 
     /// <summary>
     /// Draws a hold note surface.
     /// </summary>
-    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         List<SKPoint> vertexScreenCoords = [];
@@ -1123,9 +1128,12 @@ public static class Renderer3D
         canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(hold))
+        bool selected = selectedObjects != null && selectedObjects.Contains(hold);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(hold);
+        
+        if (selected || pointerOver)
         {
-            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetSelectionFillPaint());
+            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
         }
         return;
 
@@ -1217,7 +1225,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a sync connector.
     /// </summary>
-    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1240,16 +1248,18 @@ public static class Renderer3D
         }
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(note))
+        bool selected = selectedObjects != null && selectedObjects.Contains(note);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
         }
     }
 
     /// <summary>
     /// Draws a measure or beat line.
     /// </summary>
-    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, MeasureLineNote note, float perspectiveScale, float linearScale, bool isBeatLine, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, MeasureLineNote note, float perspectiveScale, float linearScale, bool isBeatLine, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1266,16 +1276,18 @@ public static class Renderer3D
         }
         
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(note))
+        bool selected = selectedObjects != null && selectedObjects.Contains(note);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, perspectiveScale * canvasInfo.Scale, 0, 60);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, canvasInfo.Scale * perspectiveScale, 0, 60, selected, pointerOver);
         }
     }
 
     /// <summary>
     /// Draws an event.
     /// </summary>
-    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Event @event, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Event @event, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1288,9 +1300,11 @@ public static class Renderer3D
         canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerPaint(@event, pixelScale, opacity));
 
         // Selection outline.
-        if (selectedObjects != null && selectedObjects.Contains(@event))
+        bool selected = selectedObjects != null && selectedObjects.Contains(@event);
+        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(@event);
+        if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, 0, 60);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, 0, 60, selected, pointerOver);
         }
         
         canvas.Save();
@@ -1428,7 +1442,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a lane toggle note.
     /// </summary>
-    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
         if (laneToggle is not ITimeable timeable) return;
@@ -1555,9 +1569,11 @@ public static class Renderer3D
             }
             
             // Selection outline.
-            if (selectedObjects != null && selectedObjects.Contains((ITimeable)laneToggle))
+            bool selected = selectedObjects != null && selectedObjects.Contains(timeable);
+            bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(timeable);
+            if (selected || pointerOver)
             {
-                DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size);
+                DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size, selected, pointerOver);
             }
         }
     }
@@ -1565,7 +1581,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a selection outline.
     /// </summary>
-    private static void DrawSelectionOutline(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float radius, float pixelScale, int position, int size)
+    private static void DrawSelectionOutline(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float radius, float pixelScale, int position, int size, bool selected, bool pointerOver)
     {
         float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4] * 0.99f;
         float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5] * 1.01f;
@@ -1605,8 +1621,8 @@ public static class Renderer3D
             path.Close();
         }
         
-        canvas.DrawPath(path, NotePaints.GetSelectionFillPaint());
-        canvas.DrawPath(path, NotePaints.GetSelectionStrokePaint(pixelScale));
+        canvas.DrawPath(path, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+        canvas.DrawPath(path, NotePaints.GetObjectOutlineStrokePaint(selected, pointerOver));
 }
     
     /// <summary>

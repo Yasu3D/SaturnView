@@ -136,8 +136,12 @@ internal static class NotePaints
     private static readonly SKColor EventColorReverseEffectEvent = new(NoteColors.ReverseEffectEvent);
     private static readonly SKColor EventColorStopEffectEvent = new(NoteColors.StopEffectEvent);
 
-    private static readonly SKColor SelectionColorStroke = new(0xFF3F80CC);
-    private static readonly SKColor SelectionColorFill = new(0x803F80CC);
+    private static readonly SKColor PointerOverColorStroke = new(0x80FFFFFF);
+    private static readonly SKColor PointerOverColorFill   = new(0x40FFFFFF);
+    private static readonly SKColor SelectedColorStroke = new(0xFF3F80CC);
+    private static readonly SKColor SelectedColorFill   = new(0x803F80CC);
+    private static readonly SKColor PointerOverSelectedColorStroke = new(0xDD3F80CC);
+    private static readonly SKColor PointerOverSelectedColorFill   = new(0x403F80CC);
 
     private static readonly SKColor[] BonusSweepEffectColorsClockwise = 
     [
@@ -995,18 +999,42 @@ internal static class NotePaints
         return ShaderFillPaint;
     }
 
-    internal static SKPaint GetSelectionStrokePaint(float pixelScale)
+    internal static SKPaint GetObjectOutlineStrokePaint(bool selected, bool pointerOver)
     {
         FlatStrokePaint.StrokeWidth = 1;
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = SelectionColorStroke;
+
+        if (selected && pointerOver)
+        {
+            FlatStrokePaint.Color = PointerOverSelectedColorStroke;
+        }
+        else if (selected)
+        {
+            FlatStrokePaint.Color = SelectedColorStroke;
+        }
+        else
+        {
+            FlatStrokePaint.Color = PointerOverColorStroke;
+        }
         
         return FlatStrokePaint;
     }
 
-    internal static SKPaint GetSelectionFillPaint()
+    internal static SKPaint GetObjectOutlineFillPaint(bool selected, bool pointerOver)
     {
-        FlatFillPaint.Color = SelectionColorFill;
+        if (selected && pointerOver)
+        {
+            FlatFillPaint.Color = PointerOverSelectedColorFill;
+        }
+        else if (selected)
+        {
+            FlatFillPaint.Color = SelectedColorFill;
+        }
+        else
+        {
+            FlatFillPaint.Color = PointerOverColorFill;
+        }
+       
         return FlatFillPaint;
     }
     
