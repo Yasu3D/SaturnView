@@ -13,7 +13,7 @@ namespace SaturnView;
 // Judgement window and Hold window Visualizations
 // Hit testing
 // Background(s?)
-// Selection Outlines (+ PointerOver outlines?)
+// (+ PointerOver outlines?)
 
 public static class Renderer3D
 {
@@ -25,9 +25,6 @@ public static class Renderer3D
         [0.926f, 0.938f, 1.063f, 1.075f, 0.932f, 1.069f],
         [0.910f, 0.922f, 1.080f, 1.092f, 0.915f, 1.086f],
     ];
-
-    private static int frameCounter = 0;
-    private static string fps = "";
     
     /// <summary>
     /// Renders a snapshot of a chart at the provided timestamp.
@@ -44,6 +41,7 @@ public static class Renderer3D
         float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
         
         Stopwatch stopwatch = Stopwatch.StartNew();
+        Stopwatch calcStopwatch = Stopwatch.StartNew();
         
         canvas.Clear(canvasInfo.BackgroundColor);
         canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
@@ -58,19 +56,11 @@ public static class Renderer3D
             renderObjects();
         }
         
-        DrawInterface(canvas, canvasInfo, settings, entry, time);
-        canvas.DrawText(fps, new(0, 30), NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
-        
         stopwatch.Stop();
-
-        frameCounter++;
-        if (frameCounter > 5)
-        {
-            frameCounter = 0;
-            fps = (1000.0f / (stopwatch.ElapsedTicks / 10000.0f)).ToString("0.0");
-            fps += "  |  ";
-            fps += (stopwatch.ElapsedTicks / 10000.0f).ToString("0.000");
-        }
+        
+        DrawInterface(canvas, canvasInfo, settings, entry, time);
+        canvas.DrawText($"{calcStopwatch.ElapsedTicks / 10000.0f}", new(canvasInfo.Width / 2, 30), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
+        canvas.DrawText($"{Math.Max(0, (stopwatch.ElapsedTicks - calcStopwatch.ElapsedTicks)) / 10000.0f}", new(canvasInfo.Width / 2, 60), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
 
         return;
         
@@ -423,6 +413,8 @@ public static class Renderer3D
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
             
+            calcStopwatch.Stop();
+            
             foreach (RenderObject renderObject in eventAreasToDraw)
             {
                 if (renderObject.Object is not Event @event) continue;
@@ -459,7 +451,7 @@ public static class Renderer3D
                 {
                     if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) continue;
                     
-                    DrawMeasureLineNote(canvas, canvasInfo, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawMeasureLineNote(canvas, canvasInfo, settings, measureLineNote, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
@@ -471,7 +463,7 @@ public static class Renderer3D
                 }
                 else if (renderObject.Object is Event @event)
                 {
-                    DrawEvent(canvas, canvasInfo, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawEvent(canvas, canvasInfo, settings, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
                 }
             }
 
@@ -485,7 +477,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a standard note body, sync outline, r-effect, and arrows.
     /// </summary>
-    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity)
+    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -899,12 +891,18 @@ public static class Renderer3D
                     : (-6.25f * x + 6.25f) / 0.75f;
             }
         }
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(note))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size);
+        }
     }
 
     /// <summary>
     /// Draws a hold end note.
     /// </summary>
-    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
+    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -975,20 +973,26 @@ public static class Renderer3D
                 canvas.DrawPath(path, NotePaints.GetHoldEndOutlinePaint(colorId, pixelScale, opacity));
             }
         }
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(note))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+        }
     }
 
     /// <summary>
     /// Draws a hold control point.
     /// </summary>
-    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity)
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
         float startAngle = (note.Position + 0.7f) * -6;
         float sweepAngle = (note.Size - 1.4f) * -6;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
         
         if (settings.LowPerformanceMode)
         {
@@ -1020,12 +1024,18 @@ public static class Renderer3D
         path.ArcTo(capRect0, startAngle, 180, false);
     
         canvas.DrawPath(path, NotePaints.GetHoldPointPaint(settings, pixelScale, note.RenderType, opacity));
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(note))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+        }
     }
 
     /// <summary>
     /// Draws a hold note surface.
     /// </summary>
-    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity)
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         List<SKPoint> vertexScreenCoords = [];
@@ -1111,6 +1121,12 @@ public static class Renderer3D
         
         // Draw mesh
         canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(hold))
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetSelectionFillPaint());
+        }
         return;
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
@@ -1201,7 +1217,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a sync connector.
     /// </summary>
-    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity)
+    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1222,12 +1238,18 @@ public static class Renderer3D
             
             canvas.DrawArc(baseRect, start, sweep, false, NotePaints.GetSyncConnectorPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
         }
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(note))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size);
+        }
     }
 
     /// <summary>
     /// Draws a measure or beat line.
     /// </summary>
-    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, float perspectiveScale, float linearScale, bool isBeatLine, float opacity)
+    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, MeasureLineNote note, float perspectiveScale, float linearScale, bool isBeatLine, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1242,12 +1264,18 @@ public static class Renderer3D
         {
             canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetMeasureLinePaint(canvasInfo, linearScale, opacity));
         }
+        
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(note))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, perspectiveScale * canvasInfo.Scale, 0, 60);
+        }
     }
 
     /// <summary>
     /// Draws an event.
     /// </summary>
-    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float perspectiveScale, float opacity)
+    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Event @event, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1259,6 +1287,12 @@ public static class Renderer3D
         }
         canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetEventMarkerPaint(@event, pixelScale, opacity));
 
+        // Selection outline.
+        if (selectedObjects != null && selectedObjects.Contains(@event))
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, 0, 60);
+        }
+        
         canvas.Save();
         
         if (@event is TempoChangeEvent tempoChangeEvent)
@@ -1394,7 +1428,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a lane toggle note.
     /// </summary>
-    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity)
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null)
     {
         if (opacity == 0) return;
         if (laneToggle is not ITimeable timeable) return;
@@ -1402,7 +1436,6 @@ public static class Renderer3D
         bool state = laneToggle is LaneShowNote;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        
         
         // Sweep Visualization
         if (settings.VisualizeLaneSweeps)
@@ -1502,7 +1535,7 @@ public static class Renderer3D
             canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetLaneToggleFillPaint(state, opacity));
         }
         
-        // Note body.
+        // Note body and selection outline.
         if (perspectiveScale is > 0 and <= 1.01f)
         {
             float pixelScale = canvasInfo.Scale * perspectiveScale;
@@ -1520,8 +1553,61 @@ public static class Renderer3D
 
                 canvas.DrawArc(rect, start, sweep, false, NotePaints.GetLaneTogglePaint(state, pixelScale, opacity));
             }
+            
+            // Selection outline.
+            if (selectedObjects != null && selectedObjects.Contains((ITimeable)laneToggle))
+            {
+                DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size);
+            }
         }
     }
+
+    /// <summary>
+    /// Draws a selection outline.
+    /// </summary>
+    private static void DrawSelectionOutline(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float radius, float pixelScale, int position, int size)
+    {
+        float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4] * 0.99f;
+        float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5] * 1.01f;
+        SKPath path = new();
+        
+        if (size == 60)
+        {
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius0);
+            path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius1, SKPathDirection.CounterClockwise);
+        }
+        else
+        {
+            float startAngle = (position + 0.25f) * -6;
+            float sweepAngle = (size - 0.5f) * -6;
+            float endAngle = startAngle + sweepAngle;
+            
+            float capRadius = 12 * pixelScale;
+        
+            SKRect longArcRect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
+            SKRect longArcRect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
+        
+            SKPoint capPoint0 = RenderUtils.PointOnArc(canvasInfo.Center, radius0 + capRadius, startAngle);
+            SKPoint capPoint1 = RenderUtils.PointOnArc(canvasInfo.Center, radius1 - capRadius, startAngle);
+            SKPoint capPoint2 = RenderUtils.PointOnArc(canvasInfo.Center, radius0 + capRadius, endAngle);
+            SKPoint capPoint3 = RenderUtils.PointOnArc(canvasInfo.Center, radius1 - capRadius, endAngle);
+            SKRect capRect0 = new(capPoint0.X - capRadius, capPoint0.Y - capRadius, capPoint0.X + capRadius, capPoint0.Y + capRadius);
+            SKRect capRect1 = new(capPoint1.X - capRadius, capPoint1.Y - capRadius, capPoint1.X + capRadius, capPoint1.Y + capRadius);
+            SKRect capRect2 = new(capPoint2.X - capRadius, capPoint2.Y - capRadius, capPoint2.X + capRadius, capPoint2.Y + capRadius);
+            SKRect capRect3 = new(capPoint3.X - capRadius, capPoint3.Y - capRadius, capPoint3.X + capRadius, capPoint3.Y + capRadius);
+            
+            path.ArcTo(capRect0, startAngle + 90, 90, true);
+            path.ArcTo(longArcRect0, startAngle, sweepAngle, false);
+            path.ArcTo(capRect2, endAngle - 180, 90, false);
+            path.ArcTo(capRect3, endAngle - 90, 90, false);
+            path.ArcTo(longArcRect1, endAngle, -sweepAngle, false);
+            path.ArcTo(capRect1, startAngle, 90, false);
+            path.Close();
+        }
+        
+        canvas.DrawPath(path, NotePaints.GetSelectionFillPaint());
+        canvas.DrawPath(path, NotePaints.GetSelectionStrokePaint(pixelScale));
+}
     
     /// <summary>
     /// Draws a row of lanes.

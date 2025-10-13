@@ -136,6 +136,9 @@ internal static class NotePaints
     private static readonly SKColor EventColorReverseEffectEvent = new(NoteColors.ReverseEffectEvent);
     private static readonly SKColor EventColorStopEffectEvent = new(NoteColors.StopEffectEvent);
 
+    private static readonly SKColor SelectionColorStroke = new(0xFF3F80CC);
+    private static readonly SKColor SelectionColorFill = new(0x803F80CC);
+
     private static readonly SKColor[] BonusSweepEffectColorsClockwise = 
     [
         new(NoteColors.BonusSweepEffect - 0xEE000000), 
@@ -990,6 +993,21 @@ internal static class NotePaints
         ShaderFillPaint.Shader = SKShader.CreateCompose(sweepGradient, radialGradient, SKBlendMode.Modulate);
         
         return ShaderFillPaint;
+    }
+
+    internal static SKPaint GetSelectionStrokePaint(float pixelScale)
+    {
+        FlatStrokePaint.StrokeWidth = 1;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = SelectionColorStroke;
+        
+        return FlatStrokePaint;
+    }
+
+    internal static SKPaint GetSelectionFillPaint()
+    {
+        FlatFillPaint.Color = SelectionColorFill;
+        return FlatFillPaint;
     }
     
     internal static SKFont GetBoldFont(float scale)
