@@ -4,9 +4,9 @@ namespace SaturnView;
 
 public static class Renderer2D
 {
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, SKColor clearColor)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo)
     {
-        canvas.Clear(clearColor);
+        canvas.Clear(canvasInfo.BackgroundColor);
         canvas.DrawPoint(canvasInfo.Center, new SKPaint { Color = SKColors.Red, StrokeWidth = 10 } );
     }
 }
