@@ -11,7 +11,6 @@ namespace SaturnView;
 // Improve Performance
 // Judgement window and Hold window Visualizations
 // Hit testing
-// Background(s?)
 
 public static class Renderer3D
 {
@@ -39,17 +38,21 @@ public static class Renderer3D
         float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
         
         Stopwatch stopwatch = Stopwatch.StartNew();
-        Stopwatch calcStopwatch = Stopwatch.StartNew();
         
         canvas.Clear(canvasInfo.BackgroundColor);
-        canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, new() { Color = new(0xFF000000) });
-
+        
         SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
         SKRoundRect roundRect = new(rect, canvasInfo.Radius);
         canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
+
+        if (!settings.LowPerformanceMode)
+        {
+            DrawBackground(canvas, canvasInfo, settings, chart, entry, time);
+        }
         
         lock (chart)
         {
+            renderRNote();
             renderLanes();
             renderObjects();
         }
@@ -57,10 +60,36 @@ public static class Renderer3D
         stopwatch.Stop();
 
         DrawInterface(canvas, canvasInfo, settings, entry, time);
-        canvas.DrawText($"{calcStopwatch.ElapsedTicks / 10000.0f}", new(canvasInfo.Width / 2, 30), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
-        canvas.DrawText($"{Math.Max(0, (stopwatch.ElapsedTicks - calcStopwatch.ElapsedTicks)) / 10000.0f}", new(canvasInfo.Width / 2, 60), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
+        canvas.DrawText($"{stopwatch.ElapsedTicks / 10000.0f}", new(canvasInfo.Width / 2, 30), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
 
         return;
+
+        void renderRNote()
+        {
+            if (settings.RNoteEffectOpacity == 0) return;
+            if (settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.AlwaysOff) return;
+            if (settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && !playing) return;
+            if (settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused && playing) return;
+            
+            Note? activeRNote = null;
+            
+            foreach (Layer layer in chart.Layers)
+            foreach (Note note in layer.Notes)
+            {
+                // R-Note FX
+                if (note is IPlayable { BonusType: BonusType.R, JudgementType: not JudgementType.Fake })
+                {
+                    if (note.Timestamp.Time <= time && note.Timestamp.Time + 550f > time)
+                    {
+                        activeRNote = note;
+                    }
+                }
+            }
+
+            if (activeRNote == null) return;
+            
+            DrawRNoteEffect(canvas, canvasInfo, settings, activeRNote.Timestamp.Time, time);
+        }
         
         void renderLanes()
         {
@@ -203,7 +232,6 @@ public static class Renderer3D
             List<RenderObject> holdsToDraw = [];
             List<RenderObject> eventAreasToDraw = [];
             List<RenderBonusSweepEffect> bonusSweepEffectsToDraw = [];
-            Note? activeRNote = null;
             
             float scaledTime = Timestamp.ScaledTimeFromTime(chart.Layers[0], time);
             
@@ -313,7 +341,8 @@ public static class Renderer3D
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
 
                     // Bonus Spin FX
-                    if (note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
+                    bool handleBonus = settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.AlwaysOn || settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && playing || settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused && !playing;
+                    if (handleBonus && note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
                     {
                         float bpm = chart.LastTempoChange(time)?.Tempo ?? 120;
 
@@ -327,15 +356,6 @@ public static class Renderer3D
                             bool isCounterclockwise = note is SlideCounterclockwiseNote;
                             
                             bonusSweepEffectsToDraw.Add(new(startPosition, note.Timestamp.Time, duration, isCounterclockwise));
-                        }
-                    }
-                    
-                    // R-Note FX
-                    if (note is IPlayable { BonusType: BonusType.R, JudgementType: not JudgementType.Fake })
-                    {
-                        if (note.Timestamp.Time <= time && note.Timestamp.Time + 550f > time)
-                        {
-                            activeRNote = note;
                         }
                     }
                     
@@ -421,13 +441,6 @@ public static class Renderer3D
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
             
-            calcStopwatch.Stop();
-            
-            if (activeRNote != null)
-            {
-                DrawRNoteEffect(canvas, canvasInfo, activeRNote.Timestamp.Time, time);
-            }
-            
             foreach (RenderObject renderObject in eventAreasToDraw)
             {
                 if (renderObject.Object is not Event @event) continue;
@@ -482,7 +495,7 @@ public static class Renderer3D
 
             foreach (RenderBonusSweepEffect sweepEffect in bonusSweepEffectsToDraw)
             {
-                DrawBonusSweepEffect(canvas, canvasInfo, settings, sweepEffect.StartPosition, sweepEffect.StartTime, sweepEffect.Duration, sweepEffect.IsCounterclockwise, time);
+                DrawBonusSweepEffect(canvas, canvasInfo, sweepEffect.StartPosition, sweepEffect.StartTime, sweepEffect.Duration, sweepEffect.IsCounterclockwise, time);
             }
         }
     }
@@ -1776,7 +1789,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a bonus note sweep.
     /// </summary>
-    private static void DrawBonusSweepEffect(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, int startPosition, float startTime, float duration, bool isCounterclockwise, float time)
+    private static void DrawBonusSweepEffect(SKCanvas canvas, CanvasInfo canvasInfo, int startPosition, float startTime, float duration, bool isCounterclockwise, float time)
     {
         if (time < startTime) return;
         if (time > startTime + duration) return;
@@ -1820,7 +1833,10 @@ public static class Renderer3D
         canvas.Restore();
     }
 
-    private static void DrawRNoteEffect(SKCanvas canvas, CanvasInfo canvasInfo, float startTime, float time)
+    /// <summary>
+    /// Draws an r-note effect.
+    /// </summary>
+    private static void DrawRNoteEffect(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float startTime, float time)
     {
         if (time < startTime) return;
         if (time > startTime + 550) return;
@@ -1838,10 +1854,12 @@ public static class Renderer3D
 
         float angle = 180 + t * 180;
 
+        float opacity = settings.RNoteEffectOpacity * 0.1f;
+
         canvas.Save();
         canvas.RotateDegrees(-12, canvasInfo.Center.X, canvasInfo.Center.Y);
 
-        canvas.DrawCircle(canvasInfo.Center, canvasInfo.Radius, NotePaints.GetRNoteGlowPaint(canvasInfo, angle, innerWave, outerWave, scaleMultiplier));
+        canvas.DrawPaint(NotePaints.GetRNoteGlowPaint(canvasInfo, settings, angle, innerWave, outerWave, scaleMultiplier * opacity));
         
         for (int x = 0; x < squares; x++)
         for (int y = 0; y < squares; y++)
@@ -1862,10 +1880,72 @@ public static class Renderer3D
             float xOffset = x * squareWidth + (squareWidth - width) * 0.5f;
             float yOffset = y * squareWidth + (squareWidth - width) * 0.5f;
             
-            canvas.DrawRoundRect(xOffset, yOffset, width, width, radius, radius, NotePaints.GetRNoteFillPaint(canvasInfo, angle));
+            canvas.DrawRoundRect(xOffset, yOffset, width, width, radius, radius, NotePaints.GetRNoteFillPaint(canvasInfo, settings, angle, opacity));
         }
         
         canvas.Restore();
+    }
+
+    /// <summary>
+    /// Draws a background.
+    /// </summary>
+    private static void DrawBackground(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time)
+    {
+        SKPoint screenA = new(0, 0);
+        SKPoint screenB = new(canvasInfo.Width, 0);
+        SKPoint screenC = new(0, canvasInfo.Height);
+        SKPoint screenD = new(canvasInfo.Width, canvasInfo.Height);
+        
+        SKPoint textureA = new(0, 0);
+        SKPoint textureB = new(1080, 0);
+        SKPoint textureC = new(0, 1080);
+        SKPoint textureD = new(1080, 1080);
+        
+        SKPoint[] vertexCoords = [screenA, screenB, screenC, screenD, screenC, screenB];
+        SKPoint[] textureCoords = [textureA, textureB, textureC, textureD, textureC, textureB];
+
+        // TODO: Re-do with proper clear logic eventually?
+        // This is an approximation.
+        bool clear = settings.ClearBackgroundVisibility == RenderSettings.ClearBackgroundVisibilityOption.ForceClear;
+        if (settings.ClearBackgroundVisibility == RenderSettings.ClearBackgroundVisibilityOption.SimulateClear)
+        {
+            int noteCount = 0;
+            int normalHitCount = 0;
+            int bonusHitCount = 0;
+
+            foreach (Layer layer in chart.Layers)
+            foreach (Note note in layer.Notes)
+            {
+                if (note is not IPlayable playable) continue;
+                if (playable.JudgementType == JudgementType.Fake) continue;
+
+                noteCount++;
+
+                if (note.Timestamp.Time > time) continue;
+                
+                normalHitCount++;
+                
+                if (playable.BonusType is BonusType.Bonus) bonusHitCount++;
+            }
+
+            float progress = noteCount == 0 ? 0 : (float)(normalHitCount + bonusHitCount + bonusHitCount) / noteCount;
+            clear = progress > entry.ClearThreshold;    
+        }
+        
+        canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry, clear));
+
+        if (settings.BackgroundDim != RenderSettings.BackgroundDimOption.NoDim)
+        {
+            SKColor dimColor = settings.BackgroundDim switch
+            {
+                RenderSettings.BackgroundDimOption.Plus1 => new(0x55000000),
+                RenderSettings.BackgroundDimOption.Plus2 => new(0x9D000000),
+                RenderSettings.BackgroundDimOption.Plus3 => new(0xB6000000),
+                RenderSettings.BackgroundDimOption.Plus4 => new(0xDD000000),
+                _ => new(0x00000000),
+            };
+            canvas.DrawColor(dimColor, SKBlendMode.SrcOver);
+        }
     }
 }
 

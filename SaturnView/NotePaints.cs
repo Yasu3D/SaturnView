@@ -449,6 +449,54 @@ internal static class NotePaints
         ),
         BlendMode = SKBlendMode.SrcOver,
     };
+
+    private static readonly SKPaint BackgroundVersion3Paint = new()
+    {
+        IsAntialias = false,
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/background_version3.png")
+            )
+        ),
+    };
+    
+    private static readonly SKPaint BackgroundVersion3ClearPaint = new()
+    {
+        IsAntialias = false,
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/background_version3_clear.png")
+            )
+        ),
+    };
+    
+    private static readonly SKPaint BackgroundBossPaint = new()
+    {
+        IsAntialias = false,
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/background_boss.png")
+            )
+        ),
+    };
+    
+    private static readonly SKPaint BackgroundBossClearPaint = new()
+    {
+        IsAntialias = false,
+        Shader = SKShader.CreateImage
+        (
+            SKImage.FromEncodedData
+            (
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/background_boss_clear.png")
+            )
+        ),
+    };
     
     public static readonly SKPaint DebugPaint = new()
     {
@@ -770,7 +818,7 @@ internal static class NotePaints
     {
         FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
-        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 70));
+        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 90));
 
         return FlatStrokePaint;
     }
@@ -823,9 +871,9 @@ internal static class NotePaints
     {
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
         ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale;
-
-        SKColor[] colors = [NoteColorLaneGuideLineB, NoteColorLaneGuideLineA];
-        float[] positions = [0.1f, 1.0f];
+        
+        SKColor[] colors = [new(0x008E8EA6), new(0x108E8EA6), new(0x508E8EA6)];
+        float[] positions = [0.15f, 0.2f, 0.7f];
         
         ShaderStrokePaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
         return ShaderStrokePaint;
@@ -841,8 +889,8 @@ internal static class NotePaints
         
         ShaderFillPaint.Color = new(0xFFFFFFFF);
         
-        SKColor[] alphaColors = [new(0x00FFFFFF), new(0xFFFFFFFF)];
-        float[] alphaPositions = [0.1f, 0.35f];
+        SKColor[] alphaColors = [new(0x00FFFFFF), new(0x60FFFFFF), new(0xEEFFFFFF)];
+        float[] alphaPositions = [0.1f, 0.25f, 0.75f];
 
         const int stripeCount = 9;
         const float interval = 1.0f / stripeCount;
@@ -1044,18 +1092,19 @@ internal static class NotePaints
         return FlatFillPaint;
     }
 
-    internal static SKPaint GetRNoteFillPaint(CanvasInfo canvasInfo, float angle)
+    internal static SKPaint GetRNoteFillPaint(CanvasInfo canvasInfo, RenderSettings settings, float angle, float opacity)
     {
-        SKColor[] colors = [new(0xFF18BBFF), new(0xFFFF1D8C), new(0xFFFFCB00), new(0xFFFF1D8C), new(0xFF18BBFF)];
+        byte hexOpacity = (byte)(opacity * 255);
+        SKColor[] colors = [new(0x18, 0xBB, 0xFF, hexOpacity), new(0xFF, 0x1D, 0x8C, hexOpacity), new(0xFF, 0xCB, 0x00, hexOpacity), new(0xFF, 0x1D, 0x8C, hexOpacity), new(0x18, 0xBB, 0xFF, hexOpacity)];
         float[] positions = [0, 0.25f, 0.5f, 0.75f, 1];
 
         ShaderFillPaint.Shader = SKShader.CreateSweepGradient(canvasInfo.Center, colors, positions, SKShaderTileMode.Repeat, angle, angle + 360);
-        ShaderFillPaint.BlendMode = SKBlendMode.Screen;
+        ShaderFillPaint.BlendMode = SKBlendMode.Plus;
         
         return ShaderFillPaint;
     }
 
-    internal static SKPaint GetRNoteGlowPaint(CanvasInfo canvasInfo, float angle, float inner, float outer, float opacity)
+    internal static SKPaint GetRNoteGlowPaint(CanvasInfo canvasInfo, RenderSettings settings, float angle, float inner, float outer, float opacity)
     {
         SKColor[] colors0 = [new(0xFF18BBFF), new(0xFFFF1D8C), new(0xFFFFCB00), new(0xFFFF1D8C), new(0xFF18BBFF)];
         float[] positions0 = [0, 0.25f, 0.5f, 0.75f, 1];
@@ -1067,9 +1116,40 @@ internal static class NotePaints
         SKShader shader1 = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.Radius, colors1, positions1, SKShaderTileMode.Clamp);
 
         ShaderFillPaint.Shader = SKShader.CreateCompose(shader0, shader1, SKBlendMode.Modulate);
-        ShaderFillPaint.BlendMode = SKBlendMode.Screen;
+        ShaderFillPaint.BlendMode = SKBlendMode.Plus;
 
         return ShaderFillPaint;
+    }
+
+    internal static SKPaint GetBackgroundPaint(Entry entry, bool clear)
+    {
+        return clear
+            ? entry.Background switch
+            {
+                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossClearPaint : BackgroundVersion3ClearPaint,
+                BackgroundOption.Saturn => BackgroundVersion3ClearPaint,
+                BackgroundOption.Version3 => BackgroundVersion3ClearPaint,
+                BackgroundOption.Version2 => BackgroundVersion3ClearPaint,
+                BackgroundOption.Version1 => BackgroundVersion3ClearPaint,
+                BackgroundOption.Boss => BackgroundBossClearPaint,
+                BackgroundOption.StageUp => BackgroundVersion3ClearPaint,
+                BackgroundOption.WorldsEnd => BackgroundVersion3ClearPaint,
+                BackgroundOption.Jacket => BackgroundVersion3ClearPaint,
+                _ => BackgroundVersion3ClearPaint,
+            }
+            : entry.Background switch
+            {
+                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossPaint : BackgroundVersion3Paint,
+                BackgroundOption.Saturn => BackgroundVersion3Paint,
+                BackgroundOption.Version3 => BackgroundVersion3Paint,
+                BackgroundOption.Version2 => BackgroundVersion3Paint,
+                BackgroundOption.Version1 => BackgroundVersion3Paint,
+                BackgroundOption.Boss => BackgroundBossPaint,
+                BackgroundOption.StageUp => BackgroundVersion3Paint,
+                BackgroundOption.WorldsEnd => BackgroundVersion3Paint,
+                BackgroundOption.Jacket => BackgroundVersion3Paint,
+                _ => BackgroundVersion3Paint,
+            };
     }
     
     internal static SKFont GetBoldFont(float scale)

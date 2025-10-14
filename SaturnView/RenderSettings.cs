@@ -76,6 +76,27 @@ public class RenderSettings
         Version2 = 2,
         Version3 = 3,
     }
+
+    /// <summary>
+    /// The list of available effect visibility options.
+    /// </summary>
+    public enum EffectVisibilityOption
+    {
+        AlwaysOn = 0,
+        AlwaysOff = 1,
+        OnlyWhenPlaying = 2,
+        OnlyWhenPaused = 3,
+    }
+
+    /// <summary>
+    /// The list of available clear background visibility options.
+    /// </summary>
+    public enum ClearBackgroundVisibilityOption
+    {
+        ForceNormal = 0,
+        ForceClear = 1,
+        SimulateClear = 2,
+    }
     
 #endregion Enum Definitions
 
@@ -624,6 +645,8 @@ public class RenderSettings
         get => showSyncNotes;
         set 
         {
+            if (showSyncNotes == value) return;
+            
             showSyncNotes = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -638,6 +661,8 @@ public class RenderSettings
         get => showMeasureLineNotes;
         set 
         {
+            if (showMeasureLineNotes == value) return;
+            
             showMeasureLineNotes = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -652,6 +677,8 @@ public class RenderSettings
         get => showBeatLineNotes;
         set 
         {
+            if (showBeatLineNotes == value) return;
+            
             showBeatLineNotes = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -666,6 +693,8 @@ public class RenderSettings
         get => showLaneShowNotes;
         set 
         {
+            if (showLaneShowNotes == value) return;
+            
             showLaneShowNotes = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -680,6 +709,8 @@ public class RenderSettings
         get => showLaneHideNotes;
         set 
         {
+            if (showLaneHideNotes == value) return;
+            
             showLaneHideNotes = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -694,6 +725,8 @@ public class RenderSettings
         get => showTempoChangeEvents;
         set 
         {
+            if (showTempoChangeEvents == value) return;
+            
             showTempoChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -708,6 +741,8 @@ public class RenderSettings
         get => showMetreChangeEvents;
         set 
         {
+            if (showMetreChangeEvents == value) return;
+            
             showMetreChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -722,6 +757,8 @@ public class RenderSettings
         get => showSpeedChangeEvents;
         set 
         {
+            if (showSpeedChangeEvents == value) return;
+            
             showSpeedChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -736,6 +773,8 @@ public class RenderSettings
         get => showVisibilityChangeEvents;
         set 
         {
+            if (showVisibilityChangeEvents == value) return;
+            
             showVisibilityChangeEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -750,6 +789,8 @@ public class RenderSettings
         get => showReverseEffectEvents;
         set 
         {
+            if (showReverseEffectEvents == value) return;
+            
             showReverseEffectEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -764,6 +805,8 @@ public class RenderSettings
         get => showStopEffectEvents;
         set 
         {
+            if (showStopEffectEvents == value) return;
+            
             showStopEffectEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -778,9 +821,75 @@ public class RenderSettings
         get => showTutorialMarkerEvents;
         set 
         {
+            if (showTutorialMarkerEvents == value) return;
+            
             showTutorialMarkerEvents = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
     private bool showTutorialMarkerEvents = true;
+
+    /// <summary>
+    /// When should R-Note effects be visible?
+    /// </summary>
+    public EffectVisibilityOption RNoteEffectVisibility
+    {
+        get => rNoteEffectVisibility;
+        set 
+        {
+            if (rNoteEffectVisibility == value) return;
+            
+            rNoteEffectVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private EffectVisibilityOption rNoteEffectVisibility = EffectVisibilityOption.OnlyWhenPlaying;
+    
+    /// <summary>
+    /// When should R-Note effects be visible?
+    /// </summary>
+    public EffectVisibilityOption BonusEffectVisibility
+    {
+        get => bonusEffectVisibility;
+        set 
+        {
+            if (bonusEffectVisibility == value) return;
+            
+            bonusEffectVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private EffectVisibilityOption bonusEffectVisibility = EffectVisibilityOption.OnlyWhenPlaying;
+
+    /// <summary>
+    /// How opaque/bright should the R-Note effect be?
+    /// </summary>
+    public int RNoteEffectOpacity
+    {
+        get => rNoteEffectOpacity;
+        set
+        {
+            if (rNoteEffectOpacity == value) return;
+            
+            rNoteEffectOpacity = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private int rNoteEffectOpacity = 10;
+    
+    /// <summary>
+    /// Should the background change when a clear is achieved?
+    /// </summary>
+    public ClearBackgroundVisibilityOption ClearBackgroundVisibility
+    {
+        get => clearBackgroundVisibility;
+        set 
+        {
+            if (clearBackgroundVisibility == value) return;
+            
+            clearBackgroundVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private ClearBackgroundVisibilityOption clearBackgroundVisibility = ClearBackgroundVisibilityOption.SimulateClear;
 }
