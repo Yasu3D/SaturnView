@@ -1,5 +1,3 @@
-using System.Drawing;
-
 namespace SaturnView;
 
 public static class NoteColors
@@ -17,8 +15,7 @@ public static class NoteColors
 
     public const uint BonusSweepEffect = 0xFFEE3D9C;
 
-    public const uint LaneGuideLineA = 0xFF3B3E56;
-    public const uint LaneGuideLineB = 0x003B3E56;
+    public const uint LaneGuideLine = 0x008E8EA6;
     public const uint LaneBaseA = 0xFF16182C;
     public const uint LaneBaseB = 0xFF1B1C2F;
 

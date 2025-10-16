@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Drawing;
-using SaturnData.Notation.Core;
+﻿using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
@@ -45,6 +43,7 @@ public static class Renderer3D
         List<RenderObject> holdsToDraw = [];
         List<RenderObject> eventAreasToDraw = [];
         List<RenderBonusSweepEffect> bonusSweepEffectsToDraw = [];
+        List<RenderTimingWindow> timingWindowsToDraw = [];
         Note? activeRNote = null;
         
         lock (chart)
@@ -160,7 +159,7 @@ public static class Renderer3D
             {
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
             }
 
@@ -197,14 +196,17 @@ public static class Renderer3D
 
                     if (@event is StopEffectEvent stopEffectEvent && stopEffectEvent.SubEvents.Length == 2)
                     {
+                        Timestamp start = stopEffectEvent.SubEvents[0].Timestamp;
+                        Timestamp end = stopEffectEvent.SubEvents[1].Timestamp;
+                        
                         // Start Marker
-                        if (RenderUtils.GetProgress(stopEffectEvent.SubEvents[0], false, viewDistance, time, scaledTime, out float t0))
+                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                         
                         // End Marker
-                        if (RenderUtils.GetProgress(stopEffectEvent.SubEvents[1], false, viewDistance, time, scaledTime, out float t1))
+                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
@@ -217,33 +219,37 @@ public static class Renderer3D
                     }
                     else if (@event is ReverseEffectEvent reverseEffectEvent && reverseEffectEvent.SubEvents.Length == 3)
                     {
+                        Timestamp start = reverseEffectEvent.SubEvents[0].Timestamp;
+                        Timestamp middle = reverseEffectEvent.SubEvents[1].Timestamp;
+                        Timestamp end = reverseEffectEvent.SubEvents[2].Timestamp;
+                        
                         // Start Marker
-                        if (RenderUtils.GetProgress(reverseEffectEvent.SubEvents[0], false, viewDistance, time, scaledTime, out float t0))
+                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                         
                         // Middle Marker
-                        if (RenderUtils.GetProgress(reverseEffectEvent.SubEvents[1], false, viewDistance, time, scaledTime, out float t1))
+                        if (RenderUtils.GetProgress(middle.Time, middle.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                         
                         // End Marker
-                        if (RenderUtils.GetProgress(reverseEffectEvent.SubEvents[2], false, viewDistance, time, scaledTime, out float t2))
+                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t2))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                         
                         // Area Fill
-                        if (reverseEffectEvent.SubEvents[0].Timestamp.Time <= time + viewDistance && reverseEffectEvent.SubEvents[2].Timestamp.Time >= time)
+                        if (start.Time <= time + viewDistance && end.Time >= time)
                         {
                             eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                         }
                     }
                     else
                     {
-                        if (!RenderUtils.GetProgress(@event, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float t)) continue;
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
                     }
                 }
@@ -262,31 +268,36 @@ public static class Renderer3D
                     // Non-reversed notes are hidden during a reverse.
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
 
-                    // Bonus Spin FX
-                    if (checkForBonusNotes && note is SlideClockwiseNote or SlideCounterclockwiseNote && note is IPlayable { BonusType: BonusType.Bonus })
+                    if (note is IPlayable playable)
                     {
-                        float bpm = chart.LastTempoChange(time)?.Tempo ?? 120;
-
-                        float duration = bpm >= 200
-                            ? 480000 / bpm
-                            : 240000 / bpm;
-
-                        if (note.Timestamp.Time < time && note.Timestamp.Time + duration > time && note is IPositionable positionable)
+                        // Bonus Spin FX
+                        if (checkForBonusNotes && note is SlideClockwiseNote or SlideCounterclockwiseNote && playable.BonusType == BonusType.Bonus)
                         {
-                            int startPosition = positionable.Position + positionable.Size / 2;
-                            bool isCounterclockwise = note is SlideCounterclockwiseNote;
-                            
-                            bonusSweepEffectsToDraw.Add(new(startPosition, note.Timestamp.Time, duration, isCounterclockwise));
+                            float bpm = chart.LastTempoChange(time)?.Tempo ?? 120;
+
+                            float duration = bpm >= 200
+                                ? 480000 / bpm
+                                : 240000 / bpm;
+
+                            if (note.Timestamp.Time < time && note.Timestamp.Time + duration > time && note is IPositionable positionable)
+                            {
+                                int startPosition = positionable.Position + positionable.Size / 2;
+                                bool isCounterclockwise = note is SlideCounterclockwiseNote;
+                                
+                                bonusSweepEffectsToDraw.Add(new(startPosition, note.Timestamp.Time, duration, isCounterclockwise));
+                            }
                         }
-                    }
-                    
-                    // R-Note FX
-                    if (checkForRNotes && note is IPlayable { BonusType: BonusType.R, JudgementType: not JudgementType.Fake })
-                    {
-                        if (note.Timestamp.Time <= time && note.Timestamp.Time + 550f > time)
+                        
+                        // R-Note FX
+                        if (checkForRNotes && playable.BonusType == BonusType.R && playable.JudgementType != JudgementType.Fake)
                         {
-                            activeRNote = note;
+                            if (note.Timestamp.Time <= time && note.Timestamp.Time + 550f > time)
+                            {
+                                activeRNote = note;
+                            }
                         }
+                        
+                        // Timing windows
                     }
                     
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
@@ -309,7 +320,8 @@ public static class Renderer3D
                         holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
                         
                         // Hold Start
-                        if (RenderUtils.GetProgress(holdNote.Points[0], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
+                        Timestamp start = holdNote.Points[0].Timestamp;
+                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -319,7 +331,8 @@ public static class Renderer3D
                         }
 
                         // Hold End
-                        if (RenderUtils.GetProgress(holdNote.Points[^1], settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
+                        Timestamp end = holdNote.Points[^1].Timestamp;
+                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
@@ -340,7 +353,7 @@ public static class Renderer3D
                     else
                     {
                         // Normal Notes
-                        if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                         Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -354,7 +367,7 @@ public static class Renderer3D
                 foreach (Note note in layer.GeneratedNotes)
                 {
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
-                    if (!RenderUtils.GetProgress(note, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
                     objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings)));
                 }
@@ -555,7 +568,7 @@ public static class Renderer3D
         };
 
         Render(canvas, canvasInfo, settings, chart, entry, time, playing);
-
+        
         using SKData data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
         using Stream stream = File.OpenWrite(filepath);
 
@@ -1181,8 +1194,8 @@ public static class Renderer3D
         generateArc(getScale(last.GlobalTime, last.GlobalScaledTime), last.LocalTime, last.Start, last.Interval);
         
         // Build mesh
-        SKPoint[] triangles = new SKPoint[maxSize * arcs * 6];
-        SKPoint[] textureCoords = new SKPoint[maxSize * arcs * 6];
+        SKPoint[] triangles = new SKPoint[maxSize * (arcs - 1) * 6];
+        SKPoint[] textureCoords = new SKPoint[maxSize * (arcs -1) * 6];
 
         int vert = 0;
         int tris = 0;
@@ -1224,6 +1237,7 @@ public static class Renderer3D
         {
             canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
         }
+        
         return;
 
         void generatePart(RenderHoldPoint start, RenderHoldPoint end)
@@ -1292,7 +1306,7 @@ public static class Renderer3D
                 float angle = startAngle + intervalAngle * x;
                 SKPoint screen = RenderUtils.PointOnArc(canvasInfo.Center, radius, angle);
 
-                float texX = 512 * ((int)settings.HoldNoteColor + 0.5f) / 13.0f;
+                float texX = (512 * ((int)settings.HoldNoteColor + 0.5f) / 13.0f) + x * 0.01f;
                 float texY = 512 * (1 - localTime);
                 SKPoint tex = new(texX, texY);
 
@@ -1444,8 +1458,10 @@ public static class Renderer3D
         {
             SKPoint[] vertices = new SKPoint[360];
 
-            RenderUtils.GetProgress(stopEffectEvent.SubEvents[0], false, viewDistance, time, 0, out float r0);
-            RenderUtils.GetProgress(stopEffectEvent.SubEvents[1], false, viewDistance, time, 0, out float r1);
+            Timestamp start = stopEffectEvent.SubEvents[0].Timestamp;
+            Timestamp end = stopEffectEvent.SubEvents[1].Timestamp;
+            RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, 0, out float r0);
+            RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, 0, out float r1);
 
             r0 = RenderUtils.Perspective(r0);
             r1 = RenderUtils.Perspective(r1);
@@ -1482,9 +1498,12 @@ public static class Renderer3D
             SKPoint[] vertices0 = new SKPoint[360];
             SKPoint[] vertices1 = new SKPoint[360];
 
-            RenderUtils.GetProgress(reverseEffectEvent.SubEvents[0], false, viewDistance, time, 0, out float r0);
-            RenderUtils.GetProgress(reverseEffectEvent.SubEvents[1], false, viewDistance, time, 0, out float r1);
-            RenderUtils.GetProgress(reverseEffectEvent.SubEvents[2], false, viewDistance, time, 0, out float r2);
+            Timestamp start = reverseEffectEvent.SubEvents[0].Timestamp;
+            Timestamp middle = reverseEffectEvent.SubEvents[1].Timestamp;
+            Timestamp end = reverseEffectEvent.SubEvents[2].Timestamp;
+            RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, 0, out float r0);
+            RenderUtils.GetProgress(middle.Time, middle.ScaledTime, false, viewDistance, time, 0, out float r1);
+            RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, 0, out float r2);
 
             r0 = RenderUtils.Perspective(r0);
             r1 = RenderUtils.Perspective(r1);
@@ -1994,7 +2013,7 @@ public static class Renderer3D
             clear = progress > entry.ClearThreshold;    
         }
         
-        canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry, clear));
+        canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry.Background, entry.Difficulty, clear));
 
         if (settings.BackgroundDim != RenderSettings.BackgroundDimOption.NoDim)
         {
@@ -2008,6 +2027,13 @@ public static class Renderer3D
             };
             canvas.DrawColor(dimColor, SKBlendMode.SrcOver);
         }
+    }
+
+    private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Layer layer, TimingWindow timingWindow, float noteTime, float time, float opacity)
+    {
+        if (opacity == 0) return;
+        
+        
     }
 }
 
@@ -2057,4 +2083,11 @@ file struct RenderBonusSweepEffect(int startPosition, float startTime, float dur
     public readonly float StartTime = startTime;
     public readonly float Duration = duration;
     public readonly bool IsCounterclockwise = isCounterclockwise;
+}
+
+file struct RenderTimingWindow(Layer layer, TimingWindow timingWindow, float noteTime)
+{
+    public readonly Layer Layer = layer;
+    public readonly TimingWindow TimingWindow = timingWindow;
+    public readonly float NoteTime = noteTime;
 }

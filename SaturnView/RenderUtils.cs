@@ -54,13 +54,13 @@ internal static class RenderUtils
     /// <summary>
     /// Returns if an object is within the currently visible area, and returns its linear scroll position as an <c>out</c> value.
     /// </summary>
-    internal static bool GetProgress(ITimeable obj, bool showEffects, float viewDistance, float time, float scaledTime, out float progress)
+    internal static bool GetProgress(float objTime, float objScaledTime, bool showEffects, float viewDistance, float time, float scaledTime, out float progress)
     {
         progress = showEffects
-            ? 1 - (obj.Timestamp.ScaledTime - scaledTime) / viewDistance
-            : 1 - (obj.Timestamp.Time - time) / viewDistance;
+            ? 1 - (objScaledTime - scaledTime) / viewDistance
+            : 1 - (objTime - time) / viewDistance;
 
-        if (obj.Timestamp.Time < time) return false;
+        if (objTime < time) return false;
         if (progress is < 0 or > 1.25f) return false;
         
         return true;

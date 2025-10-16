@@ -1,6 +1,5 @@
 using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
-using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
 using SkiaSharp;
 
@@ -20,8 +19,6 @@ internal static class NotePaints
     private static readonly SKColor NoteColorMeasureLine = new(NoteColors.MeasureLine);
     private static readonly SKColor NoteColorBeatLine = new(NoteColors.BeatLine);
     
-    private static readonly SKColor NoteColorLaneGuideLineA = new(NoteColors.LaneGuideLineA);
-    private static readonly SKColor NoteColorLaneGuideLineB = new(NoteColors.LaneGuideLineB);
     private static readonly SKColor NoteColorLaneBaseA = new(NoteColors.LaneBaseA);
     private static readonly SKColor NoteColorLaneBaseB = new(NoteColors.LaneBaseB);
     
@@ -434,7 +431,6 @@ internal static class NotePaints
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/hold_gradient.png")
             )
         ),
-        BlendMode = SKBlendMode.SrcOver,
     };
     
     private static readonly SKPaint HoldSurfacePaintActive = new()
@@ -447,7 +443,6 @@ internal static class NotePaints
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/hold_gradient_active.png")
             )
         ),
-        BlendMode = SKBlendMode.SrcOver,
     };
 
     private static readonly SKPaint BackgroundVersion3Paint = new()
@@ -872,7 +867,7 @@ internal static class NotePaints
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
         ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale;
         
-        SKColor[] colors = [new(0x008E8EA6), new(0x108E8EA6), new(0x508E8EA6)];
+        SKColor[] colors = [new(NoteColors.LaneGuideLine), new(0x10000000 + NoteColors.LaneGuideLine), new(0x50000000 + NoteColors.LaneGuideLine)];
         float[] positions = [0.15f, 0.2f, 0.7f];
         
         ShaderStrokePaint.Shader = SKShader.CreateRadialGradient(canvasInfo.Center, canvasInfo.JudgementLineRadius, colors, positions, SKShaderTileMode.Clamp);
@@ -965,11 +960,9 @@ internal static class NotePaints
             HoldSurfacePaintActive.Color = new(0xFF, 0xFF, 0xFF, (byte)(opacity * 207));
             return HoldSurfacePaintActive;
         }
-        else
-        {
-            HoldSurfacePaint.Color = new(0xFF, 0xFF, 0xFF, (byte)(opacity * 207));
-            return HoldSurfacePaint;
-        }
+
+        HoldSurfacePaint.Color = new(0xFF, 0xFF, 0xFF, (byte)(opacity * 207));
+        return HoldSurfacePaint;
     }
 
     internal static SKPaint GetEventMarkerPaint(Event @event, float pixelScale, float opacity)
@@ -1121,12 +1114,12 @@ internal static class NotePaints
         return ShaderFillPaint;
     }
 
-    internal static SKPaint GetBackgroundPaint(Entry entry, bool clear)
+    internal static SKPaint GetBackgroundPaint(BackgroundOption backgroundOption, Difficulty difficulty, bool clear)
     {
         return clear
-            ? entry.Background switch
+            ? backgroundOption switch
             {
-                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossClearPaint : BackgroundVersion3ClearPaint,
+                BackgroundOption.Auto => difficulty == Difficulty.Inferno ? BackgroundBossClearPaint : BackgroundVersion3ClearPaint,
                 BackgroundOption.Saturn => BackgroundVersion3ClearPaint,
                 BackgroundOption.Version3 => BackgroundVersion3ClearPaint,
                 BackgroundOption.Version2 => BackgroundVersion3ClearPaint,
@@ -1137,9 +1130,9 @@ internal static class NotePaints
                 BackgroundOption.Jacket => BackgroundVersion3ClearPaint,
                 _ => BackgroundVersion3ClearPaint,
             }
-            : entry.Background switch
+            : backgroundOption switch
             {
-                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossPaint : BackgroundVersion3Paint,
+                BackgroundOption.Auto => difficulty == Difficulty.Inferno ? BackgroundBossPaint : BackgroundVersion3Paint,
                 BackgroundOption.Saturn => BackgroundVersion3Paint,
                 BackgroundOption.Version3 => BackgroundVersion3Paint,
                 BackgroundOption.Version2 => BackgroundVersion3Paint,
