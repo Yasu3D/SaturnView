@@ -904,7 +904,7 @@ public class RenderSettings
     private ClearBackgroundVisibilityOption clearBackgroundVisibility = ClearBackgroundVisibilityOption.SimulateClear;
     
     /// <summary>
-    /// Should Tutorial tags be shown?
+    /// Should the chart level be displayed?
     /// </summary>
     public InterfaceVisibilityOption LevelDisplayVisibility
     {
@@ -920,7 +920,7 @@ public class RenderSettings
     private InterfaceVisibilityOption levelDisplayVisibility = InterfaceVisibilityOption.Obscured;
     
     /// <summary>
-    /// Should Tutorial tags be shown?
+    /// Should the chart title be displayed?
     /// </summary>
     public InterfaceVisibilityOption TitleDisplayVisibility
     {
@@ -934,4 +934,20 @@ public class RenderSettings
         }
     }
     private InterfaceVisibilityOption titleDisplayVisibility = InterfaceVisibilityOption.Obscured;
+    
+    /// <summary>
+    /// Should the chart difficulty be displayed?
+    /// </summary>
+    public InterfaceVisibilityOption DifficultyDisplayVisibility
+    {
+        get => difficultyDisplayVisibility;
+        set 
+        {
+            if (difficultyDisplayVisibility == value) return;
+            
+            difficultyDisplayVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private InterfaceVisibilityOption difficultyDisplayVisibility = InterfaceVisibilityOption.Obscured;
 }

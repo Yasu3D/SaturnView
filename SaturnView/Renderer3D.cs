@@ -1884,9 +1884,9 @@ public static class Renderer3D
         path.ArcTo(textRect, 0, 359, true);
         path.ArcTo(textRect, 359, 359, false);
 
-        bool obscureDiff = settings.LevelDisplayVisibility == RenderSettings.InterfaceVisibilityOption.Obscured;
+        bool obscureDifficulty = settings.DifficultyDisplayVisibility == RenderSettings.InterfaceVisibilityOption.Obscured;
         
-        string difficultyString = obscureDiff
+        string difficultyString = obscureDifficulty
             ? "? ? ? ? / Lv."
             : entry.Difficulty switch
             {
@@ -1899,7 +1899,7 @@ public static class Renderer3D
                 _ => "",
             };
         
-        uint diffTextColor = obscureDiff
+        uint difficultyTextColor = obscureDifficulty
             ? 0xFF000000
             : entry.Difficulty switch
             {
@@ -1932,15 +1932,15 @@ public static class Renderer3D
             
             case RenderSettings.InterfaceVisibilityOption.Obscured:
             {
-                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
-                canvas.DrawTextOnPath("??", path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath("??", path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
                 break;
             }
             
             case RenderSettings.InterfaceVisibilityOption.Visible:
             {
-                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
-                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
                 break;
             }
         }
@@ -2127,7 +2127,6 @@ public static class Renderer3D
 
     private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderTimingWindow timingWindow, float opacity)
     {
-        return;
         if (opacity == 0) return;
         bool drawEarlyGood      = settings.ShowGoodWindows      && timingWindow.GreatEarlyScale <= 1     && timingWindow.GoodEarlyScale      > timingWindow.GreatEarlyScale;
         bool drawEarlyGreat     = settings.ShowGreatWindows     && timingWindow.MarvelousEarlyScale <= 1 && timingWindow.GreatEarlyScale     > timingWindow.MarvelousEarlyScale;
