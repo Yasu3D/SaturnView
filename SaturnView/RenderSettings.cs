@@ -97,6 +97,16 @@ public class RenderSettings
         ForceClear = 1,
         SimulateClear = 2,
     }
+
+    /// <summary>
+    /// The list of available interface visibility options.
+    /// </summary>
+    public enum InterfaceVisibilityOption
+    {
+        Hidden = 0,
+        Obscured = 1,
+        Visible = 2,
+    }
     
 #endregion Enum Definitions
 
@@ -892,4 +902,36 @@ public class RenderSettings
         }
     }
     private ClearBackgroundVisibilityOption clearBackgroundVisibility = ClearBackgroundVisibilityOption.SimulateClear;
+    
+    /// <summary>
+    /// Should Tutorial tags be shown?
+    /// </summary>
+    public InterfaceVisibilityOption LevelDisplayVisibility
+    {
+        get => levelDisplayVisibility;
+        set 
+        {
+            if (levelDisplayVisibility == value) return;
+            
+            levelDisplayVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private InterfaceVisibilityOption levelDisplayVisibility = InterfaceVisibilityOption.Obscured;
+    
+    /// <summary>
+    /// Should Tutorial tags be shown?
+    /// </summary>
+    public InterfaceVisibilityOption TitleDisplayVisibility
+    {
+        get => titleDisplayVisibility;
+        set 
+        {
+            if (titleDisplayVisibility == value) return;
+            
+            titleDisplayVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private InterfaceVisibilityOption titleDisplayVisibility = InterfaceVisibilityOption.Obscured;
 }

@@ -54,9 +54,9 @@ internal static class RenderUtils
     /// <summary>
     /// Returns if an object is within the currently visible area, and returns its linear scroll position as an <c>out</c> value.
     /// </summary>
-    internal static bool GetProgress(float objTime, float objScaledTime, bool showEffects, float viewDistance, float time, float scaledTime, out float progress)
+    internal static bool GetProgress(float objTime, float objScaledTime, bool showSpeedChanges, float viewDistance, float time, float scaledTime, out float progress)
     {
-        progress = showEffects
+        progress = showSpeedChanges
             ? 1 - (objScaledTime - scaledTime) / viewDistance
             : 1 - (objTime - time) / viewDistance;
 

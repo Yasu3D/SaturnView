@@ -65,6 +65,7 @@ public static class Renderer3D
         renderEventAreas();
         renderHoldEnds();
         renderHoldSurfaces();
+        renderTimingWindows();
         renderObjects();
         renderBonusEffects();
 
@@ -153,6 +154,13 @@ public static class Renderer3D
                                       || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && playing
                                       || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused  && !playing
                                   );
+
+            bool checkForTimingWindows = settings.ShowJudgementWindows &&
+                                         (
+                                                settings.ShowGoodWindows
+                                             || settings.ShowGreatWindows
+                                             || settings.ShowMarvelousWindows
+                                         );
             
             // Find all visible global events.
             foreach (Event @event in chart.Events)
@@ -298,6 +306,50 @@ public static class Renderer3D
                         }
                         
                         // Timing windows
+                        if (checkForTimingWindows && playable.JudgementType != JudgementType.Fake && note is IPositionable positionable2)
+                        {
+                            if (timingWindowVisible())
+                            {
+                                // Long names for everything........
+                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousPerfectEarly, playable.TimingWindow.ScaledMarvelousPerfectEarly, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvPerfEarly);
+                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousPerfectLate,  playable.TimingWindow.ScaledMarvelousPerfectLate,  settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvPerfLate);
+                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousEarly,        playable.TimingWindow.ScaledMarvelousEarly,        settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvEarly);
+                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousLate,         playable.TimingWindow.ScaledMarvelousLate,         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvLate);
+                                RenderUtils.GetProgress(playable.TimingWindow.GreatEarly,            playable.TimingWindow.ScaledGreatEarly,            settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatEarly);
+                                RenderUtils.GetProgress(playable.TimingWindow.GreatLate,             playable.TimingWindow.ScaledGreatLate,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatLate);
+                                RenderUtils.GetProgress(playable.TimingWindow.GoodEarly,             playable.TimingWindow.ScaledGoodEarly,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodEarly);
+                                RenderUtils.GetProgress(playable.TimingWindow.GoodLate,              playable.TimingWindow.ScaledGoodLate,              settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodLate);
+                                RenderUtils.GetProgress(note.Timestamp.Time,                         note.Timestamp.ScaledTime,                         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float noteScale);
+                                
+                                marvPerfEarly = Math.Max(0, marvPerfEarly);
+                                marvPerfLate  = Math.Max(0, marvPerfLate);
+                                marvEarly     = Math.Max(0, marvEarly);
+                                marvLate      = Math.Max(0, marvLate);
+                                greatEarly    = Math.Max(0, greatEarly);
+                                greatLate     = Math.Max(0, greatLate);
+                                goodEarly     = Math.Max(0, goodEarly);
+                                goodLate      = Math.Max(0, goodLate);
+                                noteScale     = Math.Max(0, noteScale);
+
+                                timingWindowsToDraw.Add(new(layer, positionable2.Position, positionable2.Size, noteScale, marvPerfEarly, marvPerfLate, marvEarly, marvLate, greatEarly, greatLate, goodEarly, goodLate));
+                            }
+
+                            bool timingWindowVisible()
+                            {
+                                if (settings.ShowSpeedChanges)
+                                {
+                                    if (playable.TimingWindow.ScaledMaxLate < scaledTime) return false;
+                                    if (playable.TimingWindow.ScaledMaxEarly > scaledTime + viewDistance) return false;
+                                }
+                                else
+                                {
+                                    if (playable.TimingWindow.MaxLate < time) return false;
+                                    if (playable.TimingWindow.MaxEarly > time + viewDistance) return false;
+                                }
+
+                                return true;
+                            }
+                        }
                     }
                     
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
@@ -489,7 +541,7 @@ public static class Renderer3D
                 DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
             }
         }
-
+        
         void renderHoldSurfaces()
         {
             foreach (RenderObject renderObject in holdsToDraw)
@@ -498,6 +550,14 @@ public static class Renderer3D
                 if (renderObject.Layer == null) continue;
                 
                 DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+            }
+        }
+        
+        void renderTimingWindows()
+        {
+            foreach (RenderTimingWindow renderTimingWindow in timingWindowsToDraw)
+            {
+                DrawTimingWindow(canvas, canvasInfo, settings, renderTimingWindow, 1);
             }
         }
         
@@ -1824,47 +1884,83 @@ public static class Renderer3D
         path.ArcTo(textRect, 0, 359, true);
         path.ArcTo(textRect, 359, 359, false);
 
-        string difficultyString = entry.Difficulty switch
+        bool obscureDiff = settings.LevelDisplayVisibility == RenderSettings.InterfaceVisibilityOption.Obscured;
+        
+        string difficultyString = obscureDiff
+            ? "? ? ? ? / Lv."
+            : entry.Difficulty switch
+            {
+                Difficulty.None => "N O N E / Lv.",
+                Difficulty.Normal => "N O R M A L / Lv.",
+                Difficulty.Hard => "H A R D / Lv.",
+                Difficulty.Expert => "E X P E R T / Lv.",
+                Difficulty.Inferno => "I N F E R N O / Lv.",
+                Difficulty.WorldsEnd => "W O R L D ' S  E N D / Lv.",
+                _ => "",
+            };
+        
+        uint diffTextColor = obscureDiff
+            ? 0xFF000000
+            : entry.Difficulty switch
+            {
+                Difficulty.None => 0xFFFFFFFF,
+                Difficulty.Normal => 0xFF1B7CFF,
+                Difficulty.Hard => 0xFFFFC300,
+                Difficulty.Expert => 0xFFFF0084,
+                Difficulty.Inferno => 0xFF400084,
+                Difficulty.WorldsEnd => 0xFF000000,
+                _ => 0xFFBFBFBF,
+            };
+
+        uint titleTextColor = settings.JudgementLineColor switch
         {
-            Difficulty.None => "",
-            Difficulty.Normal => "N O R M A L / Lv.",
-            Difficulty.Hard => "H A R D / Lv.",
-            Difficulty.Expert => "E X P E R T / Lv.",
-            Difficulty.Inferno => "I N F E R N O / Lv.",
-            Difficulty.WorldsEnd => "W O R L D ' S  E N D / Lv.",
-            _ => "",
+            RenderSettings.JudgementLineColorOption.Version0 => 0xFFFFFFFF,
+            RenderSettings.JudgementLineColorOption.Version1 => 0xFF821C5F,
+            RenderSettings.JudgementLineColorOption.Version2 => 0xFF601C95,
+            RenderSettings.JudgementLineColorOption.Version3 => 0xFFFB67B7,
+            _ => 0xFF000000,
         };
         
         float circumference = textRadius * float.Pi;
-
         float titleAngle = circumference * 0.865f;
-        float levelAngle = circumference * 0.837f;
-        float difficultyAngle = entry.Difficulty switch
-        {
-            Difficulty.None => 0f,
-            Difficulty.Normal => 0.7815f,
-            Difficulty.Hard => 0.7945f,
-            Difficulty.Expert => 0.7843f,
-            Difficulty.Inferno => 0.7782f,
-            Difficulty.WorldsEnd => 0.7565f,
-            _ => 0f,
-        };
-        difficultyAngle *= circumference;
-        
-        uint diffTextColor = entry.Difficulty switch
-        {
-            Difficulty.None => 0xFFBFBFBF,
-            Difficulty.Normal => 0xFF1B7CFF,
-            Difficulty.Hard => 0xFFFFC300,
-            Difficulty.Expert => 0xFFFF0084,
-            Difficulty.Inferno => 0xFF400084,
-            Difficulty.WorldsEnd => 0xFF000000,
-            _ => 0xFFBFBFBF,
-        };
+        float levelAngle = circumference * 0.836f;
+        float difficultyAngle = circumference * -0.32f;
 
-        canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
-        canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
-        canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(0xFFFB67B7));
+        switch (settings.LevelDisplayVisibility)
+        {
+            case RenderSettings.InterfaceVisibilityOption.Hidden: break;
+            
+            case RenderSettings.InterfaceVisibilityOption.Obscured:
+            {
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                canvas.DrawTextOnPath("??", path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                break;
+            }
+            
+            case RenderSettings.InterfaceVisibilityOption.Visible:
+            {
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(diffTextColor));
+                break;
+            }
+        }
+
+        switch (settings.TitleDisplayVisibility)
+        {
+            case RenderSettings.InterfaceVisibilityOption.Hidden: break;
+            
+            case RenderSettings.InterfaceVisibilityOption.Obscured:
+            {
+                canvas.DrawTextOnPath("???", path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(titleTextColor));
+                break;
+            }
+            
+            case RenderSettings.InterfaceVisibilityOption.Visible:
+            {
+                canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(titleTextColor));
+                break;
+            }
+        }
     }
 
     /// <summary>
@@ -2029,15 +2125,88 @@ public static class Renderer3D
         }
     }
 
-    private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Layer layer, TimingWindow timingWindow, float noteTime, float time, float opacity)
+    private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderTimingWindow timingWindow, float opacity)
     {
+        return;
         if (opacity == 0) return;
-        
-        
-    }
-}
+        bool drawEarlyGood      = settings.ShowGoodWindows      && timingWindow.GreatEarlyScale <= 1     && timingWindow.GoodEarlyScale      > timingWindow.GreatEarlyScale;
+        bool drawEarlyGreat     = settings.ShowGreatWindows     && timingWindow.MarvelousEarlyScale <= 1 && timingWindow.GreatEarlyScale     > timingWindow.MarvelousEarlyScale;
+        bool drawEarlyMarvelous = settings.ShowMarvelousWindows && timingWindow.NoteScale <= 1           && timingWindow.MarvelousEarlyScale > timingWindow.NoteScale;
+        bool drawLateMarvelous  = settings.ShowMarvelousWindows && timingWindow.MarvelousLateScale <= 1  && timingWindow.MarvelousLateScale  < timingWindow.NoteScale;
+        bool drawLateGreat      = settings.ShowGreatWindows     && timingWindow.GreatLateScale <= 1      && timingWindow.GreatLateScale      < timingWindow.MarvelousLateScale;
+        bool drawLateGood       = settings.ShowGoodWindows      && timingWindow.GoodLateScale <= 1       && timingWindow.GoodLateScale       < timingWindow.GreatLateScale;
 
-file struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
+        if (!drawEarlyGood && !drawEarlyGreat && !drawEarlyMarvelous && !drawLateMarvelous && !drawLateGreat && !drawLateGood) return;
+
+        if (drawEarlyGood)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GoodEarlyScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatEarlyScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGoodTimingWindowPaint(false, opacity));
+        }
+        
+        if (drawEarlyGreat)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatEarlyScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousEarlyScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGreatTimingWindowPaint(false, opacity));
+        }
+        
+        if (drawEarlyMarvelous)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousEarlyScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.NoteScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetMarvelousTimingWindowPaint(false, opacity));
+        }
+        
+        if (drawLateMarvelous)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.NoteScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousLateScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetMarvelousTimingWindowPaint(true, opacity));
+        }
+        
+        if (drawLateGreat)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousLateScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatLateScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGreatTimingWindowPaint(true, opacity));
+        }
+        
+        if (drawLateGood)
+        {
+            float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatLateScale);
+            float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GoodLateScale);
+            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGoodTimingWindowPaint(true, opacity));
+        }
+
+        return;
+
+        void drawTimingWindowPart(float radiusStart, float radiusEnd, SKPaint paint)
+        {
+            SKPoint[] vertices = new SKPoint[timingWindow.Size * 6];
+    
+            for (int i = 0; i < timingWindow.Size; i++)
+            {
+                float angle = (timingWindow.Position + i) * -6;
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radiusStart, angle    );
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radiusStart, angle - 6);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radiusEnd,   angle    );
+                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radiusEnd,   angle - 6);
+
+                vertices[6 * i]     = p0;
+                vertices[6 * i + 1] = p1;
+                vertices[6 * i + 2] = p2;
+                vertices[6 * i + 3] = p3;
+                vertices[6 * i + 4] = p2;
+                vertices[6 * i + 5] = p1;
+            }
+            
+            canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, paint);
+        }
+    }
+    
+    private struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
 {
     // Universal
     public readonly ITimeable Object = @object;
@@ -2050,44 +2219,54 @@ file struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float
     public readonly bool Sync = sync;
 }
 
-file struct RenderHoldPoint
-{
-    internal RenderHoldPoint(HoldNote hold, HoldPointNote point, int maxSize)
+    private struct RenderHoldPoint
     {
-        GlobalTime = point.Timestamp.Time;
-        GlobalScaledTime = point.Timestamp.ScaledTime;
+        internal RenderHoldPoint(HoldNote hold, HoldPointNote point, int maxSize)
+        {
+            GlobalTime = point.Timestamp.Time;
+            GlobalScaledTime = point.Timestamp.ScaledTime;
 
-        LocalTime = hold.Points.Count > 1 && hold.Points[0].Timestamp.Time != hold.Points[^1].Timestamp.Time
-            ? (point.Timestamp.Time - hold.Points[0].Timestamp.Time) / (hold.Points[^1].Timestamp.Time - hold.Points[0].Timestamp.Time)
-            : 0;
-        
-        Start = point.Size == 60 
-            ? point.Position * -6f 
-            : point.Position * -6f - 4.2f;
-        
-        Interval = point.Size == 60 
-            ? point.Size * -6f / maxSize 
-            : (point.Size * -6f + 8.4f) / maxSize;
+            LocalTime = hold.Points.Count > 1 && hold.Points[0].Timestamp.Time != hold.Points[^1].Timestamp.Time
+                ? (point.Timestamp.Time - hold.Points[0].Timestamp.Time) / (hold.Points[^1].Timestamp.Time - hold.Points[0].Timestamp.Time)
+                : 0;
+            
+            Start = point.Size == 60 
+                ? point.Position * -6f 
+                : point.Position * -6f - 4.2f;
+            
+            Interval = point.Size == 60 
+                ? point.Size * -6f / maxSize 
+                : (point.Size * -6f + 8.4f) / maxSize;
+        }
+
+        public float GlobalTime;
+        public float GlobalScaledTime;
+        public float LocalTime;
+        public float Start;
+        public float Interval;
     }
 
-    public float GlobalTime;
-    public float GlobalScaledTime;
-    public float LocalTime;
-    public float Start;
-    public float Interval;
-}
+    private struct RenderBonusSweepEffect(int startPosition, float startTime, float duration, bool isCounterclockwise)
+    {
+        public readonly int StartPosition = startPosition;
+        public readonly float StartTime = startTime;
+        public readonly float Duration = duration;
+        public readonly bool IsCounterclockwise = isCounterclockwise;
+    }
 
-file struct RenderBonusSweepEffect(int startPosition, float startTime, float duration, bool isCounterclockwise)
-{
-    public readonly int StartPosition = startPosition;
-    public readonly float StartTime = startTime;
-    public readonly float Duration = duration;
-    public readonly bool IsCounterclockwise = isCounterclockwise;
-}
-
-file struct RenderTimingWindow(Layer layer, TimingWindow timingWindow, float noteTime)
-{
-    public readonly Layer Layer = layer;
-    public readonly TimingWindow TimingWindow = timingWindow;
-    public readonly float NoteTime = noteTime;
+    private struct RenderTimingWindow(Layer layer, int position, int size, float noteScale, float marvelousPerfectEarlyScale, float marvelousPerfectLateScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
+    {
+        public readonly Layer Layer = layer;
+        public readonly int Position = position;
+        public readonly int Size = size;
+        public readonly float NoteScale = noteScale;
+        public readonly float MarvelousPerfectEarlyScale = marvelousPerfectEarlyScale;
+        public readonly float MarvelousPerfectLateScale = marvelousPerfectLateScale;
+        public readonly float MarvelousEarlyScale = marvelousEarlyScale;
+        public readonly float MarvelousLateScale = marvelousLateScale;
+        public readonly float GreatEarlyScale = greatEarlyScale;
+        public readonly float GreatLateScale = greatLateScale;
+        public readonly float GoodEarlyScale = goodEarlyScale;
+        public readonly float GoodLateScale = goodLateScale;
+    }
 }

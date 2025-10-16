@@ -1144,6 +1144,27 @@ internal static class NotePaints
                 _ => BackgroundVersion3Paint,
             };
     }
+
+    internal static SKPaint GetMarvelousTimingWindowPaint(bool late, float opacity)
+    {
+        int baseOpacity = late ? 100 : 150;
+        FlatFillPaint.Color = new(0xFF, 0x00, 0x40, (byte)(baseOpacity * opacity));
+        return FlatFillPaint;
+    }
+    
+    internal static SKPaint GetGreatTimingWindowPaint(bool late, float opacity)
+    {
+        int baseOpacity = late ? 100 : 150;
+        FlatFillPaint.Color = new(0x00, 0xFF, 0x00, (byte)(baseOpacity * opacity));
+        return FlatFillPaint;
+    }
+    
+    internal static SKPaint GetGoodTimingWindowPaint(bool late, float opacity)
+    {
+        int baseOpacity = late ? 100 : 150;
+        FlatFillPaint.Color = new(0x00, 0xB3, 0xFF, (byte)(baseOpacity * opacity));
+        return FlatFillPaint;
+    }
     
     internal static SKFont GetBoldFont(float scale)
     {
