@@ -8,7 +8,7 @@ namespace SaturnView;
 
 // TODO:
 // Improve Performance
-// Judgement window and Hold window Visualizations
+// Timing window and Hold window Visualizations
 // Hit testing
 
 public static class Renderer3D
@@ -155,7 +155,7 @@ public static class Renderer3D
                                       || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused  && !playing
                                   );
 
-            bool checkForTimingWindows = settings.ShowJudgementWindows &&
+            bool checkForTimingWindows = settings.ShowTimingWindows &&
                                          (
                                                 settings.ShowGoodWindows
                                              || settings.ShowGreatWindows
@@ -311,8 +311,6 @@ public static class Renderer3D
                             if (timingWindowVisible())
                             {
                                 // Long names for everything........
-                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousPerfectEarly, playable.TimingWindow.ScaledMarvelousPerfectEarly, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvPerfEarly);
-                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousPerfectLate,  playable.TimingWindow.ScaledMarvelousPerfectLate,  settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvPerfLate);
                                 RenderUtils.GetProgress(playable.TimingWindow.MarvelousEarly,        playable.TimingWindow.ScaledMarvelousEarly,        settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvEarly);
                                 RenderUtils.GetProgress(playable.TimingWindow.MarvelousLate,         playable.TimingWindow.ScaledMarvelousLate,         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvLate);
                                 RenderUtils.GetProgress(playable.TimingWindow.GreatEarly,            playable.TimingWindow.ScaledGreatEarly,            settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatEarly);
@@ -321,8 +319,6 @@ public static class Renderer3D
                                 RenderUtils.GetProgress(playable.TimingWindow.GoodLate,              playable.TimingWindow.ScaledGoodLate,              settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodLate);
                                 RenderUtils.GetProgress(note.Timestamp.Time,                         note.Timestamp.ScaledTime,                         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float noteScale);
                                 
-                                marvPerfEarly = Math.Max(0, marvPerfEarly);
-                                marvPerfLate  = Math.Max(0, marvPerfLate);
                                 marvEarly     = Math.Max(0, marvEarly);
                                 marvLate      = Math.Max(0, marvLate);
                                 greatEarly    = Math.Max(0, greatEarly);
@@ -331,7 +327,7 @@ public static class Renderer3D
                                 goodLate      = Math.Max(0, goodLate);
                                 noteScale     = Math.Max(0, noteScale);
 
-                                timingWindowsToDraw.Add(new(layer, positionable2.Position, positionable2.Size, noteScale, marvPerfEarly, marvPerfLate, marvEarly, marvLate, greatEarly, greatLate, goodEarly, goodLate));
+                                timingWindowsToDraw.Add(new(positionable2.Position, positionable2.Size, noteScale, marvEarly, marvLate, greatEarly, greatLate, goodEarly, goodLate));
                             }
 
                             bool timingWindowVisible()
@@ -2125,6 +2121,9 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws a timing window.
+    /// </summary>
     private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderTimingWindow timingWindow, float opacity)
     {
         if (opacity == 0) return;
@@ -2253,14 +2252,11 @@ public static class Renderer3D
         public readonly bool IsCounterclockwise = isCounterclockwise;
     }
 
-    private struct RenderTimingWindow(Layer layer, int position, int size, float noteScale, float marvelousPerfectEarlyScale, float marvelousPerfectLateScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
+    private struct RenderTimingWindow(int position, int size, float noteScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
     {
-        public readonly Layer Layer = layer;
         public readonly int Position = position;
         public readonly int Size = size;
         public readonly float NoteScale = noteScale;
-        public readonly float MarvelousPerfectEarlyScale = marvelousPerfectEarlyScale;
-        public readonly float MarvelousPerfectLateScale = marvelousPerfectLateScale;
         public readonly float MarvelousEarlyScale = marvelousEarlyScale;
         public readonly float MarvelousLateScale = marvelousLateScale;
         public readonly float GreatEarlyScale = greatEarlyScale;

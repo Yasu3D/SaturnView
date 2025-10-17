@@ -423,23 +423,23 @@ public class RenderSettings
     private bool showVisibilityChanges = true;
     
     /// <summary>
-    /// Should judgement windows be shown?
+    /// Should timing windows be shown?
     /// </summary>
-    public bool ShowJudgementWindows
+    public bool ShowTimingWindows
     {
-        get => showJudgementWindows;
+        get => showTimingWindows;
         set
         {
-            if (showJudgementWindows == value) return;
+            if (showTimingWindows == value) return;
             
-            showJudgementWindows = value;
+            showTimingWindows = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showJudgementWindows = true;
+    private bool showTimingWindows = true;
 
     /// <summary>
-    /// Should MARVELOUS judgement windows be shown?
+    /// Should MARVELOUS timing windows be shown?
     /// </summary>
     public bool ShowMarvelousWindows
     {
@@ -455,7 +455,7 @@ public class RenderSettings
     private bool showMarvelousWindows = true;
 
     /// <summary>
-    /// Should GREAT judgement windows be shown?
+    /// Should GREAT timing windows be shown?
     /// </summary>
     public bool ShowGreatWindows
     {
@@ -471,7 +471,7 @@ public class RenderSettings
     private bool showGreatWindows = true;
     
     /// <summary>
-    /// Should GOOD judgement windows be shown?
+    /// Should GOOD timing windows be shown?
     /// </summary>
     public bool ShowGoodWindows
     {
@@ -487,21 +487,21 @@ public class RenderSettings
     private bool showGoodWindows = true;
     
     /// <summary>
-    /// Should judgement windows follow the Saturn specifications?<br/>
+    /// Should timing windows follow the Saturn specifications?<br/>
     /// (Slight engine changes to prevent "splashing")
     /// </summary>
-    public bool SaturnJudgementWindows
+    public bool SaturnTimingWindows
     {
-        get => saturnJudgementWindows;
+        get => saturnTimingWindows;
         set
         {
-            if (saturnJudgementWindows == value) return;
+            if (saturnTimingWindows == value) return;
             
-            saturnJudgementWindows = value;
+            saturnTimingWindows = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool saturnJudgementWindows = true;
+    private bool saturnTimingWindows = true;
     
     /// <summary>
     /// Should hold note detection windows be visualized?

@@ -1147,22 +1147,25 @@ internal static class NotePaints
 
     internal static SKPaint GetMarvelousTimingWindowPaint(bool late, float opacity)
     {
-        int baseOpacity = late ? 100 : 150;
-        FlatFillPaint.Color = new(0xFF, 0x00, 0x40, (byte)(baseOpacity * opacity));
+        FlatFillPaint.Color = late
+            ? new(0x80, 0x00, 0x20, (byte)(180 * opacity))
+            : new(0xFF, 0x00, 0x40, (byte)(180 * opacity));
         return FlatFillPaint;
     }
     
     internal static SKPaint GetGreatTimingWindowPaint(bool late, float opacity)
     {
-        int baseOpacity = late ? 100 : 150;
-        FlatFillPaint.Color = new(0x00, 0xFF, 0x00, (byte)(baseOpacity * opacity));
+        FlatFillPaint.Color = late
+            ? new(0x00, 0x80, 0x00, (byte)(180 * opacity))
+            : new(0x00, 0xFF, 0x00, (byte)(180 * opacity));
         return FlatFillPaint;
     }
     
     internal static SKPaint GetGoodTimingWindowPaint(bool late, float opacity)
     {
-        int baseOpacity = late ? 100 : 150;
-        FlatFillPaint.Color = new(0x00, 0xB3, 0xFF, (byte)(baseOpacity * opacity));
+        FlatFillPaint.Color = late
+            ? new(0x00, 0x5A, 0x80, (byte)(180 * opacity))
+            : new(0x00, 0xB3, 0xFF, (byte)(180 * opacity));
         return FlatFillPaint;
     }
     
