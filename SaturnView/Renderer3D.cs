@@ -1201,11 +1201,13 @@ public static class Renderer3D
     private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
     {
         if (opacity == 0) return;
-        List<SKPoint> vertexScreenCoords = [];
-        List<SKPoint> vertexTextureCoords = [];
 
         HoldPointNote[] points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToArray();
+        if (points.Length < 2) return;
 
+        List<SKPoint> vertexScreenCoords = [];
+        List<SKPoint> vertexTextureCoords = [];
+        
         float visibleTime = 3333.333f / (settings.NoteSpeed * 0.1f);
         
         float scaledTime = settings.ShowSpeedChanges ? Timestamp.ScaledTimeFromTime(layer, time) : time;
@@ -1246,7 +1248,8 @@ public static class Renderer3D
         }
         
         // Generate the final arc for last point.
-        RenderHoldPoint last = new(hold, points[^1], maxSize);
+        HoldPointNote lastPoint = arcs == 1 ? points[1] : points[^1]; // Hacky? Use second note instead of last if only one arc was generated.
+        RenderHoldPoint last = new(hold, lastPoint, maxSize);
         generateArc(getScale(last.GlobalTime, last.GlobalScaledTime), last.LocalTime, last.Start, last.Interval);
         
         // Build mesh
