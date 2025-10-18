@@ -6,11 +6,6 @@ using SkiaSharp;
 
 namespace SaturnView;
 
-// TODO:
-// Improve Performance
-// Timing window and Hold window Visualizations
-// Hit testing
-
 public static class Renderer3D
 {
     private static readonly float[][] SyncOutlineRadius = 
@@ -33,9 +28,9 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
-        float viewDistance = 3333.333f / (settings.NoteSpeed * 0.1f);
+        float viewDistance = GetViewDistance(settings.NoteSpeed);
 
         bool[] lanesToDraw = new bool[60];
         List<RenderObject> objectsToDraw = [];
@@ -43,7 +38,7 @@ public static class Renderer3D
         List<RenderObject> holdsToDraw = [];
         List<RenderObject> eventAreasToDraw = [];
         List<RenderBonusSweepEffect> bonusSweepEffectsToDraw = [];
-        List<RenderTimingWindow> timingWindowsToDraw = [];
+        List<RenderJudgeArea> timingWindowsToDraw = [];
         Note? activeRNote = null;
         
         lock (chart)
@@ -65,7 +60,7 @@ public static class Renderer3D
         renderEventAreas();
         renderHoldEnds();
         renderHoldSurfaces();
-        renderTimingWindows();
+        renderJudgeAreas();
         renderObjects();
         renderBonusEffects();
 
@@ -155,7 +150,7 @@ public static class Renderer3D
                                       || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused  && !playing
                                   );
 
-            bool checkForTimingWindows = settings.ShowTimingWindows &&
+            bool checkForJudgeAreas = settings.ShowJudgeAreas &&
                                          (
                                                 settings.ShowGoodWindows
                                              || settings.ShowGreatWindows
@@ -306,17 +301,17 @@ public static class Renderer3D
                         }
                         
                         // Timing windows
-                        if (checkForTimingWindows && playable.JudgementType != JudgementType.Fake && note is IPositionable positionable2)
+                        if (checkForJudgeAreas && playable.JudgementType != JudgementType.Fake && note is IPositionable positionable2)
                         {
                             if (timingWindowVisible())
                             {
                                 // Long names for everything........
-                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousEarly,        playable.TimingWindow.ScaledMarvelousEarly,        settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvEarly);
-                                RenderUtils.GetProgress(playable.TimingWindow.MarvelousLate,         playable.TimingWindow.ScaledMarvelousLate,         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvLate);
-                                RenderUtils.GetProgress(playable.TimingWindow.GreatEarly,            playable.TimingWindow.ScaledGreatEarly,            settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatEarly);
-                                RenderUtils.GetProgress(playable.TimingWindow.GreatLate,             playable.TimingWindow.ScaledGreatLate,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatLate);
-                                RenderUtils.GetProgress(playable.TimingWindow.GoodEarly,             playable.TimingWindow.ScaledGoodEarly,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodEarly);
-                                RenderUtils.GetProgress(playable.TimingWindow.GoodLate,              playable.TimingWindow.ScaledGoodLate,              settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodLate);
+                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousEarly,        playable.JudgeArea.ScaledMarvelousEarly,        settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousLate,         playable.JudgeArea.ScaledMarvelousLate,         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvLate);
+                                RenderUtils.GetProgress(playable.JudgeArea.GreatEarly,            playable.JudgeArea.ScaledGreatEarly,            settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.GreatLate,             playable.JudgeArea.ScaledGreatLate,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatLate);
+                                RenderUtils.GetProgress(playable.JudgeArea.GoodEarly,             playable.JudgeArea.ScaledGoodEarly,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.GoodLate,              playable.JudgeArea.ScaledGoodLate,              settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodLate);
                                 RenderUtils.GetProgress(note.Timestamp.Time,                         note.Timestamp.ScaledTime,                         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float noteScale);
                                 
                                 marvEarly     = Math.Max(0, marvEarly);
@@ -334,13 +329,14 @@ public static class Renderer3D
                             {
                                 if (settings.ShowSpeedChanges)
                                 {
-                                    if (playable.TimingWindow.ScaledMaxLate < scaledTime) return false;
-                                    if (playable.TimingWindow.ScaledMaxEarly > scaledTime + viewDistance) return false;
+                                    if (playable.JudgeArea.MaxLate < time) return false;
+                                    if (playable.JudgeArea.ScaledMaxLate < scaledTime) return false;
+                                    if (playable.JudgeArea.ScaledMaxEarly > scaledTime + viewDistance) return false;
                                 }
                                 else
                                 {
-                                    if (playable.TimingWindow.MaxLate < time) return false;
-                                    if (playable.TimingWindow.MaxEarly > time + viewDistance) return false;
+                                    if (playable.JudgeArea.MaxLate < time) return false;
+                                    if (playable.JudgeArea.MaxEarly > time + viewDistance) return false;
                                 }
 
                                 return true;
@@ -534,7 +530,7 @@ public static class Renderer3D
             {
                 if (renderObject.Object is not HoldPointNote holdPointNote) continue;
                 
-                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
             }
         }
         
@@ -545,15 +541,15 @@ public static class Renderer3D
                 if (renderObject.Object is not HoldNote holdNote) continue;
                 if (renderObject.Layer == null) continue;
                 
-                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
             }
         }
         
-        void renderTimingWindows()
+        void renderJudgeAreas()
         {
-            foreach (RenderTimingWindow renderTimingWindow in timingWindowsToDraw)
+            foreach (RenderJudgeArea renderJudgeArea in timingWindowsToDraw)
             {
-                DrawTimingWindow(canvas, canvasInfo, settings, renderTimingWindow, 1);
+                DrawJudgeArea(canvas, canvasInfo, settings, renderJudgeArea, 1);
             }
         }
         
@@ -563,29 +559,29 @@ public static class Renderer3D
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
-                    DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawHoldPointNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
-                    DrawSyncNote(canvas, canvasInfo, settings, syncNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawSyncNote(canvas, canvasInfo, settings, syncNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
                 else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
                     if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) continue;
                     
-                    DrawMeasureLineNote(canvas, canvasInfo, settings, measureLineNote, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawMeasureLineNote(canvas, canvasInfo, settings, measureLineNote, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, measureLineNote.IsBeatLine, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
-                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, time, viewDistance, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawLaneToggle(canvas, canvasInfo, settings, laneToggle, time, viewDistance, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
                 else if (renderObject.Object is Note note)
                 {
-                    DrawNote(canvas, canvasInfo, settings, note, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, renderObject.Sync, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawNote(canvas, canvasInfo, settings, note, RenderUtils.Perspective(renderObject.Scale), renderObject.Scale, renderObject.Sync, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
                 else if (renderObject.Object is Event @event)
                 {
-                    DrawEvent(canvas, canvasInfo, settings, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                    DrawEvent(canvas, canvasInfo, settings, @event, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selectedObjects, pointerOverObject);
                 }
             }
         }
@@ -632,9 +628,144 @@ public static class Renderer3D
     }
     
     /// <summary>
+    /// Returns <c>true</c> if the specified pixel coordinate lies on an object.
+    /// </summary>
+    /// <param name="obj">The object to hit test. (May also implement IPositionable.)</param>
+    /// <param name="x">The x-coordinate of the pixel.</param>
+    /// <param name="y">The y-coordinate of the pixel.</param>
+    /// <param name="time">The current time.</param>
+    /// <param name="scaledTime">The current scaled time.</param>
+    /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
+    /// <param name="settings">The current render settings.</param>
+    public static bool HitTest(ITimeable obj, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings)
+    {
+        float viewDistance = GetViewDistance(settings.NoteSpeed);
+        float threshold = GetHitTestThreshold(canvasInfo, settings.NoteThickness);
+        float radius = GetHitTestPointerRadius(canvasInfo, x, y);
+        int lane = GetHitTestPointerLane(canvasInfo, x, y);
+        
+        return HitTest(obj, radius, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings);
+    }
+    
+    /// <summary>
+    /// Returns <c>true</c> if the specified radial coordinate lies on an object.
+    /// </summary>
+    /// <param name="obj">The object to hit test. (May also implement IPositionable.)</param>
+    /// <param name="radius">The 0-1 radius of the radial coordinate.</param>
+    /// <param name="lane">The 0-59 lane of the radial coordinate.</param>
+    /// <param name="time">The current time.</param>
+    /// <param name="scaledTime">The current scaled time.</param>
+    /// <param name="viewDistance">The current view distance.</param>
+    /// <param name="showSpeedChanges">Should speed changes be taken into account?</param>
+    /// <param name="threshold">The radius threshold for hit testing.</param>
+    /// <returns></returns>
+    public static bool HitTest(ITimeable obj, float radius, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings)
+    {
+        if (lane is > 59 or < 0) return false;
+
+        if (!RenderUtils.IsVisible(obj, settings)) return false;
+        
+        if (obj is HoldNote holdNote && holdNote.Points.Count > 1)
+        {
+            if (holdNote.Points[^1].Timestamp.Time < time) return false;
+            
+            if (showSpeedChanges)
+            {
+                if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) return false;
+                if (holdNote.Points[ 0].Timestamp.ScaledTime > scaledTime + viewDistance) return false;
+            }
+            else
+            {
+                if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) return false;
+            }
+            
+            for (int i = 1; i < holdNote.Points.Count; i++)
+            {
+                HoldPointNote start = holdNote.Points[i - 1];
+                HoldPointNote end = holdNote.Points[i];
+
+                RenderUtils.GetProgress(start.Timestamp.Time, start.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float startProgress);
+                RenderUtils.GetProgress(end.Timestamp.Time, end.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float endProgress);
+                startProgress = RenderUtils.Perspective(startProgress);
+                endProgress = RenderUtils.Perspective(endProgress);
+
+                if (startProgress < radius) continue;
+                if (endProgress > radius) continue;
+
+                float t = RenderUtils.InverseLerp(startProgress, endProgress, radius);
+                int position = (int)MathF.Round(RenderUtils.LerpCyclic(start.Position, end.Position, t, 60));
+                int size = (int)MathF.Round(RenderUtils.Lerp(start.Size, end.Size, t));
+
+                if (IPositionable.IsAnyOverlap(position, size, lane, 1))
+                {
+                    return true;
+                }
+            }
+        }
+        
+        if (!RenderUtils.GetProgress(obj.Timestamp.Time, obj.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float progress)) return false;
+        
+        progress = RenderUtils.Perspective(progress);
+        if (Math.Abs(radius - progress) > threshold) return false;
+        
+        if (obj is IPositionable positionable)
+        {
+            return IPositionable.IsAnyOverlap(positionable.Position, positionable.Size, lane, 1);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the view distance in milliseconds.
+    /// </summary>
+    /// <param name="noteSpeed">The current note speed.</param>
+    public static float GetViewDistance(int noteSpeed) => 3333.333f / (noteSpeed * 0.1f);
+
+    /// <summary>
+    /// Returns the hit test threshold, based on the current note thickness.
+    /// </summary>
+    /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
+    /// <param name="noteThickness">The current note thickness.</param>
+    /// <returns></returns>
+    public static float GetHitTestThreshold(CanvasInfo canvasInfo, RenderSettings.NoteThicknessOption noteThickness)
+    {
+        return ((NotePaints.NoteStrokeWidths[(int)noteThickness] * canvasInfo.Scale) / canvasInfo.Radius) * 0.5f;
+    }
+
+    /// <summary>
+    /// Returns the 0-1 radius of a pixel coordinate.
+    /// </summary>
+    /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
+    /// <param name="x">The x-coordinate in pixels</param>
+    /// <param name="y">The y-coordinate in pixels</param>
+    public static float GetHitTestPointerRadius(CanvasInfo canvasInfo, float x, float y)
+    {
+        x =  (x - canvasInfo.Radius) / canvasInfo.JudgementLineRadius;
+        y =  (y - canvasInfo.Radius) / canvasInfo.JudgementLineRadius;
+        
+        return MathF.Sqrt(x * x + y * y);
+    }
+
+    /// <summary>
+    /// Returns the 0-59 lane position of a pixel coordinate.
+    /// </summary>
+    /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
+    /// <param name="x">The x-coordinate in pixels</param>
+    /// <param name="y">The y-coordinate in pixels</param>
+    public static int GetHitTestPointerLane(CanvasInfo canvasInfo, float x, float y)
+    {
+        x =  (x - canvasInfo.Radius) / canvasInfo.JudgementLineRadius;
+        y =  (y - canvasInfo.Radius) / canvasInfo.JudgementLineRadius;
+        
+        float angle = MathF.Atan2(y, x) / MathF.PI * 180 + 180;
+        return (int)((90 - angle / 6) % 60);
+    }
+    
+    /// <summary>
     /// Draws a standard note body, sync outline, r-effect, and arrows.
     /// </summary>
-    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float perspectiveScale, float linearScale, bool sync, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1051,7 +1182,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(note);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == note;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size, selected, pointerOver);
@@ -1061,7 +1192,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold end note.
     /// </summary>
-    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1135,7 +1266,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(note);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == note;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
@@ -1145,7 +1276,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold control point.
     /// </summary>
-    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1188,7 +1319,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(note);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == note;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
@@ -1198,7 +1329,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold note surface.
     /// </summary>
-    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
 
@@ -1290,7 +1421,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(hold);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(hold);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == hold;
         
         if (selected || pointerOver)
         {
@@ -1387,7 +1518,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a sync connector.
     /// </summary>
-    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1411,7 +1542,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(note);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == note;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, note.Position, note.Size, selected, pointerOver);
@@ -1421,7 +1552,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a measure or beat line.
     /// </summary>
-    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, MeasureLineNote note, float perspectiveScale, float linearScale, bool isBeatLine, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, MeasureLineNote note, float perspectiveScale, float linearScale, bool isBeatLine, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (perspectiveScale is <= 0 or > 1.25f) return;
@@ -1439,7 +1570,7 @@ public static class Renderer3D
         
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(note);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(note);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == note;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, canvasInfo.Scale * perspectiveScale, 0, 60, selected, pointerOver);
@@ -1449,7 +1580,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws an event.
     /// </summary>
-    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Event @event, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawEvent(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Event @event, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
@@ -1463,7 +1594,7 @@ public static class Renderer3D
 
         // Selection outline.
         bool selected = selectedObjects != null && selectedObjects.Contains(@event);
-        bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(@event);
+        bool pointerOver = pointerOverObject != null && pointerOverObject == @event;
         if (selected || pointerOver)
         {
             DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, 0, 60, selected, pointerOver);
@@ -1609,7 +1740,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a lane toggle note.
     /// </summary>
-    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, HashSet<ITimeable>? pointerOverObjects = null)
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
     {
         if (opacity == 0) return;
         if (laneToggle is not ITimeable timeable) return;
@@ -1737,7 +1868,7 @@ public static class Renderer3D
             
             // Selection outline.
             bool selected = selectedObjects != null && selectedObjects.Contains(timeable);
-            bool pointerOver = pointerOverObjects != null && pointerOverObjects.Contains(timeable);
+            bool pointerOver = pointerOverObject != null && pointerOverObject == timeable;
             if (selected || pointerOver)
             {
                 DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, positionable.Position, positionable.Size, selected, pointerOver);
@@ -2125,9 +2256,9 @@ public static class Renderer3D
     }
 
     /// <summary>
-    /// Draws a timing window.
+    /// Draws a judge area.
     /// </summary>
-    private static void DrawTimingWindow(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderTimingWindow timingWindow, float opacity)
+    private static void DrawJudgeArea(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderJudgeArea timingWindow, float opacity)
     {
         if (opacity == 0) return;
         bool drawEarlyGood      = settings.ShowGoodWindows      && timingWindow.GreatEarlyScale <= 1     && timingWindow.GoodEarlyScale      > timingWindow.GreatEarlyScale;
@@ -2139,51 +2270,59 @@ public static class Renderer3D
 
         if (!drawEarlyGood && !drawEarlyGreat && !drawEarlyMarvelous && !drawLateMarvelous && !drawLateGreat && !drawLateGood) return;
 
+        SKRect rect = new(canvasInfo.Center.X - canvasInfo.JudgementLineRadius, canvasInfo.Center.Y - canvasInfo.JudgementLineRadius, canvasInfo.Center.X + canvasInfo.JudgementLineRadius, canvasInfo.Center.Y + canvasInfo.JudgementLineRadius);
+        SKRoundRect roundRect = new(rect, canvasInfo.JudgementLineRadius);
+        
+        canvas.Save();
+        canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
+        
         if (drawEarlyGood)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GoodEarlyScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatEarlyScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGoodTimingWindowPaint(false, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetGoodJudgeAreaPaint(false, opacity));
         }
         
         if (drawEarlyGreat)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatEarlyScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousEarlyScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGreatTimingWindowPaint(false, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetGreatJudgeAreaPaint(false, opacity));
         }
         
         if (drawEarlyMarvelous)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousEarlyScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.NoteScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetMarvelousTimingWindowPaint(false, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetMarvelousJudgeAreaPaint(false, opacity));
         }
         
         if (drawLateMarvelous)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.NoteScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousLateScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetMarvelousTimingWindowPaint(true, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetMarvelousJudgeAreaPaint(true, opacity));
         }
         
         if (drawLateGreat)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.MarvelousLateScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatLateScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGreatTimingWindowPaint(true, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetGreatJudgeAreaPaint(true, opacity));
         }
         
         if (drawLateGood)
         {
             float radiusStart = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GreatLateScale);
             float radiusEnd = canvasInfo.JudgementLineRadius * RenderUtils.Perspective(timingWindow.GoodLateScale);
-            drawTimingWindowPart(radiusStart, radiusEnd, NotePaints.GetGoodTimingWindowPaint(true, opacity));
+            drawJudgeAreaPart(radiusStart, radiusEnd, NotePaints.GetGoodJudgeAreaPaint(true, opacity));
         }
+        
+        canvas.Restore();
 
         return;
 
-        void drawTimingWindowPart(float radiusStart, float radiusEnd, SKPaint paint)
+        void drawJudgeAreaPart(float radiusStart, float radiusEnd, SKPaint paint)
         {
             SKPoint[] vertices = new SKPoint[timingWindow.Size * 6];
     
@@ -2255,7 +2394,7 @@ public static class Renderer3D
         public readonly bool IsCounterclockwise = isCounterclockwise;
     }
 
-    private struct RenderTimingWindow(int position, int size, float noteScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
+    private struct RenderJudgeArea(int position, int size, float noteScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
     {
         public readonly int Position = position;
         public readonly int Size = size;

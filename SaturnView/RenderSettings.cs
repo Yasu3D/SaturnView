@@ -423,23 +423,23 @@ public class RenderSettings
     private bool showVisibilityChanges = true;
     
     /// <summary>
-    /// Should timing windows be shown?
+    /// Should judge areas be shown?
     /// </summary>
-    public bool ShowTimingWindows
+    public bool ShowJudgeAreas
     {
-        get => showTimingWindows;
+        get => showJudgeAreas;
         set
         {
-            if (showTimingWindows == value) return;
+            if (showJudgeAreas == value) return;
             
-            showTimingWindows = value;
+            showJudgeAreas = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showTimingWindows = true;
+    private bool showJudgeAreas = true;
 
     /// <summary>
-    /// Should MARVELOUS timing windows be shown?
+    /// Should MARVELOUS judge areas be shown?
     /// </summary>
     public bool ShowMarvelousWindows
     {
@@ -455,7 +455,7 @@ public class RenderSettings
     private bool showMarvelousWindows = true;
 
     /// <summary>
-    /// Should GREAT timing windows be shown?
+    /// Should GREAT judge areas be shown?
     /// </summary>
     public bool ShowGreatWindows
     {
@@ -471,7 +471,7 @@ public class RenderSettings
     private bool showGreatWindows = true;
     
     /// <summary>
-    /// Should GOOD timing windows be shown?
+    /// Should GOOD judge areas be shown?
     /// </summary>
     public bool ShowGoodWindows
     {
@@ -487,37 +487,21 @@ public class RenderSettings
     private bool showGoodWindows = true;
     
     /// <summary>
-    /// Should timing windows follow the Saturn specifications?<br/>
+    /// Should judge areas follow the Saturn specifications?<br/>
     /// (Slight engine changes to prevent "splashing")
     /// </summary>
-    public bool SaturnTimingWindows
+    public bool SaturnJudgeAreas
     {
-        get => saturnTimingWindows;
+        get => saturnJudgeAreas;
         set
         {
-            if (saturnTimingWindows == value) return;
+            if (saturnJudgeAreas == value) return;
             
-            saturnTimingWindows = value;
+            saturnJudgeAreas = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool saturnTimingWindows = true;
-    
-    /// <summary>
-    /// Should hold note detection windows be visualized?
-    /// </summary>
-    public bool VisualizeHoldNoteWindows
-    {
-        get => visualizeHoldNoteWindows;
-        set
-        {
-            if (visualizeHoldNoteWindows == value) return;
-            
-            visualizeHoldNoteWindows = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool visualizeHoldNoteWindows = true;
+    private bool saturnJudgeAreas = true;
     
     /// <summary>
     /// Should the sweep animations of lane toggles be visualized?

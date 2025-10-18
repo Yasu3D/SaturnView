@@ -1145,7 +1145,7 @@ internal static class NotePaints
             };
     }
 
-    internal static SKPaint GetMarvelousTimingWindowPaint(bool late, float opacity)
+    internal static SKPaint GetMarvelousJudgeAreaPaint(bool late, float opacity)
     {
         FlatFillPaint.Color = late
             ? new(0x80, 0x00, 0x20, (byte)(180 * opacity))
@@ -1153,7 +1153,7 @@ internal static class NotePaints
         return FlatFillPaint;
     }
     
-    internal static SKPaint GetGreatTimingWindowPaint(bool late, float opacity)
+    internal static SKPaint GetGreatJudgeAreaPaint(bool late, float opacity)
     {
         FlatFillPaint.Color = late
             ? new(0x00, 0x80, 0x00, (byte)(180 * opacity))
@@ -1161,7 +1161,7 @@ internal static class NotePaints
         return FlatFillPaint;
     }
     
-    internal static SKPaint GetGoodTimingWindowPaint(bool late, float opacity)
+    internal static SKPaint GetGoodJudgeAreaPaint(bool late, float opacity)
     {
         FlatFillPaint.Color = late
             ? new(0x00, 0x5A, 0x80, (byte)(180 * opacity))
