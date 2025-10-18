@@ -693,6 +693,8 @@ public static class Renderer3D
                 if (endProgress > radius) continue;
 
                 float t = RenderUtils.InverseLerp(startProgress, endProgress, radius);
+                t = RenderUtils.Perspective(t);
+                
                 int position = (int)MathF.Round(RenderUtils.LerpCyclic(start.Position, end.Position, t, 60));
                 int size = (int)MathF.Round(RenderUtils.Lerp(start.Size, end.Size, t));
 
