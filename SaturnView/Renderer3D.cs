@@ -28,7 +28,7 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, BoxSelectRenderData? boxSelect = null)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
 
@@ -62,6 +62,12 @@ public static class Renderer3D
         renderHoldSurfaces();
         renderJudgeAreas();
         renderObjects();
+
+        if (boxSelect != null)
+        {
+            DrawBoxSelect(canvas, canvasInfo, time, viewDistance, boxSelect.Value);
+        }
+        
         renderBonusEffects();
 
         DrawInterface(canvas, canvasInfo, settings, entry, time);
@@ -162,7 +168,7 @@ public static class Renderer3D
             {
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
             }
 
@@ -2347,6 +2353,68 @@ public static class Renderer3D
             canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, paint);
         }
     }
+
+    /// <summary>
+    /// Draws a box select area.
+    /// </summary>
+    private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, BoxSelectRenderData boxSelect)
+    {
+        if (boxSelect.StartTime == null) return;
+        if (boxSelect.EndTime == null) return;
+        if (boxSelect.Position == null) return;
+        if (boxSelect.Size == null) return;
+        
+        RenderUtils.GetProgress(boxSelect.StartTime.Value, 0, false, viewDistance, time, 0, out float r0);
+        RenderUtils.GetProgress(boxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float r1);
+        r0 = RenderUtils.Perspective(r0) * canvasInfo.JudgementLineRadius;
+        r1 = RenderUtils.Perspective(r1) * canvasInfo.JudgementLineRadius;
+        
+        SKPoint[] vertices = new SKPoint[boxSelect.Size.Value * 6];
+        for (int i = 0; i < boxSelect.Size; i++)
+        {
+            float angle = (boxSelect.Position.Value + i) * -6;
+            SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, r0, angle    );
+            SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, r0, angle - 6);
+            SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, r1, angle    );
+            SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, r1, angle - 6);
+
+            vertices[6 * i]     = p0;
+            vertices[6 * i + 1] = p1;
+            vertices[6 * i + 2] = p2;
+            vertices[6 * i + 3] = p3;
+            vertices[6 * i + 4] = p2;
+            vertices[6 * i + 5] = p1;
+        }
+        
+        SKRect rect = new(canvasInfo.Center.X - canvasInfo.JudgementLineRadius, canvasInfo.Center.Y - canvasInfo.JudgementLineRadius, canvasInfo.Center.X + canvasInfo.JudgementLineRadius, canvasInfo.Center.Y + canvasInfo.JudgementLineRadius);
+        SKRoundRect roundRect = new(rect, canvasInfo.JudgementLineRadius);
+        
+        canvas.Save();
+        canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
+        
+        canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetObjectOutlineFillPaint(true, false));
+
+        if (boxSelect.Size == 60)
+        {
+            SKPaint paint = NotePaints.GetObjectOutlineStrokePaint(true, false);
+            canvas.DrawCircle(canvasInfo.Center, r0, paint);
+            canvas.DrawCircle(canvasInfo.Center, r1, paint);
+        }
+        else
+        {
+            SKPath path = new();
+            SKRect rect0 = new(canvasInfo.Center.X - r0, canvasInfo.Center.Y - r0, canvasInfo.Center.X + r0, canvasInfo.Center.Y + r0);
+            SKRect rect1 = new(canvasInfo.Center.X - r1, canvasInfo.Center.Y - r1, canvasInfo.Center.X + r1, canvasInfo.Center.Y + r1);
+
+            path.ArcTo(rect0, boxSelect.Position.Value * -6, boxSelect.Size.Value * -6, true);
+            path.ArcTo(rect1, (boxSelect.Position.Value + boxSelect.Size.Value) * -6, boxSelect.Size.Value * 6, false);
+            path.Close();
+            
+            canvas.DrawPath(path, NotePaints.GetObjectOutlineStrokePaint(true, false));
+        }
+        
+        canvas.Restore();
+    }
     
     private struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
 {
@@ -2407,5 +2475,13 @@ public static class Renderer3D
         public readonly float GreatLateScale = greatLateScale;
         public readonly float GoodEarlyScale = goodEarlyScale;
         public readonly float GoodLateScale = goodLateScale;
+    }
+
+    public struct BoxSelectRenderData(float? startTime, float? endTime, int? position, int? size)
+    {
+        public readonly float? StartTime = startTime;
+        public readonly float? EndTime = endTime;
+        public readonly int? Position = position;
+        public readonly int? Size = size;
     }
 }

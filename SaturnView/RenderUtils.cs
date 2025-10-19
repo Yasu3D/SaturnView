@@ -84,23 +84,31 @@ public static class RenderUtils
     /// <summary>
     /// Applies perspective distortion to a linear scale value.
     /// </summary>
-    internal static float Perspective(float x)
+    public static float Perspective(float x)
     {
         // Huge thanks to CG505 for figuring out the perspective math:
         // https://www.desmos.com/calculator/9a0srmgktj
         x = Math.Min(1.3f, x);
         return 3.325f * x / (13.825f - 10.5f * x);
     }
+    
+    /// <summary>
+    /// Reverts a perspective distorted value back to to a linear scale value.
+    /// </summary>
+    public static float InversePerspective(float x)
+    {
+        return 13.825f * x / (10.5f * x + 3.325f);
+    }
 
     /// <summary>
     /// Linearly interpolates between <c>a</c> and <c>b</c>, controlled by <c>t</c>
     /// </summary>
-    internal static float Lerp(float a, float b, float t) => a + t * (b - a);
+    public static float Lerp(float a, float b, float t) => a + t * (b - a);
     
     /// <summary>
     /// Linearly interpolates between <c>a</c> and <c>b</c>, controlled by <c>t</c>, cycled by <c>m</c>
     /// </summary>
-    internal static float LerpCyclic(float a, float b, float t, float m)
+    public static float LerpCyclic(float a, float b, float t, float m)
     {
         if (Math.Abs(a - b) <= m * 0.5f) return a + t * (b - a);
         
@@ -113,7 +121,7 @@ public static class RenderUtils
     /// <summary>
     /// Returns where <c>x</c> lies between <c>a</c> and <c>b</c>.
     /// </summary>
-    internal static float InverseLerp(float a, float b, float x) => a == b ? 0 : (x - a) / (b - a);
+    public static float InverseLerp(float a, float b, float x) => a == b ? 0 : (x - a) / (b - a);
     
     /// <summary>
     /// Returns a point on an imaginary arc/circle.
