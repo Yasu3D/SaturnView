@@ -5,12 +5,12 @@ using SkiaSharp;
 
 namespace SaturnView;
 
-internal static class RenderUtils
+public static class RenderUtils
 {
     /// <summary>
     /// Returns if an object should be visible depending on the render settings.
     /// </summary>
-    internal static bool IsVisible(ITimeable obj, RenderSettings settings)
+    public static bool IsVisible(ITimeable obj, RenderSettings settings)
     {
         if (obj is EffectSubEvent subEvent)
         {
