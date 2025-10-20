@@ -28,7 +28,7 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, BoxSelectRenderData? boxSelect = null)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
 
@@ -574,6 +574,11 @@ public static class Renderer3D
                 float opacity = renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f;
                 
                 render(renderObject, selected, pointerOver, opacity);
+            }
+
+            if (cursorNote != null)
+            {
+                render(new(cursorNote, null, null, 1, false, true), false, false, 0.5f);
             }
 
             return;
