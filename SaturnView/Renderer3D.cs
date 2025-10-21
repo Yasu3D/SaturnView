@@ -573,17 +573,17 @@ public static class Renderer3D
                 bool pointerOver = pointerOverObject != null && pointerOverObject == renderObject.Object;
                 float opacity = renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f;
                 
-                render(renderObject, selected, pointerOver, opacity);
+                render(renderObject, selected, pointerOver, opacity, false);
             }
 
             if (cursorNote != null)
             {
-                render(new(cursorNote, null, null, 1, false, true), false, false, 0.5f);
+                render(new(cursorNote, null, null, 1, false, true), false, false, 0.5f, true);
             }
 
             return;
 
-            void render(RenderObject renderObject, bool selected, bool pointerOver, float opacity)
+            void render(RenderObject renderObject, bool selected, bool pointerOver, float opacity, bool overwriteStartTime)
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
@@ -625,10 +625,15 @@ public static class Renderer3D
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
+                    float startTime = overwriteStartTime 
+                        ? time 
+                        : ((ITimeable)laneToggle).Timestamp.Time;
+                    
                     DrawLaneToggle(
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
+                        startTime: startTime,
                         time: time,
                         viewDistance: viewDistance,
                         perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
@@ -1805,10 +1810,9 @@ public static class Renderer3D
     /// <summary>
     /// Draws a lane toggle note.
     /// </summary>
-    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float time, float viewDistance, float perspectiveScale, float opacity, bool selected, bool pointerOver)
+    private static void DrawLaneToggle(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, ILaneToggle laneToggle, float startTime, float time, float viewDistance, float perspectiveScale, float opacity, bool selected, bool pointerOver)
     {
         if (opacity == 0) return;
-        if (laneToggle is not ITimeable timeable) return;
         if (laneToggle is not IPositionable positionable) return;
         bool state = laneToggle is LaneShowNote;
 
@@ -1817,99 +1821,101 @@ public static class Renderer3D
         // Sweep Visualization
         if (settings.VisualizeLaneSweeps)
         {
-            SKPoint[] vertices = new SKPoint[positionable.Size * 6];
-            float startTime = timeable.Timestamp.Time;
+            lock (laneToggle)
+            {
+                SKPoint[] vertices = new SKPoint[positionable.Size * 6];
             
-            if (laneToggle.Direction is LaneSweepDirection.Center)
-            {
-                int center = (int)Math.Ceiling(positionable.Size / 2.0f);
-                float duration = center * 8.3333333f;
+                if (laneToggle.Direction is LaneSweepDirection.Center)
+                {
+                    int center = (int)Math.Ceiling(positionable.Size / 2.0f);
+                    float duration = center * 8.3333333f;
 
-                bool even = positionable.Size % 2 == 0;
+                    bool even = positionable.Size % 2 == 0;
                 
-                for (int i = 0; i < positionable.Size; i++)
-                {
-                    float angle = (positionable.Position + i) * -6;
+                    for (int i = 0; i < positionable.Size; i++)
+                    {
+                        float angle = (positionable.Position + i) * -6;
 
-                    float t = even
-                        ? i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 1) * 8.3333333f
-                        : i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 2) * 8.3333333f;
+                        float t = even
+                            ? i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 1) * 8.3333333f
+                            : i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 2) * 8.3333333f;
                     
-                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
-                    stepScale = RenderUtils.Perspective(stepScale);
+                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        stepScale = RenderUtils.Perspective(stepScale);
                     
-                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
-                    stepRadius = Math.Max(0, stepRadius);
+                        float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                        stepRadius = Math.Max(0, stepRadius);
                     
-                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
-                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
-                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
-                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+                        SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                        SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                        SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                        SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
 
-                    vertices[6 * i]     = p0;
-                    vertices[6 * i + 1] = p1;
-                    vertices[6 * i + 2] = p2;
-                    vertices[6 * i + 3] = p3;
-                    vertices[6 * i + 4] = p2;
-                    vertices[6 * i + 5] = p1;
+                        vertices[6 * i]     = p0;
+                        vertices[6 * i + 1] = p1;
+                        vertices[6 * i + 2] = p2;
+                        vertices[6 * i + 3] = p3;
+                        vertices[6 * i + 4] = p2;
+                        vertices[6 * i + 5] = p1;
+                    }
                 }
-            }
-            else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
-            {
-                float duration = positionable.Size * 8.3333333f;
+                else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
+                {
+                    float duration = positionable.Size * 8.3333333f;
                 
-                for (int i = 0; i < positionable.Size; i++)
-                {
-                    float angle = (positionable.Position + i) * -6;
-                    float t = startTime + duration - i * 8.3333333f;
+                    for (int i = 0; i < positionable.Size; i++)
+                    {
+                        float angle = (positionable.Position + i) * -6;
+                        float t = startTime + duration - i * 8.3333333f;
 
-                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
-                    stepScale = RenderUtils.Perspective(stepScale);
+                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        stepScale = RenderUtils.Perspective(stepScale);
                     
-                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
-                    stepRadius = Math.Max(0, stepRadius);
+                        float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                        stepRadius = Math.Max(0, stepRadius);
                     
-                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
-                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
-                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
-                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+                        SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                        SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                        SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                        SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
 
-                    vertices[6 * i]     = p0;
-                    vertices[6 * i + 1] = p1;
-                    vertices[6 * i + 2] = p2;
-                    vertices[6 * i + 3] = p3;
-                    vertices[6 * i + 4] = p2;
-                    vertices[6 * i + 5] = p1;
+                        vertices[6 * i]     = p0;
+                        vertices[6 * i + 1] = p1;
+                        vertices[6 * i + 2] = p2;
+                        vertices[6 * i + 3] = p3;
+                        vertices[6 * i + 4] = p2;
+                        vertices[6 * i + 5] = p1;
+                    }
                 }
-            }
-            else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
-            {
-                for (int i = 0; i < positionable.Size; i++)
+                else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
                 {
-                    float angle = (positionable.Position + i) * -6;
-                    float t = startTime + (i + 1) * 8.3333333f;
+                    for (int i = 0; i < positionable.Size; i++)
+                    {
+                        float angle = (positionable.Position + i) * -6;
+                        float t = startTime + (i + 1) * 8.3333333f;
                     
-                    float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
-                    stepScale = RenderUtils.Perspective(stepScale);
+                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        stepScale = RenderUtils.Perspective(stepScale);
                     
-                    float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
-                    stepRadius = Math.Max(0, stepRadius);
+                        float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                        stepRadius = Math.Max(0, stepRadius);
                     
-                    SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
-                    SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
-                    SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
-                    SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+                        SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                        SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                        SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                        SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
 
-                    vertices[6 * i]     = p0;
-                    vertices[6 * i + 1] = p1;
-                    vertices[6 * i + 2] = p2;
-                    vertices[6 * i + 3] = p3;
-                    vertices[6 * i + 4] = p2;
-                    vertices[6 * i + 5] = p1;
+                        vertices[6 * i]     = p0;
+                        vertices[6 * i + 1] = p1;
+                        vertices[6 * i + 2] = p2;
+                        vertices[6 * i + 3] = p3;
+                        vertices[6 * i + 4] = p2;
+                        vertices[6 * i + 5] = p1;
+                    }
                 }
+                
+                canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetLaneToggleFillPaint(state, opacity));
             }
-            
-            canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetLaneToggleFillPaint(state, opacity));
         }
         
         // Note body and selection outline.
