@@ -2307,9 +2307,16 @@ public static class Renderer3D
             float progress = noteCount == 0 ? 0 : (float)(normalHitCount + bonusHitCount + bonusHitCount) / noteCount;
             clear = progress > entry.ClearThreshold;    
         }
+
+        SKRect rect = new(1, 1, canvasInfo.Width - 1, canvasInfo.Height - 1);
+        SKRoundRect roundRect = new(rect, canvasInfo.Radius - 1);
+        
+        canvas.Save();
+        canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
         
         canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry.Background, entry.Difficulty, clear));
-
+        canvas.Restore();
+        
         if (settings.BackgroundDim != RenderSettings.BackgroundDimOption.NoDim)
         {
             SKColor dimColor = settings.BackgroundDim switch
