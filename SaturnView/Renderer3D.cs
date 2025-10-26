@@ -264,7 +264,7 @@ public static class Renderer3D
                 }
                 
                 VisibilityChangeEvent? lastVisibilityChange = layer.LastVisibilityChange(time);
-                if (settings.ShowVisibilityChanges && lastVisibilityChange != null && !lastVisibilityChange.Visible) continue;
+                if (settings.ShowVisibilityChanges && lastVisibilityChange != null && !lastVisibilityChange.Visibility) continue;
                 
                 ReverseEffectEvent? lastReverseEffect = layer.LastReverseEffect(time);
                 bool reverseActive = settings.ShowSpeedChanges && lastReverseEffect != null && lastReverseEffect.IsActive(time);
@@ -1702,7 +1702,7 @@ public static class Renderer3D
             path.AddCircle(canvasInfo.Center.X, canvasInfo.Center.Y, radius * 0.86f);
 
             canvas.RotateDegrees(130, canvasInfo.Center.X, canvasInfo.Center.Y);
-            canvas.DrawTextOnPath(visibilityChangeEvent.Visible ? "VISIBLE" : "HIDDEN", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
+            canvas.DrawTextOnPath(visibilityChangeEvent.Visibility ? "VISIBLE" : "HIDDEN", path, 0, 0, SKTextAlign.Center, NotePaints.GetStandardFont(40 * pixelScale), NotePaints.GetTextPaint(NotePaints.GetEventColor(@event).WithAlpha((byte)(255 * opacity))));
         }
         
         canvas.Restore();
