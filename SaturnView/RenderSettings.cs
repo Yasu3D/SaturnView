@@ -231,6 +231,20 @@ public class RenderSettings
     private bool hideHoldControlPointsDuringPlayback = true;
     
     /// <summary>
+    /// Should bookmarks be hidden during playback?
+    /// </summary>
+    public bool HideBookmarksDuringPlayback
+    {
+        get => hideBookmarksDuringPlayback;
+        set 
+        {
+            hideBookmarksDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool hideBookmarksDuringPlayback = true;
+    
+    /// <summary>
     /// The color of Touch notes.
     /// </summary>
     public NoteColorOption TouchNoteColor
@@ -822,6 +836,22 @@ public class RenderSettings
         }
     }
     private bool showTutorialMarkerEvents = true;
+    
+    /// <summary>
+    /// Should Bookmarks be shown?
+    /// </summary>
+    public bool ShowBookmarks
+    {
+        get => showBookmarks;
+        set 
+        {
+            if (showBookmarks == value) return;
+            
+            showBookmarks = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showBookmarks = true;
 
     /// <summary>
     /// When should R-Note effects be visible?

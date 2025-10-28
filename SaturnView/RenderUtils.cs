@@ -1,3 +1,4 @@
+using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
@@ -47,6 +48,8 @@ public static class RenderUtils
 
             LaneShowNote => settings.ShowLaneShowNotes,
             LaneHideNote => settings.ShowLaneHideNotes,
+            
+            Bookmark => settings.ShowBookmarks,
             _ => true,
         };
     }

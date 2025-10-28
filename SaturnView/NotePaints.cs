@@ -994,6 +994,15 @@ internal static class NotePaints
 
         return FlatFillPaint;
     }
+
+    internal static SKPaint GetBookmarkPaint(uint color, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 20 * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = new SKColor(color).WithAlpha((byte)(opacity * 255));
+            
+        return FlatStrokePaint;
+    }
     
     internal static SKPaint GetLaneTogglePaint(bool state, float pixelScale, float opacity)
     {

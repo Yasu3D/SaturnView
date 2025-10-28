@@ -172,6 +172,15 @@ public static class Renderer3D
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
             }
 
+            // Find all visible bookmarks.
+            foreach (Bookmark bookmark in chart.Bookmarks)
+            {
+                if (settings.HideBookmarksDuringPlayback && playing) break;
+                
+                if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, bookmark.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
+                objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings)));
+            }
+            
             // Find all visible lane toggles.
             foreach (Note note in chart.LaneToggles)
             {
@@ -429,7 +438,7 @@ public static class Renderer3D
                 .ThenByDescending(x => x.Object is ILaneToggle)
                 .ThenBy(x => x.Scale)
                 .ThenByDescending(x => x.Object is SyncNote or MeasureLineNote)
-                .ThenByDescending(x => x.Object is Event)
+                .ThenByDescending(x => x.Object is Event or Bookmark)
                 .ThenByDescending(x => x.Object is HoldNote or HoldPointNote)
                 .ThenByDescending(x => (x.Object as IPositionable)?.Size ?? 60)
                 .ToList();
@@ -595,7 +604,8 @@ public static class Renderer3D
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
-                    DrawHoldPointNote(
+                    DrawHoldPointNote
+                    (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
@@ -603,11 +613,13 @@ public static class Renderer3D
                         perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
                         opacity: opacity,
                         selected: selected,
-                        pointerOver: pointerOver);
+                        pointerOver: pointerOver
+                    );
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
-                    DrawSyncNote(
+                    DrawSyncNote
+                    (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
@@ -615,13 +627,16 @@ public static class Renderer3D
                         perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
                         opacity: opacity,
                         selected: selected,
-                        pointerOver: pointerOver);
+                        pointerOver: pointerOver
+                    );
                 }
                 else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
                     if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) return;
                     
-                    DrawMeasureLineNote(canvas: canvas,
+                    DrawMeasureLineNote
+                    (
+                        canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
                         perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
@@ -629,7 +644,8 @@ public static class Renderer3D
                         isBeatLine: measureLineNote.IsBeatLine,
                         opacity: opacity,
                         selected: selected,
-                        pointerOver: pointerOver);
+                        pointerOver: pointerOver
+                    );
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
@@ -652,7 +668,8 @@ public static class Renderer3D
                 }
                 else if (renderObject.Object is Note note)
                 {
-                    DrawNote(
+                    DrawNote
+                    (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
@@ -662,11 +679,13 @@ public static class Renderer3D
                         opacity: opacity,
                         note: note,
                         selected: selected,
-                        pointerOver: pointerOver);
+                        pointerOver: pointerOver
+                    );
                 }
                 else if (renderObject.Object is Event @event)
                 {
-                    DrawEvent(
+                    DrawEvent
+                    (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
@@ -674,7 +693,22 @@ public static class Renderer3D
                         perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
                         opacity: opacity,
                         selected: selected,
-                        pointerOver: pointerOver);
+                        pointerOver: pointerOver
+                    );
+                }
+                else if (renderObject.Object is Bookmark bookmark)
+                {
+                    DrawBookmark
+                    (
+                        canvas: canvas,
+                        canvasInfo: canvasInfo,
+                        settings: settings,
+                        bookmark: bookmark,
+                        perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
+                        opacity: opacity,
+                        selected: selected,
+                        pointerOver: pointerOver
+                    );
                 }
             }
         }
@@ -1998,6 +2032,24 @@ public static class Renderer3D
         }
     }
 
+    /// <summary>
+    /// Draws a bookmark.
+    /// </summary>
+    private static void DrawBookmark(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Bookmark bookmark, float perspectiveScale, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
+        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        
+        canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetBookmarkPaint(bookmark.Color, pixelScale, opacity));
+
+        // Selection outline.
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, pixelScale, 0, 60, selected, pointerOver);
+        }
+    }
+    
     /// <summary>
     /// Draws a selection outline.
     /// </summary>
