@@ -525,8 +525,10 @@ public static class Renderer3D
             foreach (RenderObject renderObject in eventAreasToDraw)
             {
                 if (renderObject.Object is not Event @event) continue;
+                bool selected = selectedObjects != null && selectedObjects.Contains(renderObject.Object);
+                bool pointerOver = pointerOverObject != null && pointerOverObject == renderObject.Object;
                 
-                DrawEventArea(canvas, canvasInfo, @event, time, viewDistance, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f);
+                DrawEventArea(canvas, canvasInfo, @event, time, viewDistance, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
 
@@ -572,6 +574,12 @@ public static class Renderer3D
                 bool selected = selectedObjects != null && selectedObjects.Contains(renderObject.Object);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == renderObject.Object;
                 float opacity = renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f;
+
+                if (renderObject.Object is EffectSubEvent subEvent)
+                {
+                    selected = selected || (selectedObjects != null && selectedObjects.Contains(subEvent.Parent));
+                    pointerOver = pointerOver || pointerOverObject == subEvent.Parent;
+                }
                 
                 render(renderObject, selected, pointerOver, opacity, false);
             }
@@ -749,21 +757,22 @@ public static class Renderer3D
         if (lane is > 59 or < 0) return IPositionable.OverlapResult.None;
 
         if (!RenderUtils.IsVisible(obj, settings)) return IPositionable.OverlapResult.None;
-        
+
         if (obj is HoldNote holdNote && holdNote.Points.Count > 1)
         {
+            // Hit test hold note
             if (holdNote.Points[^1].Timestamp.Time < time) return IPositionable.OverlapResult.None;
-            
+
             if (showSpeedChanges)
             {
                 if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) return IPositionable.OverlapResult.None;
-                if (holdNote.Points[ 0].Timestamp.ScaledTime > scaledTime + viewDistance) return IPositionable.OverlapResult.None;
+                if (holdNote.Points[0].Timestamp.ScaledTime > scaledTime + viewDistance) return IPositionable.OverlapResult.None;
             }
             else
             {
-                if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) return IPositionable.OverlapResult.None;
+                if (holdNote.Points[0].Timestamp.Time > time + viewDistance) return IPositionable.OverlapResult.None;
             }
-            
+
             for (int i = 1; i < holdNote.Points.Count; i++)
             {
                 HoldPointNote start = holdNote.Points[i - 1];
@@ -779,7 +788,7 @@ public static class Renderer3D
 
                 float t = RenderUtils.InverseLerp(startProgress, endProgress, radius);
                 t = RenderUtils.Perspective(t);
-                
+
                 int position = (int)MathF.Round(RenderUtils.LerpCyclic(start.Position, end.Position, t, 60));
                 int size = (int)MathF.Round(RenderUtils.Lerp(start.Size, end.Size, t));
 
@@ -787,18 +796,51 @@ public static class Renderer3D
                 if (result != IPositionable.OverlapResult.None) return result;
             }
         }
-        
-        if (!RenderUtils.GetProgress(obj.Timestamp.Time, obj.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float progress)) return IPositionable.OverlapResult.None;
-        
-        progress = RenderUtils.Perspective(progress);
-        if (Math.Abs(radius - progress) > threshold) return IPositionable.OverlapResult.None;
-        
-        if (obj is IPositionable positionable)
+        else if (obj is StopEffectEvent stopEffectEvent)
         {
-            return IPositionable.HitTestResult(positionable.Position, positionable.Size, lane);
+            // Hit test stop effect event
+            
+            foreach (EffectSubEvent subEvent in stopEffectEvent.SubEvents)
+            {
+                IPositionable.OverlapResult result = hitTestObject(subEvent);
+                if (result == IPositionable.OverlapResult.None) continue;
+
+                return result;
+            }
+        }
+        else if (obj is ReverseEffectEvent reverseEffectEvent)
+        {
+            // Hit test reverse effect event
+            foreach (EffectSubEvent subEvent in reverseEffectEvent.SubEvents)
+            {
+                IPositionable.OverlapResult result = hitTestObject(subEvent);
+                if (result == IPositionable.OverlapResult.None) continue;
+
+                return result;
+            }
+        }
+        else
+        {
+            // Hit test normal objects
+            return hitTestObject(obj);
         }
 
-        return IPositionable.OverlapResult.Body;
+        return IPositionable.OverlapResult.None;
+
+        IPositionable.OverlapResult hitTestObject(ITimeable t)
+        {
+            if (!RenderUtils.GetProgress(t.Timestamp.Time, t.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float progress)) return IPositionable.OverlapResult.None;
+        
+            progress = RenderUtils.Perspective(progress);
+            if (Math.Abs(radius - progress) > threshold) return IPositionable.OverlapResult.None;
+            
+            if (t is IPositionable positionable)
+            {
+                return IPositionable.HitTestResult(positionable.Position, positionable.Size, lane);
+            }
+            
+            return IPositionable.OverlapResult.Body;
+        }
     }
 
     /// <summary>
@@ -1711,7 +1753,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws an event area.
     /// </summary>
-    private static void DrawEventArea(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float time, float viewDistance, float opacity)
+    private static void DrawEventArea(SKCanvas canvas, CanvasInfo canvasInfo, Event @event, float time, float viewDistance, float opacity, bool selected, bool pointerOver)
     {
         if (opacity == 0) return;
         if (@event is StopEffectEvent stopEffectEvent && stopEffectEvent.SubEvents.Length == 2)
@@ -1749,6 +1791,11 @@ public static class Renderer3D
             }
             
             canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetEventAreaPaint(@event, opacity));
+            
+            if (selected || pointerOver)
+            {
+                canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+            }
             
             return;
         }
@@ -1804,6 +1851,12 @@ public static class Renderer3D
 
             canvas.DrawVertices(SKVertexMode.Triangles, vertices0, null, NotePaints.GetEventAreaPaint(@event, opacity));
             canvas.DrawVertices(SKVertexMode.Triangles, vertices1, null, NotePaints.GetEventAreaPaint(@event, opacity * 0.5f));
+            
+            if (selected || pointerOver)
+            {
+                canvas.DrawVertices(SKVertexMode.Triangles, vertices0, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+                canvas.DrawVertices(SKVertexMode.Triangles, vertices1, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+            }
         }
     }
     
