@@ -133,12 +133,22 @@ public static class RenderUtils
     /// <param name="radius">The radius of the arc.</param>
     /// <param name="angle">The angle of the point.</param>
     /// <returns></returns>
-    internal static SKPoint PointOnArc(SKPoint center, float radius, float angle)
+    public static SKPoint PointOnArc(SKPoint center, float radius, float angle) => PointOnArc(center.X, center.Y, radius, angle);
+
+    /// <summary>
+    /// Returns a point on an imaginary arc/circle.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the center of the arc.</param>
+    /// <param name="y">The y-coordinate of the center of the arc.</param>
+    /// <param name="radius">The radius of the arc.</param>
+    /// <param name="angle">The angle of the point.</param>
+    /// <returns></returns>
+    public static SKPoint PointOnArc(float x, float y, float radius, float angle)
     {
         return new
         (
-            (float)(radius * Math.Cos(angle * Math.PI / 180.0)) + center.X,
-            (float)(radius * Math.Sin(angle * Math.PI / 180.0)) + center.Y
+            (float)(radius * Math.Cos(angle * Math.PI / 180.0)) + x,
+            (float)(radius * Math.Sin(angle * Math.PI / 180.0)) + y
         );
     }
 }
