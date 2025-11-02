@@ -589,6 +589,11 @@ public static class Renderer3D
                     selected = selected || (selectedObjects != null && selectedObjects.Contains(subEvent.Parent));
                     pointerOver = pointerOver || pointerOverObject == subEvent.Parent;
                 }
+                else if (renderObject.Object is HoldNote holdNote && holdNote.Points.Count != 0)
+                {
+                    selected = selected || (selectedObjects != null && selectedObjects.Contains(holdNote.Points[0]));
+                    pointerOver = pointerOver || pointerOverObject == holdNote.Points[0];
+                }
                 
                 render(renderObject, selected, pointerOver, opacity, false);
             }
