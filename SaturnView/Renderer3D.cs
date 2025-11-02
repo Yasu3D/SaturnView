@@ -797,9 +797,41 @@ public static class Renderer3D
 
         if (!RenderUtils.IsVisible(obj, settings, activeObjectGroup)) return IPositionable.OverlapResult.None;
 
+        // Hit test stop effect event
+        if (obj is StopEffectEvent stopEffectEvent)
+        {
+            foreach (EffectSubEvent subEvent in stopEffectEvent.SubEvents)
+            {
+                IPositionable.OverlapResult result = hitTestObject(subEvent);
+                if (result == IPositionable.OverlapResult.None) continue;
+
+                return result;
+            }
+        }
+        // Hit test reverse effect event
+        else if (obj is ReverseEffectEvent reverseEffectEvent)
+        {
+            foreach (EffectSubEvent subEvent in reverseEffectEvent.SubEvents)
+            {
+                IPositionable.OverlapResult result = hitTestObject(subEvent);
+                if (result == IPositionable.OverlapResult.None) continue;
+
+                return result;
+            }
+        }
+        // Hit test normal objects
+        else
+        {
+            IPositionable.OverlapResult result = hitTestObject(obj);
+            if (result != IPositionable.OverlapResult.None)
+            {
+                return result;
+            }
+        }
+        
+        // Hit test hold note surface separately if no hit test has been successful so far.
         if (obj is HoldNote holdNote && holdNote.Points.Count > 1)
         {
-            // Hit test hold note
             if (holdNote.Points[^1].Timestamp.Time < time) return IPositionable.OverlapResult.None;
 
             if (showSpeedChanges)
@@ -835,35 +867,7 @@ public static class Renderer3D
                 if (result != IPositionable.OverlapResult.None) return result;
             }
         }
-        else if (obj is StopEffectEvent stopEffectEvent)
-        {
-            // Hit test stop effect event
-            
-            foreach (EffectSubEvent subEvent in stopEffectEvent.SubEvents)
-            {
-                IPositionable.OverlapResult result = hitTestObject(subEvent);
-                if (result == IPositionable.OverlapResult.None) continue;
-
-                return result;
-            }
-        }
-        else if (obj is ReverseEffectEvent reverseEffectEvent)
-        {
-            // Hit test reverse effect event
-            foreach (EffectSubEvent subEvent in reverseEffectEvent.SubEvents)
-            {
-                IPositionable.OverlapResult result = hitTestObject(subEvent);
-                if (result == IPositionable.OverlapResult.None) continue;
-
-                return result;
-            }
-        }
-        else
-        {
-            // Hit test normal objects
-            return hitTestObject(obj);
-        }
-
+        
         return IPositionable.OverlapResult.None;
 
         IPositionable.OverlapResult hitTestObject(ITimeable t)
