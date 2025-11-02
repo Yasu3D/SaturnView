@@ -11,16 +11,30 @@ public static class RenderUtils
     /// <summary>
     /// Returns if an object should be visible depending on the render settings.
     /// </summary>
-    public static bool IsVisible(ITimeable obj, RenderSettings settings)
+    public static bool IsVisible(ITimeable obj, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         if (obj is EffectSubEvent subEvent)
         {
+            if (subEvent.Parent == activeObjectGroup) return true;
+            
             return subEvent.Parent switch
             {
                 StopEffectEvent => settings.ShowStopEffectEvents,
                 ReverseEffectEvent => settings.ShowReverseEffectEvents,
                 _ => true,
             };
+        }
+
+        if (obj is HoldPointNote holdPointNote)
+        {
+            if (holdPointNote.Parent == activeObjectGroup) return true;
+
+            return settings.ShowHoldNotes;
+        }
+        
+        if (activeObjectGroup != null)
+        {
+            return obj == activeObjectGroup;
         }
 
         return obj switch
@@ -37,7 +51,6 @@ public static class RenderUtils
             TouchNote => settings.ShowTouchNotes,
             ChainNote => settings.ShowChainNotes,
             HoldNote => settings.ShowHoldNotes,
-            HoldPointNote => settings.ShowHoldNotes,
             SlideClockwiseNote => settings.ShowSlideClockwiseNotes,
             SlideCounterclockwiseNote => settings.ShowSlideCounterclockwiseNotes,
             SnapForwardNote => settings.ShowSnapForwardNotes,

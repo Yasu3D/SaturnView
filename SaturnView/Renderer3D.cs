@@ -28,7 +28,7 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, ITimeable? activeObjectGroup = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
 
@@ -169,7 +169,7 @@ public static class Renderer3D
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
                 if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
-                objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings)));
+                objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
             }
 
             // Find all visible bookmarks.
@@ -178,7 +178,7 @@ public static class Renderer3D
                 if (settings.HideBookmarksDuringPlayback && playing) break;
                 
                 if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, bookmark.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
-                objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings)));
+                objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
             }
             
             // Find all visible lane toggles.
@@ -194,7 +194,7 @@ public static class Renderer3D
                 if (tStart <= 0 && tEnd <= 0) continue;
                 if (tStart > 1.01f && tEnd > 1.01f) continue;
                 
-                objectsToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings)));
+                objectsToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings, activeObjectGroup)));
             }
             
             // Find all visible objects in layers.
@@ -220,19 +220,19 @@ public static class Renderer3D
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
-                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
-                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // Area Fill
                         if (stopEffectEvent.SubEvents[0].Timestamp.Time <= time + viewDistance && stopEffectEvent.SubEvents[1].Timestamp.Time >= time)
                         {
-                            eventAreasToDraw.Add(new(stopEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            eventAreasToDraw.Add(new(stopEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                     }
                     else if (@event is ReverseEffectEvent reverseEffectEvent && reverseEffectEvent.SubEvents.Length == 3)
@@ -244,31 +244,31 @@ public static class Renderer3D
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // Middle Marker
                         if (RenderUtils.GetProgress(middle.Time, middle.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t2))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // Area Fill
                         if (start.Time <= time + viewDistance && end.Time >= time)
                         {
-                            eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                            eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                     }
                     else
                     {
                         if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float t)) continue;
-                        objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings)));
+                        objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                     }
                 }
                 
@@ -374,7 +374,7 @@ public static class Renderer3D
                             if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) continue;
                         }
                         
-                        bool isVisible = layer.Visible && RenderUtils.IsVisible(holdNote, settings);
+                        bool isVisible = layer.Visible && RenderUtils.IsVisible(holdNote, settings, activeObjectGroup);
                         
                         holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
                         
@@ -418,7 +418,7 @@ public static class Renderer3D
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
                         bool sync = note.IsSync(prev) || note.IsSync(next);
 
-                        objectsToDraw.Add(new(note, layer, l, t, sync, layer.Visible && RenderUtils.IsVisible(note, settings)));
+                        objectsToDraw.Add(new(note, layer, l, t, sync, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
                     }
                 }
 
@@ -428,7 +428,7 @@ public static class Renderer3D
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
                     if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
-                    objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings)));
+                    objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
                 }
             }
             
@@ -764,14 +764,14 @@ public static class Renderer3D
     /// <param name="scaledTime">The current scaled time.</param>
     /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
     /// <param name="settings">The current render settings.</param>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
         float threshold = GetHitTestThreshold(canvasInfo, settings.NoteThickness);
         float radius = GetHitTestPointerRadius(canvasInfo, x, y);
         int lane = GetHitTestPointerLane(canvasInfo, x, y);
         
-        return HitTest(obj, radius, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings);
+        return HitTest(obj, radius, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings, activeObjectGroup);
     }
     
     /// <summary>
@@ -786,11 +786,11 @@ public static class Renderer3D
     /// <param name="showSpeedChanges">Should speed changes be taken into account?</param>
     /// <param name="threshold">The radius threshold for hit testing.</param>
     /// <returns></returns>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float radius, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, float radius, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         if (lane is > 59 or < 0) return IPositionable.OverlapResult.None;
 
-        if (!RenderUtils.IsVisible(obj, settings)) return IPositionable.OverlapResult.None;
+        if (!RenderUtils.IsVisible(obj, settings, activeObjectGroup)) return IPositionable.OverlapResult.None;
 
         if (obj is HoldNote holdNote && holdNote.Points.Count > 1)
         {
