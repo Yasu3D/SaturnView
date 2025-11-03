@@ -71,10 +71,10 @@ public class RenderSettings
     /// </summary>
     public enum JudgementLineColorOption
     {
-        Version0 = 0,
-        Version1 = 1,
-        Version2 = 2,
-        Version3 = 3,
+        Version1 = 0,
+        Version2 = 1,
+        Version3 = 2,
+        Greyscale = 3,
     }
 
     /// <summary>

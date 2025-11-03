@@ -2227,7 +2227,7 @@ public static class Renderer3D
 
         uint titleTextColor = settings.JudgementLineColor switch
         {
-            RenderSettings.JudgementLineColorOption.Version0 => 0xFFFFFFFF,
+            RenderSettings.JudgementLineColorOption.Greyscale => 0xFFFFFFFF,
             RenderSettings.JudgementLineColorOption.Version1 => 0xFF821C5F,
             RenderSettings.JudgementLineColorOption.Version2 => 0xFF601C95,
             RenderSettings.JudgementLineColorOption.Version3 => 0xFFFB67B7,
