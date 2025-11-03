@@ -391,22 +391,25 @@ public static class Renderer3D
 
                         // Hold End
                         Timestamp end = holdNote.Points[^1].Timestamp;
-                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
+                        if (holdNote.Points.Count > 1 && RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
 
                         // Hold Points
-                        for (int j = 1; j < holdNote.Points.Count - 1; j++)
+                        if (activeObjectGroup == holdNote && holdNote.Points.Count > 2)
                         {
-                            if (settings.HideHoldControlPointsDuringPlayback && playing) break;
-                            
-                            HoldPointNote point = holdNote.Points[j];
-                            float t = settings.ShowSpeedChanges
-                                ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
-                                : 1 - (point.Timestamp.Time - time) / viewDistance;
+                            for (int j = 1; j < holdNote.Points.Count - 1; j++)
+                            {
+                                if (settings.HideHoldControlPointsDuringPlayback && playing) break;
+                                
+                                HoldPointNote point = holdNote.Points[j];
+                                float t = settings.ShowSpeedChanges
+                                    ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
+                                    : 1 - (point.Timestamp.Time - time) / viewDistance;
 
-                            objectsToDraw.Add(new(point, layer, l, t, false, isVisible));
+                                objectsToDraw.Add(new(point, layer, l, t, false, isVisible));
+                            }
                         }
                     }
                     else
@@ -1497,8 +1500,19 @@ public static class Renderer3D
     {
         if (opacity == 0) return;
 
-        HoldPointNote[] points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToArray();
-        if (points.Length < 2) return;
+        List<HoldPointNote> points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToList();
+
+        if (hold.Points[0].RenderType == HoldPointRenderType.Hidden)
+        {
+            points.Insert(0, hold.Points[0]);
+        }
+        
+        if (hold.Points[^1].RenderType == HoldPointRenderType.Hidden)
+        {
+            points.Add(hold.Points[^1]);
+        }
+            
+        if (points.Count < 2) return;
 
         List<SKPoint> vertexScreenCoords = [];
         List<SKPoint> vertexTextureCoords = [];
@@ -1512,7 +1526,7 @@ public static class Renderer3D
         bool active = hold.Timestamp.Time < time && playing;
         
         // Generate parts (groups of arcs) for every hold point, except the last.
-        for (int y = 0; y < points.Length - 1; y++)
+        for (int y = 0; y < points.Count - 1; y++)
         {
             RenderHoldPoint start = new(hold, points[y], maxSize);
             RenderHoldPoint end = new(hold, points[y + 1], maxSize);
