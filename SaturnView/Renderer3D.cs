@@ -2562,6 +2562,10 @@ public static class Renderer3D
         
         RenderUtils.GetProgress(boxSelect.StartTime.Value, 0, false, viewDistance, time, 0, out float r0);
         RenderUtils.GetProgress(boxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float r1);
+
+        r0 = Math.Clamp(r0, 0, 1.25f);
+        r1 = Math.Clamp(r1, 0, 1.25f);
+        
         r0 = RenderUtils.Perspective(r0) * canvasInfo.JudgementLineRadius;
         r1 = RenderUtils.Perspective(r1) * canvasInfo.JudgementLineRadius;
         
