@@ -455,50 +455,50 @@ public class RenderSettings
     /// <summary>
     /// Should MARVELOUS judge areas be shown?
     /// </summary>
-    public bool ShowMarvelousWindows
+    public bool ShowMarvelousArea
     {
-        get => showMarvelousWindows;
+        get => ShowMarvelousArea;
         set
         {
-            if (showMarvelousWindows == value) return;
+            if (ShowMarvelousArea == value) return;
             
-            showMarvelousWindows = value;
+            ShowMarvelousArea = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showMarvelousWindows = true;
+    private bool ShowMarvelousArea = true;
 
     /// <summary>
     /// Should GREAT judge areas be shown?
     /// </summary>
-    public bool ShowGreatWindows
+    public bool ShowGreatArea
     {
-        get => showGreatWindows;
+        get => ShowGreatArea;
         set
         {
-            if (showGreatWindows == value) return;
+            if (ShowGreatArea == value) return;
             
-            showGreatWindows = value;
+            ShowGreatArea = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showGreatWindows = true;
+    private bool ShowGreatArea = true;
     
     /// <summary>
     /// Should GOOD judge areas be shown?
     /// </summary>
-    public bool ShowGoodWindows
+    public bool ShowGoodArea
     {
-        get => showGoodWindows;
+        get => ShowGoodArea;
         set
         {
-            if (showGoodWindows == value) return;
+            if (ShowGoodArea == value) return;
             
-            showGoodWindows = value;
+            ShowGoodArea = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showGoodWindows = true;
+    private bool ShowGoodArea = true;
     
     /// <summary>
     /// Should judge areas follow the Saturn specifications?<br/>

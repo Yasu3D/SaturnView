@@ -158,9 +158,9 @@ public static class Renderer3D
 
             bool checkForJudgeAreas = settings.ShowJudgeAreas &&
                                          (
-                                                settings.ShowGoodWindows
-                                             || settings.ShowGreatWindows
-                                             || settings.ShowMarvelousWindows
+                                                settings.ShowGoodArea
+                                             || settings.ShowGreatArea
+                                             || settings.ShowMarvelousArea
                                          );
             
             // Find all visible global events.
@@ -2465,12 +2465,12 @@ public static class Renderer3D
     private static void DrawJudgeArea(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, RenderJudgeArea timingWindow, float opacity)
     {
         if (opacity == 0) return;
-        bool drawEarlyGood      = settings.ShowGoodWindows      && timingWindow.GreatEarlyScale <= 1     && timingWindow.GoodEarlyScale      > timingWindow.GreatEarlyScale;
-        bool drawEarlyGreat     = settings.ShowGreatWindows     && timingWindow.MarvelousEarlyScale <= 1 && timingWindow.GreatEarlyScale     > timingWindow.MarvelousEarlyScale;
-        bool drawEarlyMarvelous = settings.ShowMarvelousWindows && timingWindow.NoteScale <= 1           && timingWindow.MarvelousEarlyScale > timingWindow.NoteScale;
-        bool drawLateMarvelous  = settings.ShowMarvelousWindows && timingWindow.MarvelousLateScale <= 1  && timingWindow.MarvelousLateScale  < timingWindow.NoteScale;
-        bool drawLateGreat      = settings.ShowGreatWindows     && timingWindow.GreatLateScale <= 1      && timingWindow.GreatLateScale      < timingWindow.MarvelousLateScale;
-        bool drawLateGood       = settings.ShowGoodWindows      && timingWindow.GoodLateScale <= 1       && timingWindow.GoodLateScale       < timingWindow.GreatLateScale;
+        bool drawEarlyGood      = settings.ShowGoodArea      && timingWindow.GreatEarlyScale <= 1     && timingWindow.GoodEarlyScale      > timingWindow.GreatEarlyScale;
+        bool drawEarlyGreat     = settings.ShowGreatArea     && timingWindow.MarvelousEarlyScale <= 1 && timingWindow.GreatEarlyScale     > timingWindow.MarvelousEarlyScale;
+        bool drawEarlyMarvelous = settings.ShowMarvelousArea && timingWindow.NoteScale <= 1           && timingWindow.MarvelousEarlyScale > timingWindow.NoteScale;
+        bool drawLateMarvelous  = settings.ShowMarvelousArea && timingWindow.MarvelousLateScale <= 1  && timingWindow.MarvelousLateScale  < timingWindow.NoteScale;
+        bool drawLateGreat      = settings.ShowGreatArea     && timingWindow.GreatLateScale <= 1      && timingWindow.GreatLateScale      < timingWindow.MarvelousLateScale;
+        bool drawLateGood       = settings.ShowGoodArea      && timingWindow.GoodLateScale <= 1       && timingWindow.GoodLateScale       < timingWindow.GreatLateScale;
 
         if (!drawEarlyGood && !drawEarlyGreat && !drawEarlyMarvelous && !drawLateMarvelous && !drawLateGreat && !drawLateGood) return;
 
