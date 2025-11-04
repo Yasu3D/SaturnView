@@ -931,7 +931,7 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private InterfaceVisibilityOption levelDisplayVisibility = InterfaceVisibilityOption.Obscured;
+    private InterfaceVisibilityOption levelDisplayVisibility = InterfaceVisibilityOption.Visible;
     
     /// <summary>
     /// Should the chart title be displayed?
@@ -947,7 +947,7 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private InterfaceVisibilityOption titleDisplayVisibility = InterfaceVisibilityOption.Obscured;
+    private InterfaceVisibilityOption titleDisplayVisibility = InterfaceVisibilityOption.Visible;
     
     /// <summary>
     /// Should the chart difficulty be displayed?
@@ -963,5 +963,5 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private InterfaceVisibilityOption difficultyDisplayVisibility = InterfaceVisibilityOption.Obscured;
+    private InterfaceVisibilityOption difficultyDisplayVisibility = InterfaceVisibilityOption.Visible;
 }
