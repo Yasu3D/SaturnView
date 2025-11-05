@@ -2,6 +2,7 @@
 using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
+using SaturnData.Utilities;
 using SkiaSharp;
 
 namespace SaturnView;
@@ -860,11 +861,11 @@ public static class Renderer3D
                 if (startProgress < radius) continue;
                 if (endProgress > radius) continue;
 
-                float t = RenderUtils.InverseLerp(startProgress, endProgress, radius);
+                float t = SaturnMath.InverseLerp(startProgress, endProgress, radius);
                 t = RenderUtils.Perspective(t);
 
-                int position = (int)MathF.Round(RenderUtils.LerpCyclic(start.Position, end.Position, t, 60));
-                int size = (int)MathF.Round(RenderUtils.Lerp(start.Size, end.Size, t));
+                int position = (int)MathF.Round(SaturnMath.LerpCyclic(start.Position, end.Position, t, 60));
+                int size = (int)MathF.Round(SaturnMath.Lerp(start.Size, end.Size, t));
 
                 IPositionable.OverlapResult result = IPositionable.HitTestResult(position, size, lane);
                 if (result != IPositionable.OverlapResult.None) return result;
@@ -1535,15 +1536,15 @@ public static class Renderer3D
             {
                 // Judgement line is between start and end. Insert a third point on the judgement line.
                 // Then generate from start to center, and center to end.
-                float t = RenderUtils.InverseLerp(start.GlobalTime, end.GlobalTime, time);
+                float t = SaturnMath.InverseLerp(start.GlobalTime, end.GlobalTime, time);
                 
                 RenderHoldPoint center = new()
                 {
                     GlobalTime = time, 
                     GlobalScaledTime = scaledTime, 
-                    LocalTime = RenderUtils.Lerp(start.LocalTime, end.LocalTime, t),
-                    Interval  = RenderUtils.Lerp(start.Interval,  end.Interval,  t),
-                    Start = RenderUtils.LerpCyclic(start.Start, end.Start, t, 360),
+                    LocalTime = SaturnMath.Lerp(start.LocalTime, end.LocalTime, t),
+                    Interval  = SaturnMath.Lerp(start.Interval,  end.Interval,  t),
+                    Start = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360),
                 };
 
                 generatePart(start, center);
@@ -1627,17 +1628,17 @@ public static class Renderer3D
             {
                 // Very brute-force optimization: Look ahead and behind by one step to see if the arc and its neighbors are entirely off-screen.
                 float previousT = t - interval;
-                float previousGlobalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       previousT);
-                float previousGlobalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, previousT);
+                float previousGlobalTime       = SaturnMath.Lerp(start.GlobalTime,       end.GlobalTime,       previousT);
+                float previousGlobalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, previousT);
                 float previousScale = getScale(previousGlobalTime, previousGlobalScaledTime);
                 
                 float nextT = t + interval;
-                float nextGlobalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       nextT);
-                float nextGlobalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, nextT);
+                float nextGlobalTime       = SaturnMath.Lerp(start.GlobalTime,       end.GlobalTime,       nextT);
+                float nextGlobalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, nextT);
                 float nextScale = getScale(nextGlobalTime, nextGlobalScaledTime);
                 
-                float globalTime       = RenderUtils.Lerp(start.GlobalTime,       end.GlobalTime,       t);
-                float globalScaledTime = RenderUtils.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
+                float globalTime       = SaturnMath.Lerp(start.GlobalTime,       end.GlobalTime,       t);
+                float globalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
                 float scale = getScale(globalTime, globalScaledTime);
 
                 if (scale < 0)
@@ -1651,9 +1652,9 @@ public static class Renderer3D
                     if (previousScale > 1.25f && previousT >= 0) continue;
                 }
                 
-                float localTime        = RenderUtils.Lerp(start.LocalTime,        end.LocalTime,        t);
-                float intervalAngle    = RenderUtils.Lerp(start.Interval,         end.Interval,         t);
-                float startAngle       = RenderUtils.LerpCyclic(start.Start, end.Start, t, 360);
+                float localTime        = SaturnMath.Lerp(start.LocalTime,        end.LocalTime,        t);
+                float intervalAngle    = SaturnMath.Lerp(start.Interval,         end.Interval,         t);
+                float startAngle       = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360);
 
                 generateArc(scale, localTime, startAngle, intervalAngle);
             }
@@ -1685,8 +1686,8 @@ public static class Renderer3D
         float getScale(float globalTime, float globalScaledTime)
         {
             return !settings.ShowSpeedChanges || time > globalTime
-                ? RenderUtils.InverseLerp(time + visibleTime, time, globalTime)
-                : RenderUtils.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
+                ? SaturnMath.InverseLerp(time + visibleTime, time, globalTime)
+                : SaturnMath.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
         }
     }
     
@@ -1950,7 +1951,7 @@ public static class Renderer3D
                             ? i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 1) * 8.3333333f
                             : i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 2) * 8.3333333f;
                     
-                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        float stepScale = SaturnMath.InverseLerp(time + viewDistance, time, t);
                         stepScale = RenderUtils.Perspective(stepScale);
                     
                         float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
@@ -1978,7 +1979,7 @@ public static class Renderer3D
                         float angle = (positionable.Position + i) * -6;
                         float t = startTime + duration - i * 8.3333333f;
 
-                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        float stepScale = SaturnMath.InverseLerp(time + viewDistance, time, t);
                         stepScale = RenderUtils.Perspective(stepScale);
                     
                         float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
@@ -2004,7 +2005,7 @@ public static class Renderer3D
                         float angle = (positionable.Position + i) * -6;
                         float t = startTime + (i + 1) * 8.3333333f;
                     
-                        float stepScale = RenderUtils.InverseLerp(time + viewDistance, time, t);
+                        float stepScale = SaturnMath.InverseLerp(time + viewDistance, time, t);
                         stepScale = RenderUtils.Perspective(stepScale);
                     
                         float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
@@ -2349,7 +2350,7 @@ public static class Renderer3D
         float squareWidth = canvasInfo.Width / squares;
         float squareRadius = 10 * canvasInfo.Scale;
 
-        float t = RenderUtils.InverseLerp(startTime, startTime + 550, time);
+        float t = SaturnMath.InverseLerp(startTime, startTime + 550, time);
         t = 1 - MathF.Pow(1 - Math.Clamp(t, 0, 1), 3f);
         
         float scaleMultiplier = Math.Clamp(1 - MathF.Pow((2 * t - 1), 2), 0, 1);
