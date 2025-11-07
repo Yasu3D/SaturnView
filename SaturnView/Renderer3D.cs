@@ -568,7 +568,7 @@ public static class Renderer3D
                 bool selected = selectedObjects != null && selectedObjects.Contains(holdNote);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == holdNote;
                 
-                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
+                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, viewDistance, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
         
@@ -1497,7 +1497,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws a hold note surface.
     /// </summary>
-    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, bool playing, float opacity, bool selected, bool pointerOver)
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, Layer layer, float time, float viewDistance, bool playing, float opacity, bool selected, bool pointerOver)
     {
         if (opacity == 0) return;
 
@@ -1517,8 +1517,6 @@ public static class Renderer3D
 
         List<SKPoint> vertexScreenCoords = [];
         List<SKPoint> vertexTextureCoords = [];
-        
-        float visibleTime = 3333.333f / (settings.NoteSpeed * 0.1f);
         
         float scaledTime = settings.ShowSpeedChanges ? Timestamp.ScaledTimeFromTime(layer, time) : time;
         int maxSize = hold.MaxSize;
@@ -1686,8 +1684,8 @@ public static class Renderer3D
         float getScale(float globalTime, float globalScaledTime)
         {
             return !settings.ShowSpeedChanges || time > globalTime
-                ? SaturnMath.InverseLerp(time + visibleTime, time, globalTime)
-                : SaturnMath.InverseLerp(scaledTime + visibleTime, scaledTime, globalScaledTime);
+                ? SaturnMath.InverseLerp(time + viewDistance, time, globalTime)
+                : SaturnMath.InverseLerp(scaledTime + viewDistance, scaledTime, globalScaledTime);
         }
     }
     
