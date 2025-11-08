@@ -90,7 +90,7 @@ public static class Renderer3D
                 if (note is not IPositionable positionable) continue;
                 
                 float delta = time - note.Timestamp.Time;
-                float duration = RenderUtils.GetSweepDuration(laneToggle.Direction, positionable.Size);
+                float duration = ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size);
                 
                 bool state = note is LaneShowNote; // not fully explicit but good enough.
 
@@ -190,7 +190,7 @@ public static class Renderer3D
                 if (note is not IPositionable positionable) continue;
                 
                 float tStart = 1 - (note.Timestamp.Time - time) / viewDistance;
-                float tEnd = 1 - (note.Timestamp.Time + RenderUtils.GetSweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
+                float tEnd = 1 - (note.Timestamp.Time + ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
 
                 if (tStart <= 0 && tEnd <= 0) continue;
                 if (tStart > 1.01f && tEnd > 1.01f) continue;
