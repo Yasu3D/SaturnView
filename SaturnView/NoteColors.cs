@@ -117,8 +117,8 @@ public static class NoteColors
     public const uint LaneShow = 0xFF9B9CD1;
     public const uint LaneHide = 0xFF373480;
 
-    public const uint JudgeLineStartV0 = 0xFFAEAEAE;
-    public const uint JudgeLineEndV0   = 0xFFDFDFDF;
+    public const uint JudgeLineStartGreyscale = 0xFFAEAEAE;
+    public const uint JudgeLineEndGreyscale   = 0xFFDFDFDF;
     
     public const uint JudgeLineStartV1 = 0xFFFF2089;
     public const uint JudgeLineEndV1   = 0xFFFFCF00;
@@ -139,35 +139,35 @@ public static class NoteColors
     public const uint ReverseEffectEvent = 0xFFFF55CC;
     public const uint StopEffectEvent = 0xFF4869FC;
 
-    public static uint JudgeLineStartFromId(int id)
+    public static uint JudgeLineStartFromOption(RenderSettings.JudgementLineColorOption option)
     {
-        return id switch
+        return option switch
         {
-            0 => JudgeLineStartV0,
-            1 => JudgeLineStartV1,
-            2 => JudgeLineStartV2,
-            3 => JudgeLineStartV3,
+            RenderSettings.JudgementLineColorOption.Version1  => JudgeLineStartV1,
+            RenderSettings.JudgementLineColorOption.Version2  => JudgeLineStartV2,
+            RenderSettings.JudgementLineColorOption.Version3  => JudgeLineStartV3,
+            RenderSettings.JudgementLineColorOption.Greyscale => JudgeLineStartGreyscale,
             _ => JudgeLineStartV3,
         };
     }
     
-    public static uint JudgeLineEndFromId(int id)
+    public static uint JudgeLineEndFromOption(RenderSettings.JudgementLineColorOption option)
     {
-        return id switch
+        return option switch
         {
-            0 => JudgeLineEndV0,
-            1 => JudgeLineEndV1,
-            2 => JudgeLineEndV2,
-            3 => JudgeLineEndV3,
+            RenderSettings.JudgementLineColorOption.Version1  => JudgeLineEndV1,
+            RenderSettings.JudgementLineColorOption.Version2  => JudgeLineEndV2,
+            RenderSettings.JudgementLineColorOption.Version3  => JudgeLineEndV3,
+            RenderSettings.JudgementLineColorOption.Greyscale => JudgeLineEndGreyscale,
             _ => JudgeLineEndV3,
         };
     }
 
-    public static float JudgeLineTiltFromId(int id)
+    public static float JudgeLineTiltFromOption(RenderSettings.JudgementLineColorOption option)
     {
-        return id switch
+        return option switch
         {
-            2 => 45,
+            RenderSettings.JudgementLineColorOption.Version2 => 45,
             _ => 0,
         };
     }

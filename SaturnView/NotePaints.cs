@@ -846,10 +846,9 @@ internal static class NotePaints
         ShaderStrokePaint.StrokeWidth = strokeWidth * 1.75f;
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
         
-        int id = (int)settings.JudgementLineColor;
-        SKColor sweepColorA = new(NoteColors.JudgeLineStartFromId(id));
-        SKColor sweepColorB = new(NoteColors.JudgeLineEndFromId(id));
-        float angle = NoteColors.JudgeLineTiltFromId(id);
+        SKColor sweepColorA = new(NoteColors.JudgeLineStartFromOption(settings.JudgementLineColor));
+        SKColor sweepColorB = new(NoteColors.JudgeLineEndFromOption(settings.JudgementLineColor));
+        float angle = NoteColors.JudgeLineTiltFromOption(settings.JudgementLineColor);
 
         SKColor[] sweepColors = [sweepColorA, sweepColorB, sweepColorA, sweepColorB, sweepColorA];
         SKColor[] shadeColors = [JudgementLineShadeColorA, JudgementLineShadeColorB, JudgementLineShadeColorC, JudgementLineShadeColorD, JudgementLineShadeColorD, JudgementLineShadeColorC, JudgementLineShadeColorB, JudgementLineShadeColorA];
