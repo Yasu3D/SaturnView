@@ -32,7 +32,7 @@ public static class RenderUtils
             return settings.ShowHoldNotes;
         }
         
-        if (activeObjectGroup != null)
+        if (activeObjectGroup != null && obj is not MeasureLineNote)
         {
             return obj == activeObjectGroup;
         }
