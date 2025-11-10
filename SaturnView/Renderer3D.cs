@@ -2200,6 +2200,7 @@ public static class Renderer3D
             SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
 
             float t = time / entry.ChartEnd.Time;
+            t = Math.Clamp(t, 0, 1);
             canvas.DrawArc(rect, 270, 360 - t * 360, false, NotePaints.GetSongTimerPaint(canvasInfo.Scale));
         }
 
