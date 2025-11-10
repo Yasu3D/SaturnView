@@ -1122,12 +1122,12 @@ internal static class NotePaints
         return ShaderFillPaint;
     }
 
-    internal static SKPaint GetBackgroundPaint(BackgroundOption backgroundOption, Difficulty difficulty, bool clear)
+    internal static SKPaint GetBackgroundPaint(Entry entry, bool clear)
     {
         return clear
-            ? backgroundOption switch
+            ? entry.Background switch
             {
-                BackgroundOption.Auto => difficulty == Difficulty.Inferno ? BackgroundBossClearPaint : BackgroundVersion3ClearPaint,
+                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossClearPaint : BackgroundVersion3ClearPaint,
                 BackgroundOption.Saturn => BackgroundVersion3ClearPaint,
                 BackgroundOption.Version3 => BackgroundVersion3ClearPaint,
                 BackgroundOption.Version2 => BackgroundVersion3ClearPaint,
@@ -1135,12 +1135,12 @@ internal static class NotePaints
                 BackgroundOption.Boss => BackgroundBossClearPaint,
                 BackgroundOption.StageUp => BackgroundVersion3ClearPaint,
                 BackgroundOption.WorldsEnd => BackgroundVersion3ClearPaint,
-                BackgroundOption.Jacket => BackgroundVersion3ClearPaint,
+                // BackgroundOption.Jacket => bypassed by other logic.
                 _ => BackgroundVersion3ClearPaint,
             }
-            : backgroundOption switch
+            : entry.Background switch
             {
-                BackgroundOption.Auto => difficulty == Difficulty.Inferno ? BackgroundBossPaint : BackgroundVersion3Paint,
+                BackgroundOption.Auto => entry.Difficulty == Difficulty.Inferno ? BackgroundBossPaint : BackgroundVersion3Paint,
                 BackgroundOption.Saturn => BackgroundVersion3Paint,
                 BackgroundOption.Version3 => BackgroundVersion3Paint,
                 BackgroundOption.Version2 => BackgroundVersion3Paint,
@@ -1148,7 +1148,7 @@ internal static class NotePaints
                 BackgroundOption.Boss => BackgroundBossPaint,
                 BackgroundOption.StageUp => BackgroundVersion3Paint,
                 BackgroundOption.WorldsEnd => BackgroundVersion3Paint,
-                BackgroundOption.Jacket => BackgroundVersion3Paint,
+                // BackgroundOption.Jacket => bypassed by other logic.
                 _ => BackgroundVersion3Paint,
             };
     }

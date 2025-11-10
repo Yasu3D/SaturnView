@@ -29,7 +29,7 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, ITimeable? activeObjectGroup = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null)
+    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, ITimeable? activeObjectGroup = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null, SKPaint? jacketBackgroundPaint = null, int jacketBackgroundWidth = 0, int jacketBackgroundHeight = 0)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
 
@@ -54,7 +54,7 @@ public static class Renderer3D
         canvas.Clear(canvasInfo.BackgroundColor);
         canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
         
-        DrawBackground(canvas, canvasInfo, settings, chart, entry, time);
+        DrawBackground(canvas, canvasInfo, settings, chart, entry, time, jacketBackgroundPaint, jacketBackgroundWidth, jacketBackgroundHeight);
         
         renderRNoteEffects();
         renderLanes();
@@ -2392,17 +2392,19 @@ public static class Renderer3D
     /// <summary>
     /// Draws a background.
     /// </summary>
-    private static void DrawBackground(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time)
+    private static void DrawBackground(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, SKPaint? jacketBackgroundPaint, int width, int height)
     {
         SKPoint screenA = new(0, 0);
         SKPoint screenB = new(canvasInfo.Width, 0);
         SKPoint screenC = new(0, canvasInfo.Height);
         SKPoint screenD = new(canvasInfo.Width, canvasInfo.Height);
-        
+
+        width = entry.Background != BackgroundOption.Jacket || width == 0 ? 1080 : width;
+        height = entry.Background != BackgroundOption.Jacket || height == 0 ? 1080 : height;
         SKPoint textureA = new(0, 0);
-        SKPoint textureB = new(1080, 0);
-        SKPoint textureC = new(0, 1080);
-        SKPoint textureD = new(1080, 1080);
+        SKPoint textureB = new(width, 0);
+        SKPoint textureC = new(0, height);
+        SKPoint textureD = new(width, height);
         
         SKPoint[] vertexCoords = [screenA, screenB, screenC, screenD, screenC, screenB];
         SKPoint[] textureCoords = [textureA, textureB, textureC, textureD, textureC, textureB];
@@ -2440,8 +2442,17 @@ public static class Renderer3D
         
         canvas.Save();
         canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, true);
+
+        if (entry.Background == BackgroundOption.Jacket && jacketBackgroundPaint != null)
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, jacketBackgroundPaint);
+        }
+        else
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry, clear));    
+        }
         
-        canvas.DrawVertices(SKVertexMode.Triangles, vertexCoords, textureCoords, null, NotePaints.GetBackgroundPaint(entry.Background, entry.Difficulty, clear));
+        
         canvas.Restore();
         
         if (settings.BackgroundDim != RenderSettings.BackgroundDimOption.NoDim)
