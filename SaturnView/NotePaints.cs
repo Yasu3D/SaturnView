@@ -493,6 +493,15 @@ internal static class NotePaints
         ),
     };
     
+    public static readonly SKPaint UnitTickPaint = new()
+    {
+        IsAntialias = true,
+        Color = new(0xFFEEEEEE),
+        Style = SKPaintStyle.Stroke,
+        StrokeCap = SKStrokeCap.Butt,
+        StrokeWidth = 0.5f,
+    };
+    
     public static readonly SKPaint DebugPaint = new()
     {
         IsAntialias = false,

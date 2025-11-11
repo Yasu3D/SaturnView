@@ -71,7 +71,7 @@ public static class Renderer3D
         
         renderBonusEffects();
 
-        DrawInterface(canvas, canvasInfo, settings, entry, time);
+        DrawInterface(canvas, canvasInfo, settings, entry, time, playing);
         
         return;
         
@@ -2192,7 +2192,7 @@ public static class Renderer3D
     /// <summary>
     /// Draws part of the in-game UI.
     /// </summary>
-    private static void DrawInterface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Entry entry, float time)
+    private static void DrawInterface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Entry entry, float time, bool playing)
     {
         if (entry.ChartEnd.Time > 0)
         {
@@ -2286,6 +2286,31 @@ public static class Renderer3D
             {
                 canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(titleTextColor));
                 break;
+            }
+        }
+
+        if (settings.UnitTickVisibility == RenderSettings.EffectVisibilityOption.AlwaysOn 
+        || (settings.UnitTickVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused && !playing)
+        || (settings.UnitTickVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && playing))
+        {
+            for (int i = 0; i < 60; i++)
+            {
+                float judgementLineThickness = (NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale;
+                float outerRadius = canvasInfo.JudgementLineRadius + judgementLineThickness * 0.5f;
+                float innerRadius = canvasInfo.JudgementLineRadius - judgementLineThickness;
+
+                if (i % 5 == 0)
+                {
+                    innerRadius -= judgementLineThickness;
+                }
+
+                float angle = i * -6;
+                
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, angle);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, angle);
+
+                NotePaints.UnitTickPaint.StrokeWidth = 0.5f;
+                canvas.DrawLine(p0, p1, NotePaints.UnitTickPaint);
             }
         }
     }

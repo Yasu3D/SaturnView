@@ -964,4 +964,20 @@ public class RenderSettings
         }
     }
     private InterfaceVisibilityOption difficultyDisplayVisibility = InterfaceVisibilityOption.Visible;
+    
+    /// <summary>
+    /// Should unit ticks be shown when paused?
+    /// </summary>
+    public EffectVisibilityOption UnitTickVisibility
+    {
+        get => unitTickVisibility;
+        set 
+        {
+            if (unitTickVisibility == value) return;
+            
+            unitTickVisibility = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private EffectVisibilityOption unitTickVisibility = EffectVisibilityOption.OnlyWhenPaused;
 }
