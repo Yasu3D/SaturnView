@@ -10,7 +10,7 @@ public class CanvasInfo
     public float Width;
 
     /// <summary>
-    /// Height of the canvas control in pixels-
+    /// Height of the canvas control in pixels.
     /// </summary>
     public float Height;
 
@@ -27,7 +27,17 @@ public class CanvasInfo
     /// <summary>
     /// The relative scale of the canvas.
     /// </summary>
-    public float Scale => Width / 1060;
+    public float Scale3D => Width / 1060;
+
+    /// <summary>
+    /// The relative horizontal scale of the canvas.
+    /// </summary>
+    public float ScaleX => Width / 1060;
+    
+    /// <summary>
+    /// The relative vertical scale of the canvas.
+    /// </summary>
+    public float ScaleY => Height / 1060;
 
     /// <summary>
     /// The center point of the canvas.

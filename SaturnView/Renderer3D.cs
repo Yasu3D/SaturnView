@@ -29,7 +29,21 @@ public static class Renderer3D
     /// <param name="entry">The entry to draw.</param>
     /// <param name="time">The time of the snapshot to draw.</param>
     /// <param name="playing">The current playback state.</param>
-    public static void Render(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Chart chart, Entry entry, float time, bool playing, HashSet<ITimeable>? selectedObjects = null, ITimeable? pointerOverObject = null, ITimeable? activeObjectGroup = null, BoxSelectRenderData? boxSelect = null, Note? cursorNote = null, SKPaint? jacketBackgroundPaint = null, int jacketBackgroundWidth = 0, int jacketBackgroundHeight = 0)
+    public static void Render(SKCanvas canvas,
+        CanvasInfo canvasInfo,
+        RenderSettings settings,
+        Chart chart,
+        Entry entry,
+        float time,
+        bool playing,
+        HashSet<ITimeable>? selectedObjects = null,
+        ITimeable? pointerOverObject = null,
+        ITimeable? activeObjectGroup = null,
+        RenderBoxSelectData? boxSelect = null,
+        Note? cursorNote = null,
+        SKPaint? jacketBackgroundPaint = null,
+        int jacketBackgroundWidth = 0,
+        int jacketBackgroundHeight = 0)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
 
@@ -75,9 +89,6 @@ public static class Renderer3D
         
         return;
         
-        
-        //canvas.DrawText($"{stopwatch.ElapsedTicks / 10000.0f}", new(canvasInfo.Width / 2, 30), SKTextAlign.Center, NotePaints.GetBoldFont(20), NotePaints.DebugPaint3);
-
         void calculateLanes()
         {
             if (!settings.ShowLaneToggleAnimations) return;
@@ -609,7 +620,7 @@ public static class Renderer3D
 
             return;
 
-            void render(RenderObject renderObject, bool selected, bool pointerOver, float opacity, bool overwriteStartTime)
+            void render(RenderObject renderObject, bool selected, bool pointerOver, float opacity, bool overwriteLaneToggleStartTime)
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
@@ -658,7 +669,7 @@ public static class Renderer3D
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
-                    float startTime = overwriteStartTime 
+                    float startTime = overwriteLaneToggleStartTime 
                         ? time 
                         : ((ITimeable)laneToggle).Timestamp.Time;
                     
@@ -904,7 +915,7 @@ public static class Renderer3D
     /// <returns></returns>
     public static float GetHitTestThreshold(CanvasInfo canvasInfo, RenderSettings.NoteThicknessOption noteThickness)
     {
-        return ((NotePaints.NoteStrokeWidths[(int)noteThickness] * canvasInfo.Scale) / canvasInfo.Radius) * 0.5f;
+        return ((NotePaints.NoteStrokeWidths[(int)noteThickness] * canvasInfo.Scale3D) / canvasInfo.Radius) * 0.5f;
     }
 
     /// <summary>
@@ -962,7 +973,7 @@ public static class Renderer3D
         if (colorId == -1) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        float pixelScale = canvasInfo.Scale3D * perspectiveScale;
         
         // Note Body
         if (positionable.Size == 60)
@@ -1372,7 +1383,7 @@ public static class Renderer3D
         int colorId = (int)settings.HoldNoteColor;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        float pixelScale = canvasInfo.Scale3D * perspectiveScale;
 
         if (note.Size == 60)
         {
@@ -1452,7 +1463,7 @@ public static class Renderer3D
         if (perspectiveScale is <= 0 or > 1.25f) return;
 
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        float pixelScale = canvasInfo.Scale3D * perspectiveScale;
         float startAngle = (note.Position + 0.7f) * -6;
         float sweepAngle = (note.Size - 1.4f) * -6;
         
@@ -1719,7 +1730,7 @@ public static class Renderer3D
         if (perspectiveScale is <= 0 or > 1.25f) return;
         
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = perspectiveScale * canvasInfo.Scale;
+        float pixelScale = perspectiveScale * canvasInfo.Scale3D;
 
         if (note.Size == 60)
         {
@@ -1764,7 +1775,7 @@ public static class Renderer3D
         // Selection outline.
         if (selected || pointerOver)
         {
-            DrawSelectionOutline(canvas, canvasInfo, settings, radius, canvasInfo.Scale * perspectiveScale, 0, 60, selected, pointerOver);
+            DrawSelectionOutline(canvas, canvasInfo, settings, radius, canvasInfo.Scale3D * perspectiveScale, 0, 60, selected, pointerOver);
         }
     }
 
@@ -1775,7 +1786,7 @@ public static class Renderer3D
     {
         if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        float pixelScale = canvasInfo.Scale3D * perspectiveScale;
 
         if (opacity == 1 && @event is not EffectSubEvent)
         {
@@ -2051,7 +2062,7 @@ public static class Renderer3D
         // Note body and selection outline.
         if (perspectiveScale is > 0 and <= 1.01f)
         {
-            float pixelScale = canvasInfo.Scale * perspectiveScale;
+            float pixelScale = canvasInfo.Scale3D * perspectiveScale;
             
             if (positionable.Size == 60)
             {
@@ -2082,7 +2093,7 @@ public static class Renderer3D
     {
         if (opacity == 0) return;
         float radius = canvasInfo.JudgementLineRadius * perspectiveScale;
-        float pixelScale = canvasInfo.Scale * perspectiveScale;
+        float pixelScale = canvasInfo.Scale3D * perspectiveScale;
         
         canvas.DrawCircle(canvasInfo.Center, radius, NotePaints.GetBookmarkPaint(bookmark.Color, pixelScale, opacity));
 
@@ -2222,7 +2233,7 @@ public static class Renderer3D
 
             float t = time / entry.ChartEnd.Time;
             t = Math.Clamp(t, 0, 1);
-            canvas.DrawArc(rect, 270, 360 - t * 360, false, NotePaints.GetSongTimerPaint(canvasInfo.Scale));
+            canvas.DrawArc(rect, 270, 360 - t * 360, false, NotePaints.GetSongTimerPaint(canvasInfo.Scale3D));
         }
 
         float textRadius = canvasInfo.JudgementLineRadius * 0.987f;
@@ -2280,15 +2291,15 @@ public static class Renderer3D
             
             case RenderSettings.InterfaceVisibilityOption.Obscured:
             {
-                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
-                canvas.DrawTextOnPath("??", path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath("??", path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
                 break;
             }
             
             case RenderSettings.InterfaceVisibilityOption.Visible:
             {
-                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
-                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
                 break;
             }
         }
@@ -2299,13 +2310,13 @@ public static class Renderer3D
             
             case RenderSettings.InterfaceVisibilityOption.Obscured:
             {
-                canvas.DrawTextOnPath("???", path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(titleTextColor));
+                canvas.DrawTextOnPath("???", path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale3D), NotePaints.GetTextPaint(titleTextColor));
                 break;
             }
             
             case RenderSettings.InterfaceVisibilityOption.Visible:
             {
-                canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale), NotePaints.GetTextPaint(titleTextColor));
+                canvas.DrawTextOnPath(entry.Title, path, new(titleAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(20 * canvasInfo.Scale3D), NotePaints.GetTextPaint(titleTextColor));
                 break;
             }
         }
@@ -2316,7 +2327,7 @@ public static class Renderer3D
         {
             for (int i = 0; i < 60; i++)
             {
-                float judgementLineThickness = (NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale;
+                float judgementLineThickness = (NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale3D;
                 float outerRadius = canvasInfo.JudgementLineRadius + judgementLineThickness * 0.5f;
                 float innerRadius = canvasInfo.JudgementLineRadius - judgementLineThickness;
 
@@ -2393,7 +2404,7 @@ public static class Renderer3D
         
         const int squares = 21;
         float squareWidth = canvasInfo.Width / squares;
-        float squareRadius = 10 * canvasInfo.Scale;
+        float squareRadius = 10 * canvasInfo.Scale3D;
 
         float t = SaturnMath.InverseLerp(startTime, startTime + 550, time);
         t = 1 - MathF.Pow(1 - Math.Clamp(t, 0, 1), 3f);
@@ -2610,15 +2621,15 @@ public static class Renderer3D
     /// <summary>
     /// Draws a box select area.
     /// </summary>
-    private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, BoxSelectRenderData boxSelect)
+    private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, RenderBoxSelectData renderBoxSelect)
     {
-        if (boxSelect.StartTime == null) return;
-        if (boxSelect.EndTime == null) return;
-        if (boxSelect.Position == null) return;
-        if (boxSelect.Size == null) return;
+        if (renderBoxSelect.StartTime == null) return;
+        if (renderBoxSelect.EndTime == null) return;
+        if (renderBoxSelect.Position == null) return;
+        if (renderBoxSelect.Size == null) return;
         
-        RenderUtils.GetProgress(boxSelect.StartTime.Value, 0, false, viewDistance, time, 0, out float r0);
-        RenderUtils.GetProgress(boxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float r1);
+        RenderUtils.GetProgress(renderBoxSelect.StartTime.Value, 0, false, viewDistance, time, 0, out float r0);
+        RenderUtils.GetProgress(renderBoxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float r1);
 
         r0 = Math.Clamp(r0, 0, 1.25f);
         r1 = Math.Clamp(r1, 0, 1.25f);
@@ -2626,10 +2637,10 @@ public static class Renderer3D
         r0 = RenderUtils.Perspective(r0) * canvasInfo.JudgementLineRadius;
         r1 = RenderUtils.Perspective(r1) * canvasInfo.JudgementLineRadius;
         
-        SKPoint[] vertices = new SKPoint[boxSelect.Size.Value * 6];
-        for (int i = 0; i < boxSelect.Size; i++)
+        SKPoint[] vertices = new SKPoint[renderBoxSelect.Size.Value * 6];
+        for (int i = 0; i < renderBoxSelect.Size; i++)
         {
-            float angle = (boxSelect.Position.Value + i) * -6;
+            float angle = (renderBoxSelect.Position.Value + i) * -6;
             SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, r0, angle    );
             SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, r0, angle - 6);
             SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, r1, angle    );
@@ -2651,7 +2662,7 @@ public static class Renderer3D
         
         canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetObjectOutlineFillPaint(true, false));
 
-        if (boxSelect.Size == 60)
+        if (renderBoxSelect.Size == 60)
         {
             SKPaint paint = NotePaints.GetObjectOutlineStrokePaint(true, false);
             canvas.DrawCircle(canvasInfo.Center, r0, paint);
@@ -2663,54 +2674,14 @@ public static class Renderer3D
             SKRect rect0 = new(canvasInfo.Center.X - r0, canvasInfo.Center.Y - r0, canvasInfo.Center.X + r0, canvasInfo.Center.Y + r0);
             SKRect rect1 = new(canvasInfo.Center.X - r1, canvasInfo.Center.Y - r1, canvasInfo.Center.X + r1, canvasInfo.Center.Y + r1);
 
-            path.ArcTo(rect0, boxSelect.Position.Value * -6, boxSelect.Size.Value * -6, true);
-            path.ArcTo(rect1, (boxSelect.Position.Value + boxSelect.Size.Value) * -6, boxSelect.Size.Value * 6, false);
+            path.ArcTo(rect0, renderBoxSelect.Position.Value * -6, renderBoxSelect.Size.Value * -6, true);
+            path.ArcTo(rect1, (renderBoxSelect.Position.Value + renderBoxSelect.Size.Value) * -6, renderBoxSelect.Size.Value * 6, false);
             path.Close();
             
             canvas.DrawPath(path, NotePaints.GetObjectOutlineStrokePaint(true, false));
         }
         
         canvas.Restore();
-    }
-    
-    private struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
-{
-    // Universal
-    public readonly ITimeable Object = @object;
-    public readonly Layer? Layer = layer;
-    public readonly int? LayerIndex = layerIndex;
-    public readonly float Scale = scale;
-    public readonly bool IsVisible = isVisible;
-    
-    // Note-Specific
-    public readonly bool Sync = sync;
-}
-
-    private struct RenderHoldPoint
-    {
-        internal RenderHoldPoint(HoldNote hold, HoldPointNote point, int maxSize)
-        {
-            GlobalTime = point.Timestamp.Time;
-            GlobalScaledTime = point.Timestamp.ScaledTime;
-
-            LocalTime = hold.Points.Count > 1 && hold.Points[0].Timestamp.Time != hold.Points[^1].Timestamp.Time
-                ? (point.Timestamp.Time - hold.Points[0].Timestamp.Time) / (hold.Points[^1].Timestamp.Time - hold.Points[0].Timestamp.Time)
-                : 0;
-            
-            Start = point.Size == 60 
-                ? point.Position * -6f 
-                : point.Position * -6f - 4.2f;
-            
-            Interval = point.Size == 60 
-                ? point.Size * -6f / maxSize 
-                : (point.Size * -6f + 8.4f) / maxSize;
-        }
-
-        public float GlobalTime;
-        public float GlobalScaledTime;
-        public float LocalTime;
-        public float Start;
-        public float Interval;
     }
 
     private struct RenderBonusSweepEffect(int startPosition, float startTime, float duration, bool isCounterclockwise)
@@ -2721,24 +2692,5 @@ public static class Renderer3D
         public readonly bool IsCounterclockwise = isCounterclockwise;
     }
 
-    private struct RenderJudgeArea(int position, int size, float noteScale, float marvelousEarlyScale, float marvelousLateScale, float greatEarlyScale, float greatLateScale, float goodEarlyScale, float goodLateScale)
-    {
-        public readonly int Position = position;
-        public readonly int Size = size;
-        public readonly float NoteScale = noteScale;
-        public readonly float MarvelousEarlyScale = marvelousEarlyScale;
-        public readonly float MarvelousLateScale = marvelousLateScale;
-        public readonly float GreatEarlyScale = greatEarlyScale;
-        public readonly float GreatLateScale = greatLateScale;
-        public readonly float GoodEarlyScale = goodEarlyScale;
-        public readonly float GoodLateScale = goodLateScale;
-    }
-
-    public struct BoxSelectRenderData(float? startTime, float? endTime, int? position, int? size)
-    {
-        public readonly float? StartTime = startTime;
-        public readonly float? EndTime = endTime;
-        public readonly int? Position = position;
-        public readonly int? Size = size;
-    }
+    
 }

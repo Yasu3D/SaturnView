@@ -529,6 +529,7 @@ internal static class NotePaints
 
     private static readonly SKFont InterfaceFont = new(SKTypeface.FromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets/noto_plus_1.ttf")));
     
+#region 3D
     internal static SKPaint GetNoteCapPaint(CanvasInfo canvasInfo, RenderSettings settings, float scaleScaledByScreen, float rawScale, float opacity)
     {
         if (settings.LowPerformanceMode)
@@ -811,7 +812,7 @@ internal static class NotePaints
 
     internal static SKPaint GetMeasureLinePaint(CanvasInfo canvasInfo, float linearScale, float opacity)
     {
-        FlatStrokePaint.StrokeWidth = 3 * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.StrokeWidth = 3 * canvasInfo.Scale3D * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = NoteColorMeasureLine.WithAlpha((byte)(opacity * 255));
 
@@ -820,7 +821,7 @@ internal static class NotePaints
 
     internal static SKPaint GetBeatLinePaint(CanvasInfo canvasInfo, float linearScale, float opacity)
     {
-        FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale * Math.Min(1, linearScale * 1.5f);
+        FlatStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale3D * Math.Min(1, linearScale * 1.5f);
         FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
         FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 90));
 
@@ -829,7 +830,7 @@ internal static class NotePaints
 
     internal static SKPaint GetJudgementLinePaint(CanvasInfo canvasInfo, RenderSettings settings)
     {
-        float strokeWidth = (NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale;
+        float strokeWidth = (NoteStrokeWidths[(int)settings.NoteThickness] + 2) * canvasInfo.Scale3D;
         float centerOffset = strokeWidth * 0.08f;
         float lineOffset = strokeWidth * 0.5f;
         float glowOffset = strokeWidth * 0.875f;
@@ -873,7 +874,7 @@ internal static class NotePaints
     internal static SKPaint GetGuideLinePaint(CanvasInfo canvasInfo)
     {
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
-        ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale;
+        ShaderStrokePaint.StrokeWidth = 1.5f * canvasInfo.Scale3D;
         
         SKColor[] colors = [new(NoteColors.LaneGuideLine), new(0x10000000 + NoteColors.LaneGuideLine), new(0x50000000 + NoteColors.LaneGuideLine)];
         float[] positions = [0.15f, 0.2f, 0.7f];
@@ -1201,4 +1202,46 @@ internal static class NotePaints
         
         return InterfaceFont;
     }
+#endregion 3D
+    
+#region 2D
+    internal static readonly SKPaint LanePaintMajor_2D = new()
+    {
+        Color = new(0x80FFFFFF),
+        StrokeWidth = 1,
+        Style = SKPaintStyle.Stroke,
+        IsAntialias = false,
+    };
+    
+    internal static readonly SKPaint LanePaintMinor_2D = new()
+    {
+        Color = new(0x20FFFFFF),
+        StrokeWidth = 1,
+        Style = SKPaintStyle.Stroke,
+        IsAntialias = false,
+    };
+
+    internal static SKPaint GetJudgementLinePaint_2D(RenderSettings settings, float left, float right, float y)
+    {
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness];
+        float top = y - strokeWidth * 0.5f;
+        float bottom = y + strokeWidth * 0.5f;
+        
+        ShaderStrokePaint.StrokeWidth = strokeWidth * 1.75f;
+        ShaderStrokePaint.Color = new(0xFFFFFFFF);
+        
+        SKColor sweepColorA = new(NoteColors.JudgeLineStartFromOption(settings.JudgementLineColor));
+        SKColor sweepColorB = new(NoteColors.JudgeLineEndFromOption(settings.JudgementLineColor));
+
+        SKColor[] sweepColors = [sweepColorA, sweepColorB, sweepColorA, sweepColorB, sweepColorA];
+        SKColor[] shadeColors = [JudgementLineShadeColorA, JudgementLineShadeColorB, JudgementLineShadeColorC, JudgementLineShadeColorD, JudgementLineShadeColorD, JudgementLineShadeColorC, JudgementLineShadeColorB, JudgementLineShadeColorA];
+        float[] shadePositions = [0.00000000f, 0.21428570f, 0.21434286f, 0.45428570f, 0.54571426f, 0.78565717f, 0.78571427f, 1.00000000f];
+
+        SKShader sweepGradient = SKShader.CreateLinearGradient(new(left, 0), new(right, 0), sweepColors, SKShaderTileMode.Clamp);
+        SKShader shadeGradient = SKShader.CreateLinearGradient(new(0, top), new(0, bottom), shadeColors, shadePositions, SKShaderTileMode.Clamp);
+        ShaderStrokePaint.Shader = SKShader.CreateCompose(shadeGradient, sweepGradient, SKBlendMode.Modulate);
+        
+        return ShaderStrokePaint;
+    }
+#endregion 2D
 }
