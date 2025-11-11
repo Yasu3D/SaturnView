@@ -450,7 +450,7 @@ public class RenderSettings
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showJudgeAreas = true;
+    private bool showJudgeAreas = false;
 
     /// <summary>
     /// Should MARVELOUS judge areas be shown?

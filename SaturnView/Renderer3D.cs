@@ -1530,6 +1530,8 @@ public static class Renderer3D
             RenderHoldPoint start = new(hold, points[y], maxSize);
             RenderHoldPoint end = new(hold, points[y + 1], maxSize);
 
+            bool skipEnd = y < points.Count - 2;
+            
             if (start.GlobalTime < time && end.GlobalTime > time)
             {
                 // Judgement line is between start and end. Insert a third point on the judgement line.
@@ -1545,20 +1547,15 @@ public static class Renderer3D
                     Start = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360),
                 };
 
-                generatePart(start, center);
-                generatePart(center, end);
+                generatePart(start, center, false);
+                generatePart(center, end, skipEnd);
             }
             else
             {
                 // This segment does not cross the judgement line. No special handling is necessary.
-                generatePart(start, end);
+                generatePart(start, end, skipEnd);
             }
         }
-        
-        // Generate the final arc for last point.
-        HoldPointNote lastPoint = arcs == 1 ? points[1] : points[^1]; // Hacky? Use second note instead of last if only one arc was generated.
-        RenderHoldPoint last = new(hold, lastPoint, maxSize);
-        generateArc(getScale(last.GlobalTime, last.GlobalScaledTime), last.LocalTime, last.Start, last.Interval);
         
         // Build mesh
         SKPoint[] triangles = new SKPoint[maxSize * (arcs - 1) * 6];
@@ -1604,27 +1601,56 @@ public static class Renderer3D
         
         return;
 
-        void generatePart(RenderHoldPoint start, RenderHoldPoint end)
+        void generatePart(RenderHoldPoint start, RenderHoldPoint end, bool skipLast)
         {
             float startScale = getScale(start.GlobalTime, start.GlobalScaledTime);
             float endScale = getScale(end.GlobalTime, end.GlobalScaledTime);
 
             if (startScale > 1.25f && endScale > 1.25f) return;
             
-            float interval = 1;
+            bool sameTime = start.GlobalTime == end.GlobalTime;
+            bool sameShape = start.Start == end.Start && start.Interval == end.Interval;
 
-            bool differentTime = start.GlobalTime != end.GlobalTime;
-            bool differentShape = start.Start != end.Start || start.Interval != end.Interval;
+            float interval;
             
-            if (differentTime && differentShape)
+            // No in-between steps on the same tick.
+            if (sameTime)
+            {
+                interval = 1;
+            }
+            // 4 sub-points for basic perspective correction on straight holds.
+            else if (sameShape)
+            {
+                interval = 0.25f;
+            }
+            // Smoothly interpolate every 20ms.
+            else
             {
                 interval = 20.0f / (end.GlobalTime - start.GlobalTime);
             }
-            
+
             // For every imaginary "sub point" between start and end.
             for (float t = 0; t < 1; t += interval)
             {
                 // Very brute-force optimization: Look ahead and behind by one step to see if the arc and its neighbors are entirely off-screen.
+                if (skip(t, out float scale)) continue;
+                
+                float localTime        = SaturnMath.Lerp(start.LocalTime,        end.LocalTime,        t);
+                float intervalAngle    = SaturnMath.Lerp(start.Interval,         end.Interval,         t);
+                float startAngle       = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360);
+
+                generateArc(scale, localTime, startAngle, intervalAngle);
+            }
+
+            if (!skipLast && !skip(1, out float scale2))
+            {
+                generateArc(scale2, end.LocalTime, end.Start, end.Interval);
+            }
+
+            return;
+
+            bool skip(float t, out float scale)
+            {
                 float previousT = t - interval;
                 float previousGlobalTime       = SaturnMath.Lerp(start.GlobalTime,       end.GlobalTime,       previousT);
                 float previousGlobalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, previousT);
@@ -1637,24 +1663,20 @@ public static class Renderer3D
                 
                 float globalTime       = SaturnMath.Lerp(start.GlobalTime,       end.GlobalTime,       t);
                 float globalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
-                float scale = getScale(globalTime, globalScaledTime);
+                scale = getScale(globalTime, globalScaledTime);
 
                 if (scale < 0)
                 {
-                    if (nextScale < 0 && nextT < 1) continue;
-                    if (previousScale < 0 && previousT >= 0) continue;
+                    if (nextScale < 0 && nextT < 1) return true;
+                    if (previousScale < 0 && previousT >= 0) return true;
                 }
                 else if (scale > 1.25f)
                 {
-                    if (nextScale > 1.25f && nextT < 1) continue;
-                    if (previousScale > 1.25f && previousT >= 0) continue;
+                    if (nextScale > 1.25f && nextT < 1) return true;
+                    if (previousScale > 1.25f && previousT >= 0) return true;
                 }
-                
-                float localTime        = SaturnMath.Lerp(start.LocalTime,        end.LocalTime,        t);
-                float intervalAngle    = SaturnMath.Lerp(start.Interval,         end.Interval,         t);
-                float startAngle       = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360);
 
-                generateArc(scale, localTime, startAngle, intervalAngle);
+                return false;
             }
         }
         
