@@ -1665,15 +1665,14 @@ public static class Renderer3D
                 float globalScaledTime = SaturnMath.Lerp(start.GlobalScaledTime, end.GlobalScaledTime, t);
                 scale = getScale(globalTime, globalScaledTime);
 
-                if (scale < 0)
+                if (scale < 0 && nextScale < 0 && nextT < 1 && previousScale < 0 && previousT >= 0)
                 {
-                    if (nextScale < 0 && nextT < 1) return true;
-                    if (previousScale < 0 && previousT >= 0) return true;
+                    return true;
                 }
-                else if (scale > 1.25f)
+
+                if (scale > 1.25f && nextScale > 1.25f && nextT < 1 && previousScale > 1.25f && previousT >= 0)
                 {
-                    if (nextScale > 1.25f && nextT < 1) return true;
-                    if (previousScale > 1.25f && previousT >= 0) return true;
+                    return true;
                 }
 
                 return false;
