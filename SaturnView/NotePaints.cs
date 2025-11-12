@@ -1346,5 +1346,25 @@ internal static class NotePaints
 
         return ShaderFillPaint;
     }
+    
+    internal static SKPaint GetSyncConnectorPaint_2D(RenderSettings settings, float top, float bottom, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = NoteColorSyncOutline.WithAlpha((byte)(opacity * 255));
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        SKColor[] colors = [NoteColorSyncConnectorLight, NoteColorSyncConnectorBase, NoteColorSyncConnectorDark, NoteColorSyncConnectorDark, NoteColorSyncConnectorBase, NoteColorSyncConnectorLight];
+        float[] positions = [0.05f, 0.15f, 0.45f, 0.55f, 0.85f, 0.95f];
+        
+        SKShader shader = SKShader.CreateLinearGradient(new(0, top), new(0, bottom), colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
 #endregion 2D
 }

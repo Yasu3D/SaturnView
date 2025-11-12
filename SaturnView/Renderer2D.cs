@@ -7,20 +7,21 @@ using SkiaSharp;
 
 namespace SaturnView;
 
+// TODO: make passed notes visible at lower opacity
 public static class Renderer2D
 {
     private const float MarginLeft = 70;
     private const float MarginRight = 140;
     private const float JudgementLineOffset = 100;
-    private const float NoteThicknessMultiplier = 0.15f;
+    private const float NoteThicknessMultiplier = 0.2f;
     
     private static readonly float[][] SyncOutlineOffset = 
     [
-        [-15.37f * 2,  -9.01f * 2,  7.42f * 2, 13.78f * 2, -12.19f * 2, 10.60f * 2],
-        [-19.61f * 2, -13.25f * 2, 13.25f * 2, 19.61f * 2, -16.43f * 2, 16.43f * 2],
-        [-28.62f * 2, -22.26f * 2, 22.79f * 2, 29.15f * 2, -25.44f * 2, 25.97f * 2],
-        [-39.22f * 2, -32.86f * 2, 33.39f * 2, 39.75f * 2, -36.04f * 2, 36.57f * 2],
-        [-47.70f * 2, -41.34f * 2, 42.40f * 2, 48.76f * 2, -45.05f * 2, 45.58f * 2],
+        [-15.37f * 2,  -9.01f * 2,  7.42f * 2, 13.78f * 2, -12.0f * 2.5f, 12.0f * 2.5f],
+        [-19.61f * 2, -13.25f * 2, 13.25f * 2, 19.61f * 2, -16.0f * 2.5f, 16.0f * 2.5f],
+        [-28.62f * 2, -22.26f * 2, 22.79f * 2, 29.15f * 2, -25.0f * 2.5f, 25.0f * 2.5f],
+        [-39.22f * 2, -32.86f * 2, 33.39f * 2, 39.75f * 2, -36.0f * 2.5f, 36.0f * 2.5f],
+        [-47.70f * 2, -41.34f * 2, 42.40f * 2, 48.76f * 2, -45.0f * 2.5f, 45.0f * 2.5f],
     ];
     
     public static void Render(SKCanvas canvas,
@@ -399,18 +400,18 @@ public static class Renderer2D
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
-                    // TODO
-                    /*DrawSyncNote
+                    DrawSyncNote
                     (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
                         note: syncNote,
-                        perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
+                        depth: renderObject.Scale,
+                        laneStep: laneStep,
                         opacity: opacity,
                         selected: selected,
                         pointerOver: pointerOver
-                    );*/
+                    );
                 }
                 else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
@@ -661,7 +662,7 @@ public static class Renderer2D
     /// <returns></returns>
     public static float GetHitTestThreshold(CanvasInfo canvasInfo, RenderSettings.NoteThicknessOption noteThickness)
     {
-        return (NotePaints.NoteStrokeWidths[(int)noteThickness] / canvasInfo.Radius) * 0.5f * NoteThicknessMultiplier;
+        return (NotePaints.NoteStrokeWidths[(int)noteThickness] / canvasInfo.Height) * 1.2f * NoteThicknessMultiplier;
     }
 
     /// <summary>
@@ -736,27 +737,27 @@ public static class Renderer2D
         if (opacity == 0) return;
         if (depth is <= -0.1f or > 1.25f) return;
         if (note is not IPositionable positionable) return;
-        
+
         IPlayable? playable = note as IPlayable;
-        
+
         int colorId = note switch
         {
-            TouchNote                 => (int)settings.TouchNoteColor,
-            ChainNote                 => (int)settings.ChainNoteColor,
-            HoldNote                  => (int)settings.HoldNoteColor,
-            SlideClockwiseNote        => (int)settings.SlideClockwiseNoteColor,
+            TouchNote => (int)settings.TouchNoteColor,
+            ChainNote => (int)settings.ChainNoteColor,
+            HoldNote => (int)settings.HoldNoteColor,
+            SlideClockwiseNote => (int)settings.SlideClockwiseNoteColor,
             SlideCounterclockwiseNote => (int)settings.SlideCounterclockwiseNoteColor,
-            SnapForwardNote           => (int)settings.SnapForwardNoteColor,
-            SnapBackwardNote          => (int)settings.SnapBackwardNoteColor,
+            SnapForwardNote => (int)settings.SnapForwardNoteColor,
+            SnapBackwardNote => (int)settings.SnapBackwardNoteColor,
             _ => -1,
         };
-        
+
         if (colorId == -1) return;
 
         float center = depth * (canvasInfo.Height - JudgementLineOffset);
-        float top = depth * (canvasInfo.Height - JudgementLineOffset) + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
-        float bottom = depth * (canvasInfo.Height - JudgementLineOffset) - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
-        
+        float top = center + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
+        float bottom = center - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
+
         // Note Body
         if (positionable.Size == 60)
         {
@@ -772,9 +773,9 @@ public static class Renderer2D
         }
         else
         {
-            int offsetPosition = positionable.Position < 15 
-            ? positionable.Position + 45 
-            : positionable.Position - 15;
+            int offsetPosition = positionable.Position < 15
+                ? positionable.Position + 45
+                : positionable.Position - 15;
 
             if (positionable.Size != 1)
             {
@@ -806,7 +807,7 @@ public static class Renderer2D
                         canvas.DrawLine(left - laneStep * 0.5f, center, right + laneStep * 0.5f, center, NotePaints.GetRNotePaint(settings, NoteThicknessMultiplier * 1.75f, opacity));
                     }
                 }
-                
+
                 if (wrapNote)
                 {
                     float left1 = MarginLeft + insetPosition * laneStep;
@@ -829,23 +830,23 @@ public static class Renderer2D
                     canvas.DrawRect(rect, NotePaints.GetNoteBasePaint_2D(settings, colorId, top, bottom, opacity));
                 }
             }
-            
+
             // Caps
             float capRight = MarginLeft + (offsetPosition + 1 % 60) * laneStep;
             float capLeft = capRight - laneStep * 0.25f;
 
             SKRect capRect = new(capLeft, top, capRight, bottom);
             canvas.DrawRect(capRect, NotePaints.GetNoteCapPaint_2D(settings, top, bottom, opacity));
-            
+
             if (positionable.Size > 1)
             {
                 capLeft = MarginLeft + (offsetPosition + positionable.Size - 1) % 60 * laneStep;
                 capRight = capLeft + laneStep * 0.25f;
-                
+
                 capRect = new(capLeft, top, capRight, bottom);
                 canvas.DrawRect(capRect, NotePaints.GetNoteCapPaint_2D(settings, top, bottom, opacity));
             }
-            
+
             /*SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
 
             float start = (positionable.Position + 1) * -6;
@@ -874,44 +875,157 @@ public static class Renderer2D
         // Sync Outline
         if (sync)
         {
-            // TODO
-            /*if (positionable.Size == 60)
-            {
-                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][4];
-                float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][5];
+            float top1 = center + SyncOutlineOffset[(int)settings.NoteThickness][0] * NoteThicknessMultiplier;
+            float bottom1 = center + SyncOutlineOffset[(int)settings.NoteThickness][3] * NoteThicknessMultiplier;
 
-                SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
-                canvas.DrawCircle(canvasInfo.Center, radius0, paint);
-                canvas.DrawCircle(canvasInfo.Center, radius1, paint);
+            float top2 = center + SyncOutlineOffset[(int)settings.NoteThickness][1] * NoteThicknessMultiplier;
+            float bottom2 = center + SyncOutlineOffset[(int)settings.NoteThickness][2] * NoteThicknessMultiplier;
+
+            if (positionable.Size == 60)
+            {
+                SKRect rect = new(MarginLeft, top1, canvasInfo.Width - MarginRight, top2);
+                canvas.DrawRect(rect, NotePaints.GetSyncOutlinePaint(opacity));
+
+                rect = new(MarginLeft, bottom1, canvasInfo.Width - MarginRight, bottom2);
+                canvas.DrawRect(rect, NotePaints.GetSyncOutlinePaint(opacity));
             }
             else
             {
-                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][0];
+                int offsetPosition = positionable.Position < 15
+                    ? positionable.Position + 45
+                    : positionable.Position - 15;
+
+                bool wrap = offsetPosition + positionable.Size > 60;
+
+                SKPath path = new();
+
+                if (wrap)
+                {
+                    float left = MarginLeft + offsetPosition * laneStep + laneStep * 0.45f;
+                    float right = canvasInfo.Width - MarginRight;
+
+                    SKPoint p0 = new(left, top1);
+                    SKPoint p1 = new(right, top1);
+                    SKPoint p2 = new(right, bottom1);
+                    SKPoint p3 = new(left, bottom1);
+
+                    SKPoint c0 = new(left - laneStep * 0.2f, center);
+
+                    path.MoveTo(p1);
+                    path.LineTo(p0);
+                    path.QuadTo(c0, p3);
+                    path.LineTo(p2);
+
+                    left += laneStep * 0.07f;
+                    p0 = new(left, top2);
+                    p1 = new(right, top2);
+                    p2 = new(right, bottom2);
+                    p3 = new(left, bottom2);
+
+                    c0 = new(left - laneStep * 0.2f, center);
+
+                    path.LineTo(p2);
+                    path.LineTo(p3);
+                    path.QuadTo(c0, p0);
+                    path.LineTo(p1);
+                    path.Close();
+
+                    left = MarginLeft;
+                    right = MarginLeft + (offsetPosition + positionable.Size) % 60 * laneStep - laneStep * 0.45f;
+
+                    p0 = new(left, top1);
+                    p1 = new(right, top1);
+                    p2 = new(right, bottom1);
+                    p3 = new(left, bottom1);
+
+                    c0 = new(right + laneStep * 0.2f, center);
+
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.QuadTo(c0, p2);
+                    path.LineTo(p3);
+
+                    right -= laneStep * 0.07f;
+
+                    p0 = new(left, top2);
+                    p1 = new(right, top2);
+                    p2 = new(right, bottom2);
+                    p3 = new(left, bottom2);
+
+                    c0 = new(right + laneStep * 0.2f, center);
+
+                    path.LineTo(p3);
+                    path.LineTo(p2);
+                    path.QuadTo(c0, p1);
+                    path.LineTo(p0);
+                    path.Close();
+                }
+                else
+                {
+                    float left = MarginLeft + offsetPosition * laneStep + laneStep * 0.45f;
+                    float right = MarginLeft + (offsetPosition + positionable.Size) * laneStep - laneStep * 0.45f;
+
+                    SKPoint p0 = new(left, top1);
+                    SKPoint p1 = new(right, top1);
+                    SKPoint p2 = new(right, bottom1);
+                    SKPoint p3 = new(left, bottom1);
+
+                    SKPoint c0 = new(left - laneStep * 0.2f, center);
+                    SKPoint c1 = new(right + laneStep * 0.2f, center);
+
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.QuadTo(c1, p2);
+                    path.LineTo(p3);
+                    path.QuadTo(c0, p0);
+                    path.Close();
+
+                    left += laneStep * 0.07f;
+                    right -= laneStep * 0.07f;
+                    p0 = new(left, top2);
+                    p1 = new(right, top2);
+                    p2 = new(right, bottom2);
+                    p3 = new(left, bottom2);
+
+                    c0 = new(left - laneStep * 0.2f, center);
+                    c1 = new(right + laneStep * 0.2f, center);
+
+                    path.MoveTo(p1);
+                    path.LineTo(p0);
+                    path.QuadTo(c0, p3);
+                    path.LineTo(p2);
+                    path.QuadTo(c1, p1);
+                    path.Close();
+                }
+
+                canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
+
+                /*float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][0];
                 float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][1];
                 float radius2 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][2];
                 float radius3 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][3];
-                
+
                 SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
                 SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
                 SKRect rect2 = new(canvasInfo.Center.X - radius2, canvasInfo.Center.Y - radius2, canvasInfo.Center.X + radius2, canvasInfo.Center.Y + radius2);
                 SKRect rect3 = new(canvasInfo.Center.X - radius3, canvasInfo.Center.Y - radius3, canvasInfo.Center.X + radius3, canvasInfo.Center.Y + radius3);
-                
+
                 float startAngle = positionable.Position * -6;
                 float sweepAngle = positionable.Size * -6;
-                
+
                 float endAngle = startAngle + sweepAngle;
-                
+
                 SKPath path = new();
-                
+
                 SKPoint control0 = RenderUtils.PointOnArc(canvasInfo.Center, radius, endAngle + 0.25f);
                 SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, endAngle + 2.5f);
 
                 SKPoint control1 = RenderUtils.PointOnArc(canvasInfo.Center, radius, startAngle - 0.25f);
                 SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, startAngle - 2.5f);
-                
+
                 SKPoint control2 = RenderUtils.PointOnArc(canvasInfo.Center, radius, startAngle - 1.1f);
                 SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, startAngle - 2.55f);
-                
+
                 SKPoint control3 = RenderUtils.PointOnArc(canvasInfo.Center, radius, endAngle + 1.1f);
                 SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, endAngle + 2.55f);
 
@@ -920,73 +1034,135 @@ public static class Renderer2D
                 path.ArcTo(rect3, endAngle + 2.5f, -sweepAngle - 5f, false);
                 path.QuadTo(control1, p1);
                 path.Close();
-                
+
                 path.ArcTo(rect1, endAngle + 2.55f, -sweepAngle - 5.1f, true);
                 path.QuadTo(control2, p2);
                 path.ArcTo(rect2, startAngle - 2.55f, sweepAngle + 5.1f, false);
                 path.QuadTo(control3, p3);
                 path.Close();
-                
-                canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
-            }*/
+
+                canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));*/
+            }
         }
-        
+
         // Chain Stripes
-        if (note is ChainNote)
+        if (note is ChainNote && positionable.Size > 2)
         {
-            // TODO
-            /*int stripes = positionable.Size * 2;
+            int offsetPosition = positionable.Position < 15
+                ? positionable.Position + 45
+                : positionable.Position - 15;
 
-            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-            float start = (positionable.Position + 1) * -6;
+            float left = positionable.Size == 60 
+                ? MarginLeft 
+                : MarginLeft + offsetPosition * laneStep;
 
+            int stripes = positionable.Size * 2;
             SKPath path = new();
 
-            for (int i = 0; i < stripes; i++)
-            {
-                if (positionable.Size != 60)
-                {
-                    if (i == 0) continue;
-                    if (i >= stripes - 3) continue;
-                    
-                    if (i == 1)
-                    {
-                        SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 3);
-                        SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 1.5f);
-                        SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 3);
+            bool wrap = offsetPosition + positionable.Size > 60;
 
-                        path.MoveTo(p4);
-                        path.LineTo(p5);
-                        path.LineTo(p6);
+            if (wrap && positionable.Size != 60)
+            {
+                int startRight = 3;
+                int endRight = (60 - offsetPosition) * 2;
+
+                if (startRight < endRight)
+                {
+                    SKPoint start0 = new(left + (startRight - 1) * laneStep * 0.5f, top);
+                    SKPoint start1 = new(left + (startRight - 1) * laneStep * 0.5f, bottom);
+                    SKPoint start2 = new(left + (startRight - 1) * laneStep * 0.5f + laneStep * 0.25f, bottom);
+                    path.MoveTo(start0);
+                    path.LineTo(start1);
+                    path.LineTo(start2);
+                    
+                    for (int i = startRight; i < endRight; i++)
+                    {
+                        SKPoint p0 = new(left + i * laneStep * 0.5f, top);
+                        SKPoint p1 = new(left + i * laneStep * 0.5f - laneStep * 0.25f, top);
+                        SKPoint p2 = new(left + i * laneStep * 0.5f, bottom);
+                        SKPoint p3 = new(left + i * laneStep * 0.5f + laneStep * 0.25f, bottom);
+
+                        path.MoveTo(p0);
+                        path.LineTo(p1);
+                        path.LineTo(p2);
+                        path.LineTo(p3);
                     }
                     
-                    if (i == stripes - 4)
-                    {
-                        SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3);
-                        SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
-                        SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
-                        
-                        path.MoveTo(p4);
-                        path.LineTo(p5);
-                        path.LineTo(p6);
-                        
-                        continue;
-                    }
+                    SKPoint end0 = new(left + (endRight) * laneStep * 0.5f, top);
+                    SKPoint end1 = new(left + (endRight) * laneStep * 0.5f - laneStep * 0.25f, top);
+                    SKPoint end2 = new(left + (endRight) * laneStep * 0.5f, bottom);
+                    path.MoveTo(end0);
+                    path.LineTo(end1);
+                    path.LineTo(end2);
                 }
 
-                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3);
-                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 - 1.5f);
-                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
-                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
+                int startLeft = 1;
+                int endLeft = (positionable.Size - (61 - offsetPosition)) * 2;
+                
+                if (startLeft < endLeft)
+                {
+                    SKPoint start0 = new(MarginLeft + (startLeft - 1) * laneStep * 0.5f, top);
+                    SKPoint start1 = new(MarginLeft + (startLeft - 1) * laneStep * 0.5f, bottom);
+                    SKPoint start2 = new(MarginLeft + (startLeft - 1) * laneStep * 0.5f + laneStep * 0.25f, bottom);
+                    path.MoveTo(start0);
+                    path.LineTo(start1);
+                    path.LineTo(start2);
+                    
+                    for (int i = startLeft; i < endLeft; i++)
+                    {
+                        SKPoint p0 = new(MarginLeft + i * laneStep * 0.5f, top);
+                        SKPoint p1 = new(MarginLeft + i * laneStep * 0.5f - laneStep * 0.25f, top);
+                        SKPoint p2 = new(MarginLeft + i * laneStep * 0.5f, bottom);
+                        SKPoint p3 = new(MarginLeft + i * laneStep * 0.5f + laneStep * 0.25f, bottom);
 
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-                path.LineTo(p3);
+                        path.MoveTo(p0);
+                        path.LineTo(p1);
+                        path.LineTo(p2);
+                        path.LineTo(p3);
+                    }
+                    
+                    SKPoint end0 = new(MarginLeft + (endLeft) * laneStep * 0.5f, top);
+                    SKPoint end1 = new(MarginLeft + (endLeft) * laneStep * 0.5f - laneStep * 0.25f, top);
+                    SKPoint end2 = new(MarginLeft + (endLeft) * laneStep * 0.5f, bottom);
+                    path.MoveTo(end0);
+                    path.LineTo(end1);
+                    path.LineTo(end2);
+                }
             }
+            else
+            {
+                int start = positionable.Size == 60 ? 1 : 3;
+                int end = positionable.Size == 60 ? stripes : stripes - 2;
+                
+                SKPoint start0 = new(left + (start - 1) * laneStep * 0.5f, top);
+                SKPoint start1 = new(left + (start - 1) * laneStep * 0.5f, bottom);
+                SKPoint start2 = new(left + (start - 1) * laneStep * 0.5f + laneStep * 0.25f, bottom);
+                path.MoveTo(start0);
+                path.LineTo(start1);
+                path.LineTo(start2);
+                
+                for (int i = start; i < end; i++)
+                {
+                    SKPoint p0 = new(left + i * laneStep * 0.5f, top);
+                    SKPoint p1 = new(left + i * laneStep * 0.5f - laneStep * 0.25f, top);
+                    SKPoint p2 = new(left + i * laneStep * 0.5f, bottom);
+                    SKPoint p3 = new(left + i * laneStep * 0.5f + laneStep * 0.25f, bottom);
 
-            canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));*/
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.LineTo(p2);
+                    path.LineTo(p3);
+                }
+                
+                SKPoint end0 = new(left + (end) * laneStep * 0.5f, top);
+                SKPoint end1 = new(left + (end) * laneStep * 0.5f - laneStep * 0.25f, top);
+                SKPoint end2 = new(left + (end) * laneStep * 0.5f, bottom);
+                path.MoveTo(end0);
+                path.LineTo(end1);
+                path.LineTo(end2);
+            }
+            
+            canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));
         }
 
         // Bonus Triangles
@@ -1233,6 +1409,48 @@ public static class Renderer2D
             DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, positionable.Position, positionable.Size, selected, pointerOver);
         }
     }
+
+    private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float depth, float laneStep, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        if (depth is <= 0 or > 1.25f) return;
+
+        float center = depth * (canvasInfo.Height - JudgementLineOffset);
+        float top = center + 10 * NoteThicknessMultiplier;
+        float bottom = center - 10 * NoteThicknessMultiplier;
+        
+        if (note.Size == 60)
+        {
+            SKRect rect = new(MarginLeft, top, canvasInfo.Width - MarginRight, bottom);
+            canvas.DrawRect(rect, NotePaints.GetSyncConnectorPaint_2D(settings, top, bottom, opacity));
+        }
+        else
+        {
+            int offsetPosition = note.Position < 15 
+            ? note.Position + 45 
+            : note.Position - 15;
+            bool wrap = offsetPosition + note.Size > 60;
+
+            if (wrap)
+            {
+                
+            }
+            else
+            {
+                float left = MarginLeft + offsetPosition * laneStep;
+                float right = MarginLeft + (offsetPosition + note.Size) * laneStep;
+                
+                SKRect rect = new(left, top, right, bottom);
+                canvas.DrawRect(rect, NotePaints.GetSyncConnectorPaint_2D(settings, top, bottom, opacity));
+            }
+        }
+        
+        // Selection outline.
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, note.Position, note.Size, selected, pointerOver);
+        }
+    }
     
     /// <summary>
     /// Draws a selection outline.
@@ -1256,7 +1474,7 @@ public static class Renderer2D
             : position - 15;
             bool wrap = offsetPosition + size > 60;
             
-            float capDiameter = 9 * canvasInfo.ScaleX;
+            const float capDiameter = 9;
 
             if (wrap)
             {
