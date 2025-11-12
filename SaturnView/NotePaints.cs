@@ -1221,13 +1221,13 @@ internal static class NotePaints
         IsAntialias = false,
     };
 
-    internal static SKPaint GetJudgementLinePaint_2D(RenderSettings settings, float left, float right, float y)
+    internal static SKPaint GetJudgementLinePaint_2D(RenderSettings settings, float left, float right, float y, float noteThicknessMultiplier)
     {
-        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness];
-        float top = y - strokeWidth * 0.5f;
-        float bottom = y + strokeWidth * 0.5f;
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness] * noteThicknessMultiplier * 2f;
+        float top = y - strokeWidth;
+        float bottom = y + strokeWidth;
         
-        ShaderStrokePaint.StrokeWidth = strokeWidth * 1.75f;
+        ShaderStrokePaint.StrokeWidth = strokeWidth;
         ShaderStrokePaint.Color = new(0xFFFFFFFF);
         
         SKColor sweepColorA = new(NoteColors.JudgeLineStartFromOption(settings.JudgementLineColor));
@@ -1242,6 +1242,109 @@ internal static class NotePaints
         ShaderStrokePaint.Shader = SKShader.CreateCompose(shadeGradient, sweepGradient, SKBlendMode.Modulate);
         
         return ShaderStrokePaint;
+    }
+    
+    internal static SKPaint GetMeasureLinePaint_2D(float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 2;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = NoteColorMeasureLine.WithAlpha((byte)(opacity * 255));
+
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetBeatLinePaint_2D(float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 1;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = NoteColorBeatLine.WithAlpha((byte)(opacity * 90));
+
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetNoteBasePaint_2D(RenderSettings settings, int colorId, float top, float bottom, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
+            
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness];
+        ShaderFillPaint.StrokeWidth = strokeWidth;
+
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+        SKColor colorDark = GetNoteColorDark(colorId);
+        
+        SKColor[] colors = [colorLight, colorBase, colorDark, colorDark, colorBase, colorBase, colorLight];
+        float[] positions =
+        [
+            -0.100f,
+            NoteGradientPos1[(int)settings.NoteThickness],
+            NoteGradientPos2[(int)settings.NoteThickness],
+            NoteGradientPos3[(int)settings.NoteThickness],
+            NoteGradientPos4[(int)settings.NoteThickness],
+            NoteGradientPos5[(int)settings.NoteThickness],
+            1.100f,
+        ];
+        
+        SKShader shader = SKShader.CreateLinearGradient(new(0, top), new(0, bottom), colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
+    
+    internal static SKPaint GetNoteBonusPaint_2D(RenderSettings settings, int colorId, float top, float bottom, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorBase(colorId).WithAlpha((byte)(opacity * 255));
+            
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        float strokeWidth = NoteStrokeWidths[(int)settings.NoteThickness];
+        ShaderFillPaint.StrokeWidth = strokeWidth;
+
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+        
+        SKColor[] colors = [colorLight, colorBase, colorBase, colorLight];
+        float[] positions = [-0.100f, 0.4f, 0.6f, 1.100f,];
+        
+        SKShader shader = SKShader.CreateLinearGradient(new(0, top), new(0, bottom), colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
+    }
+    
+    internal static SKPaint GetNoteCapPaint_2D(RenderSettings settings, float top, float bottom, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = NoteColorCapBase.WithAlpha((byte)(opacity * 255));
+            
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+
+        SKColor[] colors = [NoteColorCapLight, NoteColorCapBase, NoteColorCapDark, NoteColorCapBase, NoteColorCapLight];
+        float[] positions = [0.05f, 0.25f, 0.50f, 0.75f, 0.95f];
+        
+        SKShader shader = SKShader.CreateLinearGradient(new(0, top), new(0, bottom), colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+
+        return ShaderFillPaint;
     }
 #endregion 2D
 }

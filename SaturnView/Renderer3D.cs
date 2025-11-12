@@ -9,7 +9,7 @@ namespace SaturnView;
 
 public static class Renderer3D
 {
-    private static readonly float[][] SyncOutlineRadius = 
+    private static readonly float[][] SyncOutlineMultiplier = 
     [
         [0.971f, 0.983f, 1.014f, 1.026f, 0.977f, 1.020f],
         [0.963f, 0.975f, 1.025f, 1.037f, 0.969f, 1.031f],
@@ -1019,8 +1019,8 @@ public static class Renderer3D
         {
             if (positionable.Size == 60)
             {
-                float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4];
-                float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5];
+                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][4];
+                float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][5];
 
                 SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
                 canvas.DrawCircle(canvasInfo.Center, radius0, paint);
@@ -1028,10 +1028,10 @@ public static class Renderer3D
             }
             else
             {
-                float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][0];
-                float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][1];
-                float radius2 = radius * SyncOutlineRadius[(int)settings.NoteThickness][2];
-                float radius3 = radius * SyncOutlineRadius[(int)settings.NoteThickness][3];
+                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][0];
+                float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][1];
+                float radius2 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][2];
+                float radius3 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][3];
                 
                 SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
                 SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
@@ -2109,8 +2109,8 @@ public static class Renderer3D
     /// </summary>
     private static void DrawSelectionOutline(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float radius, float pixelScale, int position, int size, bool selected, bool pointerOver)
     {
-        float radius0 = radius * SyncOutlineRadius[(int)settings.NoteThickness][4] * 0.99f;
-        float radius1 = radius * SyncOutlineRadius[(int)settings.NoteThickness][5] * 1.01f;
+        float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][4] * 0.99f;
+        float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][5] * 1.01f;
         SKPath path = new();
         
         if (size == 60)

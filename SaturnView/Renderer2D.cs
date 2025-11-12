@@ -9,9 +9,19 @@ namespace SaturnView;
 
 public static class Renderer2D
 {
-    private const float MarginLeft = 100;
+    private const float MarginLeft = 70;
     private const float MarginRight = 140;
-    private const float JudgementLineOffset = 30;
+    private const float JudgementLineOffset = 100;
+    private const float NoteThicknessMultiplier = 0.15f;
+    
+    private static readonly float[][] SyncOutlineOffset = 
+    [
+        [-15.37f * 2,  -9.01f * 2,  7.42f * 2, 13.78f * 2, -12.19f * 2, 10.60f * 2],
+        [-19.61f * 2, -13.25f * 2, 13.25f * 2, 19.61f * 2, -16.43f * 2, 16.43f * 2],
+        [-28.62f * 2, -22.26f * 2, 22.79f * 2, 29.15f * 2, -25.44f * 2, 25.97f * 2],
+        [-39.22f * 2, -32.86f * 2, 33.39f * 2, 39.75f * 2, -36.04f * 2, 36.57f * 2],
+        [-47.70f * 2, -41.34f * 2, 42.40f * 2, 48.76f * 2, -45.05f * 2, 45.58f * 2],
+    ];
     
     public static void Render(SKCanvas canvas,
         CanvasInfo canvasInfo,
@@ -26,7 +36,7 @@ public static class Renderer2D
         RenderBoxSelectData? boxSelect,
         Note? cursorNote)
     {
-        float viewDistance = GetViewDistance(zoomLevel);
+        float viewDistance = GetViewDistance(zoomLevel, canvasInfo);
         float laneStep = (canvasInfo.Width - MarginLeft - MarginRight) / 60;
         
         List<RenderObject> objectsToDraw = [];
@@ -48,6 +58,8 @@ public static class Renderer2D
         DrawJudgementLine(canvas, canvasInfo, settings);
         DrawLanes(canvas, canvasInfo, laneStep);
 
+        renderObjects();
+        
         if (boxSelect != null)
         {
             DrawBoxSelect(canvas, canvasInfo, time, viewDistance, boxSelect.Value, laneStep);
@@ -59,19 +71,6 @@ public static class Renderer2D
         {
             if (chart.Layers.Count == 0) return;
             
-            float scaledTime = Timestamp.ScaledTimeFromTime(chart.Layers[0], time);
-            
-            bool checkForBonusNotes = settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.AlwaysOn
-                                || settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && playing
-                                || settings.BonusEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused && !playing;
-            
-            bool checkForRNotes = settings.RNoteEffectOpacity != 0 &&
-                                  (
-                                         settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.AlwaysOn
-                                      || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPlaying && playing
-                                      || settings.RNoteEffectVisibility == RenderSettings.EffectVisibilityOption.OnlyWhenPaused  && !playing
-                                  );
-
             bool checkForJudgeAreas = settings.ShowJudgeAreas &&
                                          (
                                                 settings.ShowGoodArea
@@ -84,7 +83,7 @@ public static class Renderer2D
             {
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(@event.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
             }
 
@@ -93,7 +92,7 @@ public static class Renderer2D
             {
                 if (settings.HideBookmarksDuringPlayback && playing) break;
                 
-                if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, bookmark.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
+                if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
                 objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
             }
             
@@ -118,11 +117,6 @@ public static class Renderer2D
             {
                 Layer layer = chart.Layers[l];
 
-                if (l != 0)
-                {
-                    scaledTime = Timestamp.ScaledTimeFromTime(layer, time);
-                }
-
                 // Find all visible events.
                 foreach (Event @event in layer.Events)
                 {
@@ -134,13 +128,13 @@ public static class Renderer2D
                         Timestamp end = stopEffectEvent.SubEvents[1].Timestamp;
                         
                         // Start Marker
-                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
+                        if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // End Marker
-                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
+                        if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
@@ -158,19 +152,19 @@ public static class Renderer2D
                         Timestamp end = reverseEffectEvent.SubEvents[2].Timestamp;
                         
                         // Start Marker
-                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
+                        if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // Middle Marker
-                        if (RenderUtils.GetProgress(middle.Time, middle.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
+                        if (RenderUtils.GetProgress(middle.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                         
                         // End Marker
-                        if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t2))
+                        if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t2))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
@@ -183,25 +177,16 @@ public static class Renderer2D
                     }
                     else
                     {
-                        if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(@event.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                     }
                 }
-                
-                VisibilityChangeEvent? lastVisibilityChange = layer.LastVisibilityChange(time);
-                if (settings.ShowVisibilityChanges && lastVisibilityChange != null && !lastVisibilityChange.Visibility) continue;
-                
-                ReverseEffectEvent? lastReverseEffect = layer.LastReverseEffect(time);
-                bool reverseActive = settings.ShowSpeedChanges && lastReverseEffect != null && lastReverseEffect.IsActive(time);
                 
                 // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
                     Note note = layer.Notes[n];
                     
-                    // Non-reversed notes are hidden during a reverse.
-                    if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
-
                     if (note is IPlayable playable)
                     {
                         // Timing windows
@@ -210,13 +195,13 @@ public static class Renderer2D
                             if (timingWindowVisible())
                             {
                                 // Long names for everything........
-                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousEarly,        playable.JudgeArea.ScaledMarvelousEarly,        settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvEarly);
-                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousLate,         playable.JudgeArea.ScaledMarvelousLate,         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float marvLate);
-                                RenderUtils.GetProgress(playable.JudgeArea.GreatEarly,            playable.JudgeArea.ScaledGreatEarly,            settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatEarly);
-                                RenderUtils.GetProgress(playable.JudgeArea.GreatLate,             playable.JudgeArea.ScaledGreatLate,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float greatLate);
-                                RenderUtils.GetProgress(playable.JudgeArea.GoodEarly,             playable.JudgeArea.ScaledGoodEarly,             settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodEarly);
-                                RenderUtils.GetProgress(playable.JudgeArea.GoodLate,              playable.JudgeArea.ScaledGoodLate,              settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float goodLate);
-                                RenderUtils.GetProgress(note.Timestamp.Time,                         note.Timestamp.ScaledTime,                         settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float noteScale);
+                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousEarly, 0, false, viewDistance, time, 0, out float marvEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.MarvelousLate,  0, false, viewDistance, time, 0, out float marvLate);
+                                RenderUtils.GetProgress(playable.JudgeArea.GreatEarly,     0, false, viewDistance, time, 0, out float greatEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.GreatLate,      0, false, viewDistance, time, 0, out float greatLate);
+                                RenderUtils.GetProgress(playable.JudgeArea.GoodEarly,      0, false, viewDistance, time, 0, out float goodEarly);
+                                RenderUtils.GetProgress(playable.JudgeArea.GoodLate,       0, false, viewDistance, time, 0, out float goodLate);
+                                RenderUtils.GetProgress(note.Timestamp.Time,               0, false, viewDistance, time, 0, out float noteScale);
                                 
                                 marvEarly     = Math.Max(0, marvEarly);
                                 marvLate      = Math.Max(0, marvLate);
@@ -231,17 +216,8 @@ public static class Renderer2D
 
                             bool timingWindowVisible()
                             {
-                                if (settings.ShowSpeedChanges)
-                                {
-                                    if (playable.JudgeArea.MaxLate < time) return false;
-                                    if (playable.JudgeArea.ScaledMaxLate < scaledTime) return false;
-                                    if (playable.JudgeArea.ScaledMaxEarly > scaledTime + viewDistance) return false;
-                                }
-                                else
-                                {
-                                    if (playable.JudgeArea.MaxLate < time) return false;
-                                    if (playable.JudgeArea.MaxEarly > time + viewDistance) return false;
-                                }
+                                if (playable.JudgeArea.MaxLate < time) return false;
+                                if (playable.JudgeArea.MaxEarly > time + viewDistance) return false;
 
                                 return true;
                             }
@@ -251,17 +227,8 @@ public static class Renderer2D
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
-                        if (settings.ShowSpeedChanges)
-                        {
-                            if (holdNote.Points[^1].Timestamp.Time < time) continue;
-                            if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
-                            if (holdNote.Points[ 0].Timestamp.ScaledTime > scaledTime + viewDistance) continue;
-                        }
-                        else
-                        {
-                            if (holdNote.Points[^1].Timestamp.Time < time) continue;
-                            if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) continue;
-                        }
+                        if (holdNote.Points[^1].Timestamp.Time < time) continue;
+                        if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) continue;
                         
                         bool isVisible = layer.Visible && RenderUtils.IsVisible(holdNote, settings, activeObjectGroup);
                         
@@ -269,7 +236,7 @@ public static class Renderer2D
                         
                         // Hold Start
                         Timestamp start = holdNote.Points[0].Timestamp;
-                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
+                        if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float tStart))
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -280,7 +247,7 @@ public static class Renderer2D
 
                         // Hold End
                         Timestamp end = holdNote.Points[^1].Timestamp;
-                        if (holdNote.Points.Count > 1 && RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
+                        if (holdNote.Points.Count > 1 && RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float tEnd))
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
@@ -293,9 +260,7 @@ public static class Renderer2D
                                 if (settings.HideHoldControlPointsDuringPlayback && playing) break;
                                 
                                 HoldPointNote point = holdNote.Points[j];
-                                float t = settings.ShowSpeedChanges
-                                    ? 1 - (point.Timestamp.ScaledTime - scaledTime) / viewDistance
-                                    : 1 - (point.Timestamp.Time - time) / viewDistance;
+                                float t = 1 - (point.Timestamp.Time - time) / viewDistance;
 
                                 objectsToDraw.Add(new(point, layer, l, t, false, isVisible));
                             }
@@ -304,7 +269,7 @@ public static class Renderer2D
                     else
                     {
                         // Normal Notes
-                        if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                        if (!RenderUtils.GetProgress(note.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
 
                         Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                         Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -317,8 +282,7 @@ public static class Renderer2D
                 // Find all visible generated notes.
                 foreach (Note note in layer.GeneratedNotes)
                 {
-                    if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
-                    if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
+                    if (!RenderUtils.GetProgress(note.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
 
                     objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
                 }
@@ -451,20 +415,19 @@ public static class Renderer2D
                 else if (renderObject.Object is MeasureLineNote measureLineNote)
                 {
                     if (!settings.ShowBeatLineNotes && measureLineNote.IsBeatLine) return;
-                    
-                    // TODO
-                    /*DrawMeasureLineNote
+
+                    DrawMeasureLineNote
                     (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
-                        perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
-                        linearScale: renderObject.Scale,
+                        depth: renderObject.Scale,
+                        laneStep: laneStep,
                         isBeatLine: measureLineNote.IsBeatLine,
                         opacity: opacity,
                         selected: selected,
                         pointerOver: pointerOver
-                    );*/
+                    );
                 }
                 else if (renderObject.Object is ILaneToggle laneToggle)
                 {
@@ -490,20 +453,19 @@ public static class Renderer2D
                 }
                 else if (renderObject.Object is Note note)
                 {
-                    // TODO
-                    /*DrawNote
+                    DrawNote
                     (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
-                        perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
-                        linearScale: renderObject.Scale,
+                        depth: renderObject.Scale,
+                        laneStep: laneStep,
                         sync: renderObject.Sync,
                         opacity: opacity,
                         note: note,
                         selected: selected,
                         pointerOver: pointerOver
-                    );*/
+                    );
                 }
                 else if (renderObject.Object is Event @event)
                 {
@@ -578,17 +540,16 @@ public static class Renderer2D
     /// <param name="x">The x-coordinate of the pixel.</param>
     /// <param name="y">The y-coordinate of the pixel.</param>
     /// <param name="time">The current time.</param>
-    /// <param name="scaledTime">The current scaled time.</param>
     /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
     /// <param name="settings">The current render settings.</param>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, float x, float y, float time, CanvasInfo canvasInfo, RenderSettings settings, ITimeable? activeObjectGroup)
     {
-        float viewDistance = GetViewDistance(settings.NoteSpeed);
+        float viewDistance = GetViewDistance(settings.NoteSpeed, canvasInfo);
         float threshold = GetHitTestThreshold(canvasInfo, settings.NoteThickness);
         float depth = GetHitTestPointerDepth(canvasInfo, y);
         int lane = GetHitTestPointerLane(canvasInfo, x);
         
-        return HitTest(obj, depth, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings, activeObjectGroup);
+        return HitTest(obj, depth, lane, time, viewDistance, threshold, settings, activeObjectGroup);
     }
     
     /// <summary>
@@ -598,12 +559,10 @@ public static class Renderer2D
     /// <param name="depth">The 0-1 radius of the radial coordinate.</param>
     /// <param name="lane">The 0-59 lane of the radial coordinate.</param>
     /// <param name="time">The current time.</param>
-    /// <param name="scaledTime">The current scaled time.</param>
     /// <param name="viewDistance">The current view distance.</param>
-    /// <param name="showSpeedChanges">Should speed changes be taken into account?</param>
     /// <param name="threshold">The radius threshold for hit testing.</param>
     /// <returns></returns>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float depth, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, float depth, int lane, float time, float viewDistance, float threshold, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         if (lane is > 59 or < 0) return IPositionable.OverlapResult.None;
 
@@ -646,23 +605,15 @@ public static class Renderer2D
         {
             if (holdNote.Points[^1].Timestamp.Time < time) return IPositionable.OverlapResult.None;
 
-            if (showSpeedChanges)
-            {
-                if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) return IPositionable.OverlapResult.None;
-                if (holdNote.Points[0].Timestamp.ScaledTime > scaledTime + viewDistance) return IPositionable.OverlapResult.None;
-            }
-            else
-            {
-                if (holdNote.Points[0].Timestamp.Time > time + viewDistance) return IPositionable.OverlapResult.None;
-            }
+            if (holdNote.Points[0].Timestamp.Time > time + viewDistance) return IPositionable.OverlapResult.None;
 
             for (int i = 1; i < holdNote.Points.Count; i++)
             {
                 HoldPointNote start = holdNote.Points[i - 1];
                 HoldPointNote end = holdNote.Points[i];
 
-                RenderUtils.GetProgress(start.Timestamp.Time, start.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float startProgress);
-                RenderUtils.GetProgress(end.Timestamp.Time, end.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float endProgress);
+                RenderUtils.GetProgress(start.Timestamp.Time, 0, false, viewDistance, time, 0, out float startProgress);
+                RenderUtils.GetProgress(end.Timestamp.Time, 0, false, viewDistance, time, 0, out float endProgress);
                 startProgress = RenderUtils.Perspective(startProgress);
                 endProgress = RenderUtils.Perspective(endProgress);
 
@@ -684,7 +635,7 @@ public static class Renderer2D
 
         IPositionable.OverlapResult hitTestObject(ITimeable t)
         {
-            if (!RenderUtils.GetProgress(t.Timestamp.Time, t.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float progress)) return IPositionable.OverlapResult.None;
+            if (!RenderUtils.GetProgress(t.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) return IPositionable.OverlapResult.None;
             if (Math.Abs(depth - progress) > threshold) return IPositionable.OverlapResult.None;
             
             if (t is IPositionable positionable)
@@ -700,7 +651,7 @@ public static class Renderer2D
     /// Returns the view distance in milliseconds.
     /// </summary>
     /// <param name="zoomLevel">The current note speed.</param>
-    public static float GetViewDistance(int zoomLevel) => 3333.333f * zoomLevel * 0.1f;
+    public static float GetViewDistance(int zoomLevel, CanvasInfo canvasInfo) => 3333.333f * zoomLevel * 0.1f * canvasInfo.ScaleY;
 
     /// <summary>
     /// Returns the hit test threshold, based on the current note thickness.
@@ -710,7 +661,7 @@ public static class Renderer2D
     /// <returns></returns>
     public static float GetHitTestThreshold(CanvasInfo canvasInfo, RenderSettings.NoteThicknessOption noteThickness)
     {
-        return ((NotePaints.NoteStrokeWidths[(int)noteThickness] * canvasInfo.Scale3D) / canvasInfo.Radius) * 0.5f;
+        return (NotePaints.NoteStrokeWidths[(int)noteThickness] / canvasInfo.Radius) * 0.5f * NoteThicknessMultiplier;
     }
 
     /// <summary>
@@ -756,9 +707,605 @@ public static class Renderer2D
         float y = canvasInfo.Height - JudgementLineOffset;
         float right = canvasInfo.Width - MarginRight + 1;
         
-        canvas.DrawLine(MarginLeft, y, right, y, NotePaints.GetJudgementLinePaint_2D(settings, MarginLeft, right, y));
+        canvas.DrawLine(MarginLeft, y, right, y, NotePaints.GetJudgementLinePaint_2D(settings, MarginLeft, right, y, NoteThicknessMultiplier));
     }
 
+    private static void DrawMeasureLineNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float depth, float laneStep, bool isBeatLine, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        
+        float y = depth * (canvasInfo.Height - JudgementLineOffset);
+        
+        if (isBeatLine)
+        {
+            canvas.DrawLine(MarginLeft, y, canvasInfo.Width - MarginRight, y, NotePaints.GetBeatLinePaint_2D(opacity));
+        }
+        else
+        {
+            canvas.DrawLine(MarginLeft, y, canvasInfo.Width - MarginRight, y, NotePaints.GetMeasureLinePaint_2D(opacity));
+        }
+
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, 0, 60, selected, pointerOver);
+        }
+    }
+
+    private static void DrawNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, Note note, float depth, float laneStep, bool sync, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        if (depth is <= -0.1f or > 1.25f) return;
+        if (note is not IPositionable positionable) return;
+        
+        IPlayable? playable = note as IPlayable;
+        
+        int colorId = note switch
+        {
+            TouchNote                 => (int)settings.TouchNoteColor,
+            ChainNote                 => (int)settings.ChainNoteColor,
+            HoldNote                  => (int)settings.HoldNoteColor,
+            SlideClockwiseNote        => (int)settings.SlideClockwiseNoteColor,
+            SlideCounterclockwiseNote => (int)settings.SlideCounterclockwiseNoteColor,
+            SnapForwardNote           => (int)settings.SnapForwardNoteColor,
+            SnapBackwardNote          => (int)settings.SnapBackwardNoteColor,
+            _ => -1,
+        };
+        
+        if (colorId == -1) return;
+
+        float center = depth * (canvasInfo.Height - JudgementLineOffset);
+        float top = depth * (canvasInfo.Height - JudgementLineOffset) + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
+        float bottom = depth * (canvasInfo.Height - JudgementLineOffset) - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * NoteThicknessMultiplier;
+        
+        // Note Body
+        if (positionable.Size == 60)
+        {
+            // R-Effect Glow
+            if (playable != null && playable.BonusType == BonusType.R)
+            {
+                canvas.DrawLine(MarginLeft, center, canvasInfo.Width - MarginRight, center, NotePaints.GetRNotePaint(settings, NoteThicknessMultiplier * 1.75f, opacity));
+            }
+
+            // Body
+            SKRect rect = new(MarginLeft, top, canvasInfo.Width - MarginRight, bottom);
+            canvas.DrawRect(rect, NotePaints.GetNoteBasePaint_2D(settings, colorId, top, bottom, opacity));
+        }
+        else
+        {
+            int offsetPosition = positionable.Position < 15 
+            ? positionable.Position + 45 
+            : positionable.Position - 15;
+
+            if (positionable.Size != 1)
+            {
+                int insetPosition = (offsetPosition + 1) % 60;
+                int insetSize = positionable.Size - 2;
+
+                bool wrapGlow = offsetPosition + positionable.Size > 60;
+                bool wrapNote = insetPosition + insetSize > 60;
+
+                // R-Effect Glow
+                if (playable != null && playable.BonusType == BonusType.R)
+                {
+                    if (wrapGlow)
+                    {
+                        float left1 = MarginLeft + offsetPosition % 60 * laneStep;
+                        float right1 = canvasInfo.Width - MarginRight;
+
+                        float left2 = MarginLeft;
+                        float right2 = MarginLeft + (offsetPosition + positionable.Size) % 60 * laneStep;
+
+                        canvas.DrawLine(left1 + laneStep * 0.5f, center, right1, center, NotePaints.GetRNotePaint(settings, NoteThicknessMultiplier * 1.75f, opacity));
+                        canvas.DrawLine(left2, center, right2 - laneStep * 0.5f, center, NotePaints.GetRNotePaint(settings, NoteThicknessMultiplier * 1.75f, opacity));
+                    }
+                    else
+                    {
+                        float left = MarginLeft + insetPosition * laneStep;
+                        float right = left + insetSize * laneStep;
+
+                        canvas.DrawLine(left - laneStep * 0.5f, center, right + laneStep * 0.5f, center, NotePaints.GetRNotePaint(settings, NoteThicknessMultiplier * 1.75f, opacity));
+                    }
+                }
+                
+                if (wrapNote)
+                {
+                    float left1 = MarginLeft + insetPosition * laneStep;
+                    float right1 = canvasInfo.Width - MarginRight;
+
+                    float left2 = MarginLeft;
+                    float right2 = MarginLeft + (insetPosition + insetSize) % 60 * laneStep;
+
+                    SKRect rect1 = new(left1, top, right1, bottom);
+                    SKRect rect2 = new(left2, top, right2, bottom);
+                    canvas.DrawRect(rect1, NotePaints.GetNoteBasePaint_2D(settings, colorId, top, bottom, opacity));
+                    canvas.DrawRect(rect2, NotePaints.GetNoteBasePaint_2D(settings, colorId, top, bottom, opacity));
+                }
+                else
+                {
+                    float left = MarginLeft + insetPosition * laneStep;
+                    float right = left + insetSize * laneStep;
+
+                    SKRect rect = new(left, top, right, bottom);
+                    canvas.DrawRect(rect, NotePaints.GetNoteBasePaint_2D(settings, colorId, top, bottom, opacity));
+                }
+            }
+            
+            // Caps
+            float capRight = MarginLeft + (offsetPosition + 1 % 60) * laneStep;
+            float capLeft = capRight - laneStep * 0.25f;
+
+            SKRect capRect = new(capLeft, top, capRight, bottom);
+            canvas.DrawRect(capRect, NotePaints.GetNoteCapPaint_2D(settings, top, bottom, opacity));
+            
+            if (positionable.Size > 1)
+            {
+                capLeft = MarginLeft + (offsetPosition + positionable.Size - 1) % 60 * laneStep;
+                capRight = capLeft + laneStep * 0.25f;
+                
+                capRect = new(capLeft, top, capRight, bottom);
+                canvas.DrawRect(capRect, NotePaints.GetNoteCapPaint_2D(settings, top, bottom, opacity));
+            }
+            
+            /*SKRect rect = new(canvasInfo.Center.X - radius, canvasInfo.Center.Y - radius, canvasInfo.Center.X + radius, canvasInfo.Center.Y + radius);
+
+            float start = (positionable.Position + 1) * -6;
+            float sweep = Math.Min(0, (positionable.Size - 2) * -6);
+
+            // R-Effect Glow
+            if (playable != null && playable.BonusType == BonusType.R)
+            {
+                canvas.DrawArc(rect, start + 3, sweep - 6, false, NotePaints.GetRNotePaint(settings, pixelScale, opacity));
+            }
+
+            // Body
+            canvas.DrawArc(rect, start, sweep, false, NotePaints.GetNoteBasePaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
+
+            // Caps
+            float capStart = positionable.Position * -6 - 4.5f;
+            canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
+
+            if (positionable.Size > 1)
+            {
+                capStart = (positionable.Position + positionable.Size - 1) * -6;
+                canvas.DrawArc(rect, capStart, -1.5f, false, NotePaints.GetNoteCapPaint(canvasInfo, settings, pixelScale, perspectiveScale, opacity));
+            }*/
+        }
+
+        // Sync Outline
+        if (sync)
+        {
+            // TODO
+            /*if (positionable.Size == 60)
+            {
+                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][4];
+                float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][5];
+
+                SKPaint paint = NotePaints.GetSyncOutlineStrokePaint(pixelScale, opacity);
+                canvas.DrawCircle(canvasInfo.Center, radius0, paint);
+                canvas.DrawCircle(canvasInfo.Center, radius1, paint);
+            }
+            else
+            {
+                float radius0 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][0];
+                float radius1 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][1];
+                float radius2 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][2];
+                float radius3 = radius * SyncOutlineMultiplier[(int)settings.NoteThickness][3];
+                
+                SKRect rect0 = new(canvasInfo.Center.X - radius0, canvasInfo.Center.Y - radius0, canvasInfo.Center.X + radius0, canvasInfo.Center.Y + radius0);
+                SKRect rect1 = new(canvasInfo.Center.X - radius1, canvasInfo.Center.Y - radius1, canvasInfo.Center.X + radius1, canvasInfo.Center.Y + radius1);
+                SKRect rect2 = new(canvasInfo.Center.X - radius2, canvasInfo.Center.Y - radius2, canvasInfo.Center.X + radius2, canvasInfo.Center.Y + radius2);
+                SKRect rect3 = new(canvasInfo.Center.X - radius3, canvasInfo.Center.Y - radius3, canvasInfo.Center.X + radius3, canvasInfo.Center.Y + radius3);
+                
+                float startAngle = positionable.Position * -6;
+                float sweepAngle = positionable.Size * -6;
+                
+                float endAngle = startAngle + sweepAngle;
+                
+                SKPath path = new();
+                
+                SKPoint control0 = RenderUtils.PointOnArc(canvasInfo.Center, radius, endAngle + 0.25f);
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, endAngle + 2.5f);
+
+                SKPoint control1 = RenderUtils.PointOnArc(canvasInfo.Center, radius, startAngle - 0.25f);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, startAngle - 2.5f);
+                
+                SKPoint control2 = RenderUtils.PointOnArc(canvasInfo.Center, radius, startAngle - 1.1f);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, startAngle - 2.55f);
+                
+                SKPoint control3 = RenderUtils.PointOnArc(canvasInfo.Center, radius, endAngle + 1.1f);
+                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, endAngle + 2.55f);
+
+                path.ArcTo(rect0, startAngle - 2.5f, sweepAngle + 5f, true);
+                path.QuadTo(control0, p0);
+                path.ArcTo(rect3, endAngle + 2.5f, -sweepAngle - 5f, false);
+                path.QuadTo(control1, p1);
+                path.Close();
+                
+                path.ArcTo(rect1, endAngle + 2.55f, -sweepAngle - 5.1f, true);
+                path.QuadTo(control2, p2);
+                path.ArcTo(rect2, startAngle - 2.55f, sweepAngle + 5.1f, false);
+                path.QuadTo(control3, p3);
+                path.Close();
+                
+                canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
+            }*/
+        }
+        
+        // Chain Stripes
+        if (note is ChainNote)
+        {
+            // TODO
+            /*int stripes = positionable.Size * 2;
+
+            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+            float start = (positionable.Position + 1) * -6;
+
+            SKPath path = new();
+
+            for (int i = 0; i < stripes; i++)
+            {
+                if (positionable.Size != 60)
+                {
+                    if (i == 0) continue;
+                    if (i >= stripes - 3) continue;
+                    
+                    if (i == 1)
+                    {
+                        SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 3);
+                        SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 + 1.5f);
+                        SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 3);
+
+                        path.MoveTo(p4);
+                        path.LineTo(p5);
+                        path.LineTo(p6);
+                    }
+                    
+                    if (i == stripes - 4)
+                    {
+                        SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3);
+                        SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
+                        SKPoint p6 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
+                        
+                        path.MoveTo(p4);
+                        path.LineTo(p5);
+                        path.LineTo(p6);
+                        
+                        continue;
+                    }
+                }
+
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, start + i * -3 - 1.5f);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3);
+                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, start + i * -3 + 1.5f);
+
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+                path.LineTo(p3);
+            }
+
+            canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));*/
+        }
+
+        // Bonus Triangles
+        if (playable != null && playable.BonusType == BonusType.Bonus)
+        {
+            // TODO
+            /*SKPath path = new();
+            
+            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+
+            int count = positionable.Size == 60 
+                ? positionable.Size 
+                : positionable.Size - 2;
+            float start = positionable.Size == 60 
+                ? positionable.Position * -6
+                : positionable.Position * -6 - 6;
+            
+            for (int i = 0; i < count; i++)
+            {
+                bool even = i % 2 == 0;
+
+                float angleA = start + i * -6;
+                float angleB = start + (i + 1) * -6;
+
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleA : angleB);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, even ? angleA : angleB);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleB : angleA);
+
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+            }
+
+            canvas.DrawPath(path, NotePaints.GetNoteBonusPaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));*/
+        }
+        
+        // Snap Arrows
+        if (note is SnapForwardNote or SnapBackwardNote && positionable.Size > 2)
+        {
+            // TODO
+            /*bool flip = note is SnapBackwardNote;
+            
+            float radius0 = flip ? radius * 0.960f : radius * 0.725f;
+            float radius1 = flip ? radius * 0.899f : radius * 0.775f;
+            float radius2 = flip ? radius * 0.844f : radius * 0.830f;
+            float radius3 = flip ? radius * 0.794f : radius * 0.891f;
+            float radius4 = flip ? radius * 0.878f : radius * 0.802f;
+            float radius5 = radius * 0.840f;
+            float radius6 = flip ? radius * 0.766f : radius * 0.920f;
+            float radius7 = flip ? radius * 0.725f : radius * 0.960f;
+            
+            int count = positionable.Size / 3;
+            float startPosition = positionable.Position * -6;
+            
+            int m = positionable.Size % 3;
+            
+            if (m == 0)
+            {
+                startPosition -= 9;
+            }
+            else if (m == 1)
+            {
+                startPosition -= 12;
+            }
+            else
+            {
+                startPosition -= 15;
+            }
+            
+            SKPath path = new();
+            
+            for (int i = 0; i < count; i++)
+            {
+                const float arrowWidth = 4f;
+                const float arrowSpacing = 18;
+            
+                float arrowOffset = arrowSpacing * i;
+                
+                float center = startPosition - arrowOffset;
+                float left1  = startPosition - arrowOffset + arrowWidth;
+                float left2  = startPosition - arrowOffset + arrowWidth * (flip ? 1.01f : 0.97f);
+                float left3  = startPosition - arrowOffset + arrowWidth * (flip ? 1.04f : 0.94f);
+                float left4  = startPosition - arrowOffset + arrowWidth * (flip ? 1.07f : 0.93f);
+                
+                float right1 = startPosition - arrowOffset - arrowWidth;
+                float right2 = startPosition - arrowOffset - arrowWidth * (flip ? 1.01f : 0.97f);
+                float right3 = startPosition - arrowOffset - arrowWidth * (flip ? 1.04f : 0.94f);
+                float right4 = startPosition - arrowOffset - arrowWidth * (flip ? 1.07f : 0.93f);
+                
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, center);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, right1);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, right2);
+                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, center);
+                SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, left2);
+                SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, left1);
+                
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+                path.LineTo(p3);
+                path.LineTo(p4);
+                path.LineTo(p5);
+                path.Close();
+                
+                p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius4, center);
+                p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius6, right3);
+                p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius7, right4);
+                p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius5, center);
+                p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius7, left4);
+                p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius6, left3);
+                
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+                path.LineTo(p3);
+                path.LineTo(p4);
+                path.LineTo(p5);
+                path.Close();
+            }
+            
+            canvas.DrawPath(path, NotePaints.GetSnapFillPaint(canvasInfo, settings, colorId, perspectiveScale, opacity, flip));
+
+            if (!settings.LowPerformanceMode)
+            {
+                canvas.DrawPath(path, NotePaints.GetSnapStrokePaint(colorId, pixelScale, opacity));
+            }*/
+        }
+        
+        // Slide Arrows
+        if (note is SlideClockwiseNote or SlideCounterclockwiseNote)
+        {
+            // TODO
+            /*bool flip = note is SlideCounterclockwiseNote;
+
+            float scroll = flip
+                ? 1 - (linearScale * 6f % 1)
+                : linearScale * 6f % 1;
+            
+            float radius0 = radius * 0.790f;
+            float radius1 = radius * 0.864f;
+            float radius2 = radius * 0.938f;
+
+            float arrowCount = positionable.Size * 0.5f + 1;
+
+            float startAngle = positionable.Size * 6;
+            
+            SKPath path = new();
+            SKPath maskPath = new();
+            
+            // inner side
+            float maskAngle;
+            float maskRadius;
+            SKPoint maskPoint;
+            
+            for (int i = 0; i <= positionable.Size; i++)
+            {
+                float x = flip
+                    ? (float)i / positionable.Size
+                    : 1 - (float)i / positionable.Size;
+                
+                maskAngle = startAngle + i * -6;
+                maskRadius = radius1 + (radius2 - radius1) * slideArrowMask(x);
+
+                maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
+                if (i == 0) maskPath.MoveTo(maskPoint);
+                else maskPath.LineTo(maskPoint);
+            }
+            
+            // center point
+            maskAngle = startAngle + positionable.Size * -6;
+            maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, radius1, maskAngle);
+            maskPath.LineTo(maskPoint);
+            
+            // outer side
+            for (int i = positionable.Size; i >= 0; i--)
+            {
+                float x = flip
+                    ? (float)i / positionable.Size
+                    : 1 - (float)i / positionable.Size;
+                
+                maskAngle = startAngle + i * -6;
+                maskRadius = radius1 + (radius0 - radius1) * slideArrowMask(x);
+
+                maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
+                maskPath.LineTo(maskPoint);
+            }
+            
+            maskPath.Close();
+            
+            for (int i = 0; i < arrowCount; i++)
+            {
+                //    p0____p1
+                //   /     / 
+                // p5    p2
+                //   \     \
+                //   p4_____p3
+                
+                float angle = startAngle + (scroll - i - 0.5f) * 12;
+                float offset = flip ? -6 : 6;
+                
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, angle         );
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, angle - offset);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, angle         );
+                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, angle - offset);
+                SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, angle         );
+                SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, angle + offset);
+                
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+                path.LineTo(p3);
+                path.LineTo(p4);
+                path.LineTo(p5);
+                path.Close();
+            }
+            
+            
+            canvas.Save();
+            
+            canvas.RotateDegrees((positionable.Position + positionable.Size) * -6, canvasInfo.Center.X, canvasInfo.Center.Y);
+
+            canvas.ClipPath(maskPath, SKClipOperation.Intersect, true);
+            canvas.DrawPath(path, NotePaints.GetSlideFillPaint(canvasInfo, settings, positionable.Size, colorId, opacity, flip));
+            
+            if (!settings.LowPerformanceMode)
+            {
+                canvas.DrawPath(path, NotePaints.GetSlideStrokePaint(colorId, pixelScale, opacity));
+            }
+            
+            canvas.Restore();
+            
+            float slideArrowMask(float x)
+            {
+                return x < 0.88f 
+                    ? (0.653f * x + 0.175f) / 0.75f 
+                    : (-6.25f * x + 6.25f) / 0.75f;
+            }*/
+        }
+        
+        // Selection outline.
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, positionable.Position, positionable.Size, selected, pointerOver);
+        }
+    }
+    
+    /// <summary>
+    /// Draws a selection outline.
+    /// </summary>
+    private static void DrawSelectionOutline(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, float depth, float laneStep, int position, int size, bool selected, bool pointerOver)
+    {
+        float top = depth * (canvasInfo.Height - JudgementLineOffset) + SyncOutlineOffset[(int)settings.NoteThickness][4] * NoteThicknessMultiplier;
+        float bottom = depth * (canvasInfo.Height - JudgementLineOffset) + SyncOutlineOffset[(int)settings.NoteThickness][5] * NoteThicknessMultiplier;
+        
+        SKPath path = new();
+
+        if (size == 60)
+        {
+            SKRect rect = new(MarginLeft, bottom, canvasInfo.Width - MarginRight, top);
+            path.AddRect(rect);
+        }
+        else
+        {
+            int offsetPosition = position < 15 
+            ? position + 45 
+            : position - 15;
+            bool wrap = offsetPosition + size > 60;
+            
+            float capDiameter = 9 * canvasInfo.ScaleX;
+
+            if (wrap)
+            {
+                float left1 = MarginLeft + offsetPosition % 60 * laneStep;
+                float right1 = canvasInfo.Width - MarginRight;
+                
+                float left2 = MarginLeft;
+                float right2 = MarginLeft + (offsetPosition + size) % 60 * laneStep;
+                
+                SKRect rectTopLeft = new(left1, top, left1 + capDiameter, top + capDiameter);
+                SKRect rectBottomLeft = new(left1, bottom - capDiameter, left1 + capDiameter, bottom);
+                
+                SKRect rectTopRight = new(right2 - capDiameter, top, right2, top + capDiameter);
+                SKRect rectBottomRight = new(right2 - capDiameter, bottom - capDiameter, right2, bottom);
+                
+                path.ArcTo(rectTopLeft, 180, 90, true);
+                path.LineTo(right1, top);
+                path.LineTo(right1, bottom);
+                path.ArcTo(rectBottomLeft, 90, 90, false);
+                path.Close();
+                
+                path.ArcTo(rectTopRight, 270, 90, true);
+                path.ArcTo(rectBottomRight, 0, 90, false);
+                path.LineTo(left2, bottom);
+                path.LineTo(left2, top);
+                path.Close();
+            }
+            else
+            {
+                float left = MarginLeft + offsetPosition * laneStep;
+                float right = left + size * laneStep;
+                
+                SKRect rectTopLeft = new(left, top, left + capDiameter, top + capDiameter);
+                SKRect rectTopRight = new(right - capDiameter, top, right, top + capDiameter);
+                SKRect rectBottomLeft = new(left, bottom - capDiameter, left + capDiameter, bottom);
+                SKRect rectBottomRight = new(right - capDiameter, bottom - capDiameter, right, bottom);
+                
+                path.ArcTo(rectTopLeft, 180, 90, true);
+                path.ArcTo(rectTopRight, 270, 90, false);
+                path.ArcTo(rectBottomRight, 0, 90, false);
+                path.ArcTo(rectBottomLeft, 90, 90, false);
+                path.Close();
+            }
+        }
+
+        canvas.DrawPath(path, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+        canvas.DrawPath(path, NotePaints.GetObjectOutlineStrokePaint(selected, pointerOver));
+    }
+    
     private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, RenderBoxSelectData renderBoxSelect, float laneStep)
     {
         if (renderBoxSelect.StartTime == null) return;
@@ -769,16 +1316,14 @@ public static class Renderer2D
         RenderUtils.GetProgress(renderBoxSelect.StartTime.Value, 0, false, viewDistance, time, 0, out float d0);
         RenderUtils.GetProgress(renderBoxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float d1);
 
-        int offsetPosition = renderBoxSelect.Position.Value - 15;
-        if (offsetPosition < 0)
-        {
-            offsetPosition += 60;
-        }
+        int offsetPosition = renderBoxSelect.Position.Value < 15 
+            ? renderBoxSelect.Position.Value + 45 
+            : renderBoxSelect.Position.Value - 15;
+        bool wrap = offsetPosition + renderBoxSelect.Size.Value > 60;
         
         float bottom = d0 * (canvasInfo.Height - JudgementLineOffset);
         float top = d1 * (canvasInfo.Height - JudgementLineOffset);
         
-        bool wrap = offsetPosition + renderBoxSelect.Size.Value > 60;
 
         if (renderBoxSelect.Size == 60)
         {
@@ -788,10 +1333,10 @@ public static class Renderer2D
         }
         else if (wrap)
         {
-            float left1 = MarginLeft;
-            float right1 = MarginLeft + (offsetPosition + renderBoxSelect.Size.Value) % 60 * laneStep;
-            float left2 = MarginLeft + offsetPosition % 60 * laneStep;
-            float right2 = canvasInfo.Width - MarginRight;
+            float left1 = MarginLeft + offsetPosition % 60 * laneStep;
+            float right1 = canvasInfo.Width - MarginRight;
+            float left2 = MarginLeft;
+            float right2 = MarginLeft + (offsetPosition + renderBoxSelect.Size.Value) % 60 * laneStep;
 
             SKRect rect1 = new(left1, top, right1, bottom);
             SKRect rect2 = new(left2, top, right2, bottom);
