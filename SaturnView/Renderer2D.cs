@@ -27,6 +27,8 @@ public static class Renderer2D
         Note? cursorNote)
     {
         float viewDistance = GetViewDistance(zoomLevel);
+        float laneStep = (canvasInfo.Width - MarginLeft - MarginRight) / 60;
+        
         List<RenderObject> objectsToDraw = [];
         List<RenderObject> holdEndsToDraw = [];
         List<RenderObject> holdsToDraw = [];
@@ -44,11 +46,11 @@ public static class Renderer2D
         //canvas.DrawRect(canvasInfo.Width - MarginRight, 0, MarginRight, canvasInfo.Height, NotePaints.DebugPaint3);
         
         DrawJudgementLine(canvas, canvasInfo, settings);
-        DrawLanes(canvas, canvasInfo);
+        DrawLanes(canvas, canvasInfo, laneStep);
 
         if (boxSelect != null)
         {
-            DrawBoxSelect(canvas, canvasInfo, time, viewDistance, boxSelect.Value);
+            DrawBoxSelect(canvas, canvasInfo, time, viewDistance, boxSelect.Value, laneStep);
         }
         
         return;
@@ -738,14 +740,11 @@ public static class Renderer2D
         return (lane + 60) % 60;
     }
 
-    private static void DrawLanes(SKCanvas canvas, CanvasInfo canvasInfo)
+    private static void DrawLanes(SKCanvas canvas, CanvasInfo canvasInfo, float laneStep)
     {
-        float gridWidth = canvasInfo.Width - MarginLeft - MarginRight;
-        float step = gridWidth / 60;
-        
         for (int i = 0; i <= 60; i++)
         {
-            float x = i * step + 1 + MarginLeft;
+            float x = i * laneStep + 1 + MarginLeft;
             
             bool major = i % 5 == 0;
             canvas.DrawLine(x, 0, x, canvasInfo.Height, major ? NotePaints.LanePaintMajor_2D : NotePaints.LanePaintMinor_2D);
@@ -760,7 +759,7 @@ public static class Renderer2D
         canvas.DrawLine(MarginLeft, y, right, y, NotePaints.GetJudgementLinePaint_2D(settings, MarginLeft, right, y));
     }
 
-    private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, RenderBoxSelectData renderBoxSelect)
+    private static void DrawBoxSelect(SKCanvas canvas, CanvasInfo canvasInfo, float time, float viewDistance, RenderBoxSelectData renderBoxSelect, float laneStep)
     {
         if (renderBoxSelect.StartTime == null) return;
         if (renderBoxSelect.EndTime == null) return;
@@ -771,36 +770,45 @@ public static class Renderer2D
         RenderUtils.GetProgress(renderBoxSelect.EndTime.Value, 0, false, viewDistance, time, 0, out float d1);
 
         int offsetPosition = renderBoxSelect.Position.Value - 15;
-
-        float left = MarginLeft;
-        float right = canvasInfo.Width - MarginRight;
+        if (offsetPosition < 0)
+        {
+            offsetPosition += 60;
+        }
+        
         float bottom = d0 * (canvasInfo.Height - JudgementLineOffset);
         float top = d1 * (canvasInfo.Height - JudgementLineOffset);
-        SKRect rect = new(left, top, right, bottom);
-        canvas.DrawRect(rect, NotePaints.DebugPaint3);
         
-        Console.WriteLine($"{d0} | {d1}");
-        
-        
-        //canvas.DrawVertices(SKVertexMode.Triangles, vertices, null, NotePaints.GetObjectOutlineFillPaint(true, false));
-        //
-        //if (renderBoxSelect.Size == 60)
-        //{
-        //    SKPaint paint = NotePaints.GetObjectOutlineStrokePaint(true, false);
-        //    canvas.DrawCircle(canvasInfo.Center, d0, paint);
-        //    canvas.DrawCircle(canvasInfo.Center, d1, paint);
-        //}
-        //else
-        //{
-        //    SKPath path = new();
-        //    SKRect rect0 = new(canvasInfo.Center.X - d0, canvasInfo.Center.Y - d0, canvasInfo.Center.X + d0, canvasInfo.Center.Y + d0);
-        //    SKRect rect1 = new(canvasInfo.Center.X - d1, canvasInfo.Center.Y - d1, canvasInfo.Center.X + d1, canvasInfo.Center.Y + d1);
-        //
-        //    path.ArcTo(rect0, renderBoxSelect.Position.Value * -6, renderBoxSelect.Size.Value * -6, true);
-        //    path.ArcTo(rect1, (renderBoxSelect.Position.Value + renderBoxSelect.Size.Value) * -6, renderBoxSelect.Size.Value * 6, false);
-        //    path.Close();
-        //    
-        //    canvas.DrawPath(path, NotePaints.GetObjectOutlineStrokePaint(true, false));
-        //}
+        bool wrap = offsetPosition + renderBoxSelect.Size.Value > 60;
+
+        if (renderBoxSelect.Size == 60)
+        {
+            SKRect rect = new(MarginLeft, top, canvasInfo.Width - MarginRight, bottom);
+            canvas.DrawRect(rect, NotePaints.GetObjectOutlineFillPaint(true, false));
+            canvas.DrawRect(rect, NotePaints.GetObjectOutlineStrokePaint(true, false));
+        }
+        else if (wrap)
+        {
+            float left1 = MarginLeft;
+            float right1 = MarginLeft + (offsetPosition + renderBoxSelect.Size.Value) % 60 * laneStep;
+            float left2 = MarginLeft + offsetPosition % 60 * laneStep;
+            float right2 = canvasInfo.Width - MarginRight;
+
+            SKRect rect1 = new(left1, top, right1, bottom);
+            SKRect rect2 = new(left2, top, right2, bottom);
+            
+            canvas.DrawRect(rect1, NotePaints.GetObjectOutlineFillPaint(true, false));
+            canvas.DrawRect(rect2, NotePaints.GetObjectOutlineFillPaint(true, false));
+            canvas.DrawRect(rect1, NotePaints.GetObjectOutlineStrokePaint(true, false));
+            canvas.DrawRect(rect2, NotePaints.GetObjectOutlineStrokePaint(true, false));
+        }
+        else
+        {
+            float left = MarginLeft + offsetPosition * laneStep;
+            float right = left + renderBoxSelect.Size.Value * laneStep;
+            
+            SKRect rect = new(left, top, right, bottom);
+            canvas.DrawRect(rect, NotePaints.GetObjectOutlineFillPaint(true, false));
+            canvas.DrawRect(rect, NotePaints.GetObjectOutlineStrokePaint(true, false));
+        }
     }
 }
