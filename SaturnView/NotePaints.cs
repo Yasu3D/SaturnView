@@ -1366,5 +1366,29 @@ internal static class NotePaints
 
         return ShaderFillPaint;
     }
+    
+    internal static SKPaint GetSnapFillPaint_2D(RenderSettings settings, int colorId, float top, float bottom, float opacity, bool flip)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
+            return FlatFillPaint;
+        }
+
+        byte alpha = (byte)(opacity * 255);
+        ShaderFillPaint.Color = new(0xFF, 0xFF, 0xFF, alpha);
+        
+        SKColor colorBase = GetNoteColorBase(colorId);
+        SKColor colorLight = GetNoteColorLight(colorId);
+
+        SKColor[] colors = [colorBase, colorLight, SKColors.White];
+        float[] positions = [0.27f, flip ? 0.77f : 0.86f, 0.90f];
+        
+        SKShader shader = SKShader.CreateLinearGradient(new(0, bottom), new(0, top), colors, positions, SKShaderTileMode.Clamp);
+        ShaderFillPaint.Shader = shader;
+        ShaderFillPaint.BlendMode = SKBlendMode.SrcOver;
+
+        return ShaderFillPaint;
+    }
 #endregion 2D
 }

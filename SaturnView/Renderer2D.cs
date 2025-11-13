@@ -1168,128 +1168,143 @@ public static class Renderer2D
         // Bonus Triangles
         if (playable != null && playable.BonusType == BonusType.Bonus)
         {
-            // TODO
-            /*SKPath path = new();
+            SKPath path = new();
             
-            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-
-            int count = positionable.Size == 60 
-                ? positionable.Size 
+            int offsetPosition = positionable.Position < 15
+                ? positionable.Position + 45
+                : positionable.Position - 15;
+            
+            int count = positionable.Size == 60
+                ? positionable.Size
                 : positionable.Size - 2;
-            float start = positionable.Size == 60 
-                ? positionable.Position * -6
-                : positionable.Position * -6 - 6;
+            int startPosition = positionable.Size == 60
+                ? offsetPosition
+                : offsetPosition + 1;
             
             for (int i = 0; i < count; i++)
             {
+                int x = (startPosition + i) % 60;
+                float left = MarginLeft + x * laneStep;
+                float right = left + laneStep;
+
                 bool even = i % 2 == 0;
 
-                float angleA = start + i * -6;
-                float angleB = start + (i + 1) * -6;
-
-                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleA : angleB);
-                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, even ? angleA : angleB);
-                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleB : angleA);
+                SKPoint p0 = new(left, bottom);
+                SKPoint p1 = new(right, bottom);
+                SKPoint p2 = new(even ? left : right, top);
 
                 path.MoveTo(p0);
                 path.LineTo(p1);
                 path.LineTo(p2);
+                path.Close();
             }
 
-            canvas.DrawPath(path, NotePaints.GetNoteBonusPaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));*/
+            canvas.DrawPath(path, NotePaints.GetNoteBonusPaint_2D(settings, colorId, top, bottom, opacity));
         }
         
         // Snap Arrows
         if (note is SnapForwardNote or SnapBackwardNote && positionable.Size > 2)
         {
-            // TODO
-            /*bool flip = note is SnapBackwardNote;
+            bool flip = note is SnapBackwardNote;
             
-            float radius0 = flip ? radius * 0.960f : radius * 0.725f;
-            float radius1 = flip ? radius * 0.899f : radius * 0.775f;
-            float radius2 = flip ? radius * 0.844f : radius * 0.830f;
-            float radius3 = flip ? radius * 0.794f : radius * 0.891f;
-            float radius4 = flip ? radius * 0.878f : radius * 0.802f;
-            float radius5 = radius * 0.840f;
-            float radius6 = flip ? radius * 0.766f : radius * 0.920f;
-            float radius7 = flip ? radius * 0.725f : radius * 0.960f;
+            int offsetPosition = positionable.Position < 15
+                ? positionable.Position + 45
+                : positionable.Position - 15;
+            
+            float depth0 = center - NoteThicknessMultiplier * (flip ?  42.40f : 291.50f);
+            float depth1 = center - NoteThicknessMultiplier * (flip ? 107.06f : 238.50f);
+            float depth2 = center - NoteThicknessMultiplier * (flip ? 165.36f : 180.20f);
+            float depth3 = center - NoteThicknessMultiplier * (flip ? 218.36f : 115.54f);
+            float depth4 = center - NoteThicknessMultiplier * (flip ? 129.32f : 209.88f);
+            float depth5 = center - NoteThicknessMultiplier * 169.60f;
+            float depth6 = center - NoteThicknessMultiplier * (flip ? 248.04f : 84.80f);
+            float depth7 = center - NoteThicknessMultiplier * (flip ? 291.50f : 42.40f);
             
             int count = positionable.Size / 3;
-            float startPosition = positionable.Position * -6;
+            float startPosition = MarginLeft + offsetPosition * laneStep;
             
             int m = positionable.Size % 3;
             
             if (m == 0)
             {
-                startPosition -= 9;
+                startPosition += laneStep * 1.5f;
             }
             else if (m == 1)
             {
-                startPosition -= 12;
+                startPosition += laneStep * 2f;
             }
             else
             {
-                startPosition -= 15;
+                startPosition += laneStep * 2.5f;
             }
             
             SKPath path = new();
             
-            for (int i = 0; i < count; i++)
-            {
-                const float arrowWidth = 4f;
-                const float arrowSpacing = 18;
-            
-                float arrowOffset = arrowSpacing * i;
-                
-                float center = startPosition - arrowOffset;
-                float left1  = startPosition - arrowOffset + arrowWidth;
-                float left2  = startPosition - arrowOffset + arrowWidth * (flip ? 1.01f : 0.97f);
-                float left3  = startPosition - arrowOffset + arrowWidth * (flip ? 1.04f : 0.94f);
-                float left4  = startPosition - arrowOffset + arrowWidth * (flip ? 1.07f : 0.93f);
-                
-                float right1 = startPosition - arrowOffset - arrowWidth;
-                float right2 = startPosition - arrowOffset - arrowWidth * (flip ? 1.01f : 0.97f);
-                float right3 = startPosition - arrowOffset - arrowWidth * (flip ? 1.04f : 0.94f);
-                float right4 = startPosition - arrowOffset - arrowWidth * (flip ? 1.07f : 0.93f);
-                
-                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, center);
-                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, right1);
-                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, right2);
-                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, center);
-                SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius3, left2);
-                SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, left1);
-                
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-                path.LineTo(p3);
-                path.LineTo(p4);
-                path.LineTo(p5);
-                path.Close();
-                
-                p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius4, center);
-                p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius6, right3);
-                p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius7, right4);
-                p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius5, center);
-                p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius7, left4);
-                p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius6, left3);
-                
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-                path.LineTo(p3);
-                path.LineTo(p4);
-                path.LineTo(p5);
-                path.Close();
-            }
-            
-            canvas.DrawPath(path, NotePaints.GetSnapFillPaint(canvasInfo, settings, colorId, perspectiveScale, opacity, flip));
+            generatePoints();
 
+            bool wrap = offsetPosition + positionable.Size > 60;
+            if (wrap)
+            {
+                startPosition -= (canvasInfo.Width - MarginLeft - MarginRight);
+                generatePoints();
+            }
+
+            SKRect clip = new(MarginLeft, 0, canvasInfo.Width - MarginRight, canvasInfo.Height);
+            canvas.Save();
+            canvas.ClipRect(clip);
+            
+            canvas.DrawPath(path, NotePaints.GetSnapFillPaint_2D(settings, colorId, depth0, depth7, opacity, flip));
+            
             if (!settings.LowPerformanceMode)
             {
-                canvas.DrawPath(path, NotePaints.GetSnapStrokePaint(colorId, pixelScale, opacity));
-            }*/
+                canvas.DrawPath(path, NotePaints.GetSnapStrokePaint(colorId, 0.25f, opacity));
+            }
+            
+            canvas.Restore();
+
+            void generatePoints()
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    float arrowWidth = laneStep * 0.6666666666f;
+                    float arrowSpacing = laneStep * 3;
+                    float arrowOffset = arrowSpacing * i;
+
+                    float arrowCenter = startPosition + arrowOffset;
+                    float left = startPosition + arrowOffset + arrowWidth;
+                    float right = startPosition + arrowOffset - arrowWidth;
+
+                    SKPoint p0 = new(arrowCenter, depth0);
+                    SKPoint p1 = new(right, depth2);
+                    SKPoint p2 = new(right, depth3);
+                    SKPoint p3 = new(arrowCenter, depth1);
+                    SKPoint p4 = new(left, depth3);
+                    SKPoint p5 = new(left, depth2);
+
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.LineTo(p2);
+                    path.LineTo(p3);
+                    path.LineTo(p4);
+                    path.LineTo(p5);
+                    path.Close();
+
+                    p0 = new(arrowCenter, depth4);
+                    p1 = new(right, depth6);
+                    p2 = new(right, depth7);
+                    p3 = new(arrowCenter, depth5);
+                    p4 = new(left, depth7);
+                    p5 = new(left, depth6);
+
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.LineTo(p2);
+                    path.LineTo(p3);
+                    path.LineTo(p4);
+                    path.LineTo(p5);
+                    path.Close();
+                }
+            }
         }
         
         // Slide Arrows
@@ -1433,7 +1448,16 @@ public static class Renderer2D
 
             if (wrap)
             {
+                float left1 = MarginLeft + offsetPosition % 60 * laneStep;
+                float right1 = canvasInfo.Width - MarginRight;
                 
+                float left2 = MarginLeft;
+                float right2 = MarginLeft + (offsetPosition + note.Size) % 60 * laneStep;
+                
+                SKRect rect1 = new(left1, top, right1, bottom);
+                SKRect rect2 = new(left2, top, right2, bottom);
+                canvas.DrawRect(rect1, NotePaints.GetSyncConnectorPaint_2D(settings, top, bottom, opacity));
+                canvas.DrawRect(rect2, NotePaints.GetSyncConnectorPaint_2D(settings, top, bottom, opacity));
             }
             else
             {
