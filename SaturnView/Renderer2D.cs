@@ -1310,112 +1310,128 @@ public static class Renderer2D
         // Slide Arrows
         if (note is SlideClockwiseNote or SlideCounterclockwiseNote)
         {
-            // TODO
-            /*bool flip = note is SlideCounterclockwiseNote;
-
-            float scroll = flip
-                ? 1 - (linearScale * 6f % 1)
-                : linearScale * 6f % 1;
+            bool flip = note is SlideCounterclockwiseNote;
             
-            float radius0 = radius * 0.790f;
-            float radius1 = radius * 0.864f;
-            float radius2 = radius * 0.938f;
+            int offsetPosition = positionable.Position < 15
+                ? positionable.Position + 45
+                : positionable.Position - 15;
+            
+            float depth0 = center - 50;
+            float depth1 = center - 35;
+            float depth2 = center - 20;
 
             float arrowCount = positionable.Size * 0.5f + 1;
-
-            float startAngle = positionable.Size * 6;
             
+            float startPosition = MarginLeft + offsetPosition * laneStep;
             SKPath path = new();
             SKPath maskPath = new();
             
-            // inner side
-            float maskAngle;
-            float maskRadius;
-            SKPoint maskPoint;
+            generateMaskPoints();
+            generateArrowPoints();
             
-            for (int i = 0; i <= positionable.Size; i++)
+            bool wrap = offsetPosition + positionable.Size > 60;
+            if (wrap)
             {
-                float x = flip
-                    ? (float)i / positionable.Size
-                    : 1 - (float)i / positionable.Size;
-                
-                maskAngle = startAngle + i * -6;
-                maskRadius = radius1 + (radius2 - radius1) * slideArrowMask(x);
-
-                maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
-                if (i == 0) maskPath.MoveTo(maskPoint);
-                else maskPath.LineTo(maskPoint);
+                startPosition -= (canvasInfo.Width - MarginLeft - MarginRight);
+                generateMaskPoints();
+                generateArrowPoints();
             }
             
-            // center point
-            maskAngle = startAngle + positionable.Size * -6;
-            maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, radius1, maskAngle);
-            maskPath.LineTo(maskPoint);
-            
-            // outer side
-            for (int i = positionable.Size; i >= 0; i--)
-            {
-                float x = flip
-                    ? (float)i / positionable.Size
-                    : 1 - (float)i / positionable.Size;
-                
-                maskAngle = startAngle + i * -6;
-                maskRadius = radius1 + (radius0 - radius1) * slideArrowMask(x);
-
-                maskPoint = RenderUtils.PointOnArc(canvasInfo.Center, maskRadius, maskAngle);
-                maskPath.LineTo(maskPoint);
-            }
-            
-            maskPath.Close();
-            
-            for (int i = 0; i < arrowCount; i++)
-            {
-                //    p0____p1
-                //   /     / 
-                // p5    p2
-                //   \     \
-                //   p4_____p3
-                
-                float angle = startAngle + (scroll - i - 0.5f) * 12;
-                float offset = flip ? -6 : 6;
-                
-                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, angle         );
-                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius0, angle - offset);
-                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, angle         );
-                SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, angle - offset);
-                SKPoint p4 = RenderUtils.PointOnArc(canvasInfo.Center, radius2, angle         );
-                SKPoint p5 = RenderUtils.PointOnArc(canvasInfo.Center, radius1, angle + offset);
-                
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-                path.LineTo(p3);
-                path.LineTo(p4);
-                path.LineTo(p5);
-                path.Close();
-            }
-            
+            SKRect clip = new(MarginLeft, 0, canvasInfo.Width - MarginRight, canvasInfo.Height);
             
             canvas.Save();
+            canvas.ClipRect(clip);
             
-            canvas.RotateDegrees((positionable.Position + positionable.Size) * -6, canvasInfo.Center.X, canvasInfo.Center.Y);
-
             canvas.ClipPath(maskPath, SKClipOperation.Intersect, true);
-            canvas.DrawPath(path, NotePaints.GetSlideFillPaint(canvasInfo, settings, positionable.Size, colorId, opacity, flip));
+            canvas.DrawPath(path, NotePaints.DebugPaint3);
+            canvas.DrawPath(path, NotePaints.GetSlideFillPaint_2D(settings, colorId, opacity));
             
             if (!settings.LowPerformanceMode)
             {
-                canvas.DrawPath(path, NotePaints.GetSlideStrokePaint(colorId, pixelScale, opacity));
+                canvas.DrawPath(path, NotePaints.GetSlideStrokePaint_2D(colorId, opacity));
             }
             
             canvas.Restore();
+
+            void generateMaskPoints()
+            {
+                // inner side
+                float maskPosition;
+                float maskDepth;
+                SKPoint maskPoint;
+
+                for (int i = 0; i <= positionable.Size; i++)
+                {
+                    float x = flip
+                        ? (float)i / positionable.Size
+                        : 1 - (float)i / positionable.Size;
+
+                    maskPosition = startPosition + i * laneStep;
+                    maskDepth = depth1 + (depth2 - depth1) * slideArrowMask(x);
+
+                    maskPoint = new(maskPosition, maskDepth);
+                    if (i == 0) maskPath.MoveTo(maskPoint);
+                    else maskPath.LineTo(maskPoint);
+                }
+
+                // center point
+                maskPosition = startPosition + positionable.Size * laneStep;
+                maskPoint = new(maskPosition, depth1);
+                maskPath.LineTo(maskPoint);
+
+                // outer side
+                for (int i = positionable.Size; i >= 0; i--)
+                {
+                    float x = flip
+                        ? (float)i / positionable.Size
+                        : 1 - (float)i / positionable.Size;
+
+                    maskPosition = startPosition + i * laneStep;
+                    maskDepth = depth1 + (depth0 - depth1) * slideArrowMask(x);
+
+                    maskPoint = new(maskPosition, maskDepth);
+                    maskPath.LineTo(maskPoint);
+                }
+
+                maskPath.Close();
+            }
+
+            void generateArrowPoints()
+            {
+                for (int i = 0; i < arrowCount; i++)
+                {
+                    //    p0____p1
+                    //   /     / 
+                    // p5    p2
+                    //   \     \
+                    //   p4_____p3
+
+                    float position = startPosition + (i * laneStep * 2);
+                    float offset = flip ? laneStep : -laneStep;
+
+                    SKPoint p0 = new(position,          depth0);
+                    SKPoint p1 = new(position - offset, depth0);
+                    SKPoint p2 = new(position,          depth1);
+                    SKPoint p3 = new(position - offset, depth2);
+                    SKPoint p4 = new(position,          depth2);
+                    SKPoint p5 = new(position + offset, depth1);
+
+                    path.MoveTo(p0);
+                    path.LineTo(p1);
+                    path.LineTo(p2);
+                    path.LineTo(p3);
+                    path.LineTo(p4);
+                    path.LineTo(p5);
+                    path.Close();
+                }
+            }
             
             float slideArrowMask(float x)
             {
                 return x < 0.88f 
                     ? (0.653f * x + 0.175f) / 0.75f 
                     : (-6.25f * x + 6.25f) / 0.75f;
-            }*/
+            }
         }
         
         // Selection outline.

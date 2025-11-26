@@ -1390,5 +1390,28 @@ internal static class NotePaints
 
         return ShaderFillPaint;
     }
+    
+    internal static SKPaint GetSlideStrokePaint_2D(int colorId, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 2f;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = GetNoteColorDark(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
+    
+    internal static SKPaint GetSlideFillPaint_2D(RenderSettings settings, int colorId, float opacity)
+    {
+        if (settings.LowPerformanceMode)
+        {
+            FlatFillPaint.Color = GetNoteColorAverage(colorId).WithAlpha((byte)(opacity * 255));
+            return FlatFillPaint;
+        }
+        
+        byte alpha = (byte)(opacity * 255);
+        FlatFillPaint.Color = GetNoteColorBase(colorId).WithAlpha(alpha);
+
+        return FlatFillPaint;
+    }
 #endregion 2D
 }
