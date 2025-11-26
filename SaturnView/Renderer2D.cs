@@ -59,6 +59,10 @@ public static class Renderer2D
         DrawJudgementLine(canvas, canvasInfo, settings);
         DrawLanes(canvas, canvasInfo, laneStep);
 
+        renderEventAreas();
+        renderHoldEnds();
+        renderHoldSurfaces();
+        renderJudgeAreas();
         renderObjects();
         
         if (boxSelect != null)
@@ -323,8 +327,7 @@ public static class Renderer2D
                 bool selected = selectedObjects != null && selectedObjects.Contains(holdPointNote);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == holdPointNote;
                 
-                // TODO
-                //DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
+                DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, renderObject.Scale, laneStep, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
         
@@ -1440,6 +1443,113 @@ public static class Renderer2D
             DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, positionable.Position, positionable.Size, selected, pointerOver);
         }
     }
+    
+    private static void DrawHoldEndNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float depth, float laneStep, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        if (depth is <= -0.1f or > 1.25f) return;
+
+        int colorId = (int)settings.HoldNoteColor;
+        
+        float center = depth * (canvasInfo.Height - JudgementLineOffset);
+
+        int offsetPosition = note.Position < 15
+                    ? note.Position + 45
+                    : note.Position - 15;
+
+        float startPosition = MarginLeft + offsetPosition * laneStep + laneStep * 0.3f;
+
+        SKRect clip = new(MarginLeft, 0, canvasInfo.Width - MarginRight, canvasInfo.Height);
+
+        canvas.Save();
+        canvas.ClipRect(clip);
+        
+        drawNote();
+        
+        bool wrap = offsetPosition + note.Size > 60;
+        if (wrap)
+        {
+            startPosition -= (canvasInfo.Width - MarginLeft - MarginRight);
+            drawNote();
+        }
+        
+        canvas.Restore();
+        
+        // Selection outline.
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, note.Position, note.Size, selected, pointerOver);
+        }
+
+        return;
+
+        void drawNote()
+        {
+            if (note.Size == 60)
+            {
+                canvas.DrawLine(MarginLeft, center, canvasInfo.Width - MarginRight, center, NotePaints.GetHoldEndBaseStrokePaint_2D(colorId, 0.3f, opacity));
+
+                if (!settings.LowPerformanceMode)
+                {
+                    float depth0 = center + 3;
+                    float depth1 = center - 3;
+
+                    canvas.DrawLine(MarginLeft, depth0, canvasInfo.Width - MarginRight, depth0, NotePaints.GetHoldEndOutlinePaint(colorId, 0.5f, opacity));
+                    canvas.DrawLine(MarginLeft, depth1, canvasInfo.Width - MarginRight, depth1, NotePaints.GetHoldEndOutlinePaint(colorId, 0.5f, opacity));
+                }
+            }
+            else
+            {
+                float right = startPosition + note.Size * laneStep - laneStep * 0.6f;
+
+                if (settings.LowPerformanceMode)
+                {
+                    canvas.DrawLine(startPosition, center, right, center, NotePaints.GetHoldEndBaseStrokePaint_2D(colorId, 0.5f, opacity));
+                }
+                else
+                {
+                    float depth0 = center + 3;
+                    float depth1 = center - 3;
+                    
+                    SKPath path = new();
+
+                    SKPoint p0 = new(startPosition, center);
+                    SKPoint p1 = new(startPosition + laneStep * 0.3f, depth0);
+                    SKPoint p2 = new(startPosition + laneStep * 0.3f, depth1);
+                    
+                    if (note.Size == 1)
+                    {
+                        SKPoint p3 = new(right + laneStep * 0.3f, depth0);
+                        SKPoint p4 = new(right + laneStep * 0.3f, depth1);
+                        
+                        path.MoveTo(p3);
+                        path.LineTo(p1);
+                        path.LineTo(p0);
+                        path.LineTo(p2);
+                        path.LineTo(p4);
+                    }
+                    else
+                    {
+                        SKPoint p3 = new(right, center);
+                        SKPoint p4 = new(right - laneStep * 0.3f, depth0);
+                        SKPoint p5 = new(right - laneStep * 0.3f, depth1);
+
+                        path.MoveTo(p0);
+                        path.LineTo(p1);
+                        path.LineTo(p4);
+                        path.LineTo(p3);
+                        path.LineTo(p5);
+                        path.LineTo(p2);
+                        path.Close();
+                    }
+                    
+                    canvas.DrawPath(path, NotePaints.GetHoldEndBaseFillPaint(colorId, opacity));
+                    canvas.DrawPath(path, NotePaints.GetHoldEndOutlinePaint(colorId, 0.5f, opacity));
+                }
+            }
+        }
+    }
+    
 
     private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float depth, float laneStep, float opacity, bool selected, bool pointerOver)
     {

@@ -1413,5 +1413,14 @@ internal static class NotePaints
 
         return FlatFillPaint;
     }
+    
+    internal static SKPaint GetHoldEndBaseStrokePaint_2D(int colorId, float pixelScale, float opacity)
+    {
+        FlatStrokePaint.StrokeWidth = 20 * pixelScale;
+        FlatStrokePaint.StrokeCap = SKStrokeCap.Butt;
+        FlatStrokePaint.Color = GetNoteColorHoldEndLight(colorId).WithAlpha((byte)(opacity * 255));
+        
+        return FlatStrokePaint;
+    }
 #endregion 2D
 }
