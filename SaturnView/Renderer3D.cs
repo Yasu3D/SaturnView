@@ -1554,8 +1554,8 @@ public static class Renderer3D
                     GlobalTime = time, 
                     GlobalScaledTime = scaledTime, 
                     LocalTime = SaturnMath.Lerp(start.LocalTime, end.LocalTime, t),
-                    Interval  = SaturnMath.Lerp(start.Interval,  end.Interval,  t),
-                    Start = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360),
+                    IntervalAngle  = SaturnMath.Lerp(start.IntervalAngle,  end.IntervalAngle,  t),
+                    StartAngle = SaturnMath.LerpCyclic(start.StartAngle, end.StartAngle, t, 360),
                 };
 
                 generatePart(start, center, false);
@@ -1620,7 +1620,7 @@ public static class Renderer3D
             if (startScale > 1.25f && endScale > 1.25f) return;
             
             bool sameTime = start.GlobalTime == end.GlobalTime;
-            bool sameShape = start.Start == end.Start && start.Interval == end.Interval;
+            bool sameShape = start.StartAngle == end.StartAngle && start.IntervalAngle == end.IntervalAngle;
 
             float interval;
             
@@ -1647,15 +1647,15 @@ public static class Renderer3D
                 if (skip(t, out float scale)) continue;
                 
                 float localTime        = SaturnMath.Lerp(start.LocalTime,        end.LocalTime,        t);
-                float intervalAngle    = SaturnMath.Lerp(start.Interval,         end.Interval,         t);
-                float startAngle       = SaturnMath.LerpCyclic(start.Start, end.Start, t, 360);
+                float intervalAngle    = SaturnMath.Lerp(start.IntervalAngle,         end.IntervalAngle,         t);
+                float startAngle       = SaturnMath.LerpCyclic(start.StartAngle, end.StartAngle, t, 360);
 
                 generateArc(scale, localTime, startAngle, intervalAngle);
             }
 
             if (!skipLast && !skip(1, out float scale2))
             {
-                generateArc(scale2, end.LocalTime, end.Start, end.Interval);
+                generateArc(scale2, end.LocalTime, end.StartAngle, end.IntervalAngle);
             }
 
             return;
@@ -2691,6 +2691,4 @@ public static class Renderer3D
         public readonly float Duration = duration;
         public readonly bool IsCounterclockwise = isCounterclockwise;
     }
-
-    
 }

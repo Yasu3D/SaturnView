@@ -341,8 +341,7 @@ public static class Renderer2D
                 bool selected = selectedObjects != null && selectedObjects.Contains(holdNote);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == holdNote;
                 
-                // TODO
-                // DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, viewDistance, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
+                DrawHoldSurface(canvas, canvasInfo, settings, holdNote, time, viewDistance, laneStep, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
         
@@ -388,18 +387,18 @@ public static class Renderer2D
             {
                 if (renderObject.Object is HoldPointNote holdPointNote)
                 {
-                    // TODO
-                    /*DrawHoldPointNote
+                    DrawHoldPointNote
                     (
                         canvas: canvas,
                         canvasInfo: canvasInfo,
                         settings: settings,
                         note: holdPointNote,
-                        perspectiveScale: RenderUtils.Perspective(renderObject.Scale),
+                        depth: renderObject.Scale,
+                        laneStep: laneStep,
                         opacity: opacity,
                         selected: selected,
                         pointerOver: pointerOver
-                    );*/
+                    );
                 }
                 else if (renderObject.Object is SyncNote syncNote)
                 {
@@ -1464,13 +1463,14 @@ public static class Renderer2D
         canvas.Save();
         canvas.ClipRect(clip);
         
-        drawNote();
+        
+        draw();
         
         bool wrap = offsetPosition + note.Size > 60;
         if (wrap)
         {
             startPosition -= (canvasInfo.Width - MarginLeft - MarginRight);
-            drawNote();
+            draw();
         }
         
         canvas.Restore();
@@ -1483,7 +1483,7 @@ public static class Renderer2D
 
         return;
 
-        void drawNote()
+        void draw()
         {
             if (note.Size == 60)
             {
@@ -1550,7 +1550,233 @@ public static class Renderer2D
         }
     }
     
+    private static void DrawHoldPointNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldPointNote note, float depth, float laneStep, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+        if (depth is <= -0.1f or > 1.25f) return;
+        
+        float center = depth * (canvasInfo.Height - JudgementLineOffset);
 
+        int offsetPosition = note.Position < 15
+                    ? note.Position + 45
+                    : note.Position - 15;
+
+        float startPosition = MarginLeft + offsetPosition * laneStep;
+
+        SKRect clip = new(MarginLeft, 0, canvasInfo.Width - MarginRight, canvasInfo.Height);
+
+        canvas.Save();
+        canvas.ClipRect(clip);
+        
+        draw();
+        
+        bool wrap = offsetPosition + note.Size > 60;
+        if (wrap)
+        {
+            startPosition -= (canvasInfo.Width - MarginLeft - MarginRight);
+            draw();
+        }
+        
+        canvas.Restore();
+        
+        // Selection outline.
+        if (selected || pointerOver)
+        {
+            DrawSelectionOutline(canvas, canvasInfo, settings, depth, laneStep, note.Position, note.Size, selected, pointerOver);
+        }
+
+        return;
+
+        void draw()
+        {
+            float left = startPosition + 0.7f * laneStep;
+            float right = startPosition + (note.Size * laneStep) - 0.7f * laneStep;
+            
+            if (settings.LowPerformanceMode)
+            {
+                canvas.DrawLine(left, center, right, center, NotePaints.GetHoldPointPaint(settings, 0.5f, note.RenderType, opacity));
+                
+                return;
+            }
+            
+            const float capRadius = 3;
+            float depth0 = center - capRadius;
+            float depth1 = center + capRadius;
+            
+            SKPoint capPoint0 = new(left, center);
+            SKPoint capPoint1 = new(right, center);
+            SKRect capRect0 = new(capPoint0.X - capRadius, depth0, capPoint0.X + capRadius, depth1);
+            SKRect capRect1 = new(capPoint1.X - capRadius, depth0, capPoint1.X + capRadius, depth1);
+        
+            SKPath path = new();
+
+            path.ArcTo(capRect0, 90, 180, true);
+            path.ArcTo(capRect1, 270, 180, false);
+            path.Close();
+        
+            canvas.DrawPath(path, NotePaints.GetHoldPointPaint(settings, 0.5f, note.RenderType, opacity));
+        }
+    }
+    
+    private static void DrawHoldSurface(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, HoldNote hold, float time, float viewDistance, float laneStep, bool playing, float opacity, bool selected, bool pointerOver)
+    {
+        if (opacity == 0) return;
+
+        List<HoldPointNote> points = hold.Points.Where(x => x.RenderType is HoldPointRenderType.Visible).ToList();
+
+        if (hold.Points[0].RenderType == HoldPointRenderType.Hidden)
+        {
+            points.Insert(0, hold.Points[0]);
+        }
+        
+        if (hold.Points[^1].RenderType == HoldPointRenderType.Hidden)
+        {
+            points.Add(hold.Points[^1]);
+        }
+            
+        if (points.Count < 2) return;
+
+        List<SKPoint> vertexScreenCoords = [];
+        List<SKPoint> vertexTextureCoords = [];
+        
+        int arcs = 0;
+        
+        // Generate points for every hold point.
+        for (int y = 0; y < points.Count; y++)
+        {
+            RenderHoldPoint point = new(hold, points[y], 1);
+            float scale = SaturnMath.InverseLerp(time + viewDistance, time, point.GlobalTime);
+
+            int position = point.Position - 15;
+
+            if (y == 0 && points.Count > 1)
+            {
+                int pos0 = points[0].Position;
+                int pos1 = points[1].Position;
+
+                int delta = pos0 - pos1;
+
+                if (delta > 30)
+                {
+                    
+                }
+                else if (delta < -30)
+                {
+                    position += 60;
+                }
+            }
+            
+            if (y != 0)
+            {
+                int pos0 = points[y].Position - 15;
+                int pos1 = points[y - 1].Position - 15;
+                
+                int delta = pos0 - pos1;
+
+                if (delta > 30)
+                {
+                    position += 60;
+                }
+                else if (delta < -30)
+                {
+                    position += 60;
+                }
+
+                position %= 60;
+            }
+            
+            generatePoint(scale, point.LocalTime, position, point.Size);
+        }
+        
+        // Build mesh
+        SKPoint[] triangles = new SKPoint[1 * (arcs - 1) * 6];
+        SKPoint[] textureCoords = new SKPoint[1 * (arcs -1) * 6];
+        
+        int vert = 0;
+        int tris = 0;
+        for (int y = 0; y < arcs - 1; y++)
+        {
+            triangles[tris + 0] = vertexScreenCoords[vert];
+            triangles[tris + 1] = vertexScreenCoords[vert + 1];
+            triangles[tris + 2] = vertexScreenCoords[vert + 2];
+
+            triangles[tris + 5] = vertexScreenCoords[vert + 1];
+            triangles[tris + 4] = vertexScreenCoords[vert + 2];
+            triangles[tris + 3] = vertexScreenCoords[vert + 3];
+            
+            textureCoords[tris + 0] = vertexTextureCoords[vert];
+            textureCoords[tris + 1] = vertexTextureCoords[vert + 1];
+            textureCoords[tris + 2] = vertexTextureCoords[vert + 2];
+
+            textureCoords[tris + 5] = vertexTextureCoords[vert + 1];
+            textureCoords[tris + 4] = vertexTextureCoords[vert + 2];
+            textureCoords[tris + 3] = vertexTextureCoords[vert + 3];
+
+            tris += 6;
+            vert += 2;
+        }
+        
+        bool active = hold.Timestamp.Time < time && playing;
+        
+        // Draw mesh
+        SKRect clip = new(MarginLeft, 0, canvasInfo.Width - MarginRight, canvasInfo.Height);
+
+        canvas.Save();
+        canvas.ClipRect(clip);
+        
+        canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
+        if (selected || pointerOver)
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+        }
+        
+        float offset = canvasInfo.Width - MarginLeft - MarginRight;
+        canvas.Translate(offset, 0);
+        canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
+        if (selected || pointerOver)
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+        }
+
+        canvas.Translate(offset * -2, 0);
+        canvas.DrawVertices(SKVertexMode.Triangles, triangles, textureCoords, null, NotePaints.GetHoldSurfacePaint(active, opacity));
+        if (selected || pointerOver)
+        {
+            canvas.DrawVertices(SKVertexMode.Triangles, triangles, null, null, NotePaints.GetObjectOutlineFillPaint(selected, pointerOver));
+        }
+        
+        canvas.Restore();
+        
+        return;
+        
+        void generatePoint(float scale, float localTime, int position, int size)
+        {
+            scale = Math.Max(0, scale);
+            
+            float center = scale * (canvasInfo.Height - JudgementLineOffset);
+
+            float startPosition = MarginLeft + position * laneStep;
+
+            float left = startPosition;
+            float right = startPosition + size * laneStep;
+
+            SKPoint screen0 = new(left, center);
+            SKPoint screen1 = new(right, center);
+
+            float texX = 512 * ((int)settings.HoldNoteColor + 0.5f) / 13.0f;
+            float texY = 512 * (1 - localTime);
+            SKPoint tex0 = new(texX, texY);
+            SKPoint tex1 = new(texX + 0.01f, texY);
+
+            vertexScreenCoords.Add(screen0);
+            vertexScreenCoords.Add(screen1);
+            vertexTextureCoords.Add(tex0);
+            vertexTextureCoords.Add(tex1);
+            
+            arcs++;
+        }
+    }
+    
     private static void DrawSyncNote(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SyncNote note, float depth, float laneStep, float opacity, bool selected, bool pointerOver)
     {
         if (opacity == 0) return;
