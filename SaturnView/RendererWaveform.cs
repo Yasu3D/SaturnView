@@ -64,9 +64,6 @@ public static class RendererWaveform
         float startTime = time - audioOffset - (judgeLineMargin * pixelsPerMilliseconds);
         float endTime = startTime + canvasInfo.Height * pixelsPerMilliseconds;
         
-        Paint.Color = judgelineColor;
-        canvas.DrawLine(0, canvasInfo.Height - judgeLineMargin, canvasInfo.Width, canvasInfo.Height - judgeLineMargin, Paint);
-        
         if (chart.Layers.Count != 0)
         {
             float chartStartTime = time - (judgeLineMargin * pixelsPerMilliseconds);
@@ -89,6 +86,9 @@ public static class RendererWaveform
             }
         }
 
+        Paint.Color = judgelineColor;
+        canvas.DrawLine(0, canvasInfo.Height - judgeLineMargin, canvasInfo.Width, canvasInfo.Height - judgeLineMargin, Paint);
+        
         if (waveform == null)
         {
             float x = canvasInfo.Width * 0.5f;
@@ -115,13 +115,13 @@ public static class RendererWaveform
                 sample = sampleIndex < 0 || sampleIndex >= waveform.Length ? 0 : waveform[sampleIndex];
             }
 
-            float x0 = (canvasInfo.Width + canvasInfo.Width * sample * 0.65f) * 0.5f;
-            float x1 = (canvasInfo.Width - canvasInfo.Width * sample * 0.65f) * 0.5f;
+            float x0 = (canvasInfo.Width + canvasInfo.Width * sample * 0.9f) * 0.5f;
+            float x1 = (canvasInfo.Width - canvasInfo.Width * sample * 0.9f) * 0.5f;
 
             if (x0 - x1 < 1)
             {
-                x0 -= 1;
-                x1 += 1;
+                x0 = (int)x0;
+                x1 = x0 - 0.5f;
             }
 
             Paint.Color = waveformColor;
