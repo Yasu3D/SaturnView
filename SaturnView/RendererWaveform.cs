@@ -56,7 +56,7 @@ public static class RendererWaveform
     public static void RenderWaveform(SKCanvas canvas, CanvasInfo canvasInfo, RenderSettings settings, SKColor waveformColor, SKColor judgelineColor, SKColor measureLineColor, SKColor beatLineColor, Chart chart, float[]? waveform, float audioOffset, float audioLength, float time)
     {
         const float judgeLineMargin = 50;
-        const float pixelsPerMilliseconds = 0.5f;
+        const float pixelsPerMilliseconds = 0.25f;
 
         canvas.Clear(canvasInfo.BackgroundColor);
         if (canvasInfo.Width < 1) return;
