@@ -784,14 +784,14 @@ public static class Renderer3D
     /// <param name="scaledTime">The current scaled time.</param>
     /// <param name="canvasInfo">The CanvasInfo of the canvas to hit test on.</param>
     /// <param name="settings">The current render settings.</param>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, Layer? layer, float x, float y, float time, float scaledTime, CanvasInfo canvasInfo, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         float viewDistance = GetViewDistance(settings.NoteSpeed);
         float threshold = GetHitTestThreshold(canvasInfo, settings.NoteThickness);
         float radius = GetHitTestPointerRadius(canvasInfo, x, y);
         int lane = GetHitTestPointerLane(canvasInfo, x, y);
         
-        return HitTest(obj, radius, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings, activeObjectGroup);
+        return HitTest(obj, layer, radius, lane, time, scaledTime, viewDistance, threshold, showSpeedChanges, settings, activeObjectGroup);
     }
     
     /// <summary>
@@ -806,10 +806,11 @@ public static class Renderer3D
     /// <param name="showSpeedChanges">Should speed changes be taken into account?</param>
     /// <param name="threshold">The radius threshold for hit testing.</param>
     /// <returns></returns>
-    public static IPositionable.OverlapResult HitTest(ITimeable obj, float radius, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
+    public static IPositionable.OverlapResult HitTest(ITimeable obj, Layer? layer, float radius, int lane, float time, float scaledTime, float viewDistance, float threshold, bool showSpeedChanges, RenderSettings settings, ITimeable? activeObjectGroup)
     {
         if (lane is > 59 or < 0) return IPositionable.OverlapResult.None;
 
+        if (layer != null && !layer.Visible) return IPositionable.OverlapResult.None;
         if (!RenderUtils.IsVisible(obj, settings, activeObjectGroup)) return IPositionable.OverlapResult.None;
 
         // Hit test stop effect event
