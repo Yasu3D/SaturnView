@@ -2300,7 +2300,7 @@ public static class Renderer3D
             case RenderSettings.InterfaceVisibilityOption.Visible:
             {
                 canvas.DrawTextOnPath(difficultyString, path, new(difficultyAngle, 0), SKTextAlign.Right, NotePaints.GetBoldFont(20 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
-                canvas.DrawTextOnPath(entry.LevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
+                canvas.DrawTextOnPath(entry.RawLevelString, path, new(levelAngle, 0), SKTextAlign.Left, NotePaints.GetBoldFont(25 * canvasInfo.Scale3D), NotePaints.GetTextPaint(difficultyTextColor));
                 break;
             }
         }
