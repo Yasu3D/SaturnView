@@ -876,7 +876,7 @@ public static class Renderer3D
                 float t = SaturnMath.InverseLerp(startProgress, endProgress, radius);
                 t = RenderUtils.Perspective(t);
 
-                int position = (int)MathF.Round(SaturnMath.LerpCyclic(start.Position, end.Position, t, 60));
+                int position = (int)MathF.Round(SaturnMath.LerpCyclicManual(start.Position, end.Position, t, 60, SaturnMath.FlipHoldInterpolation(start, end)));
                 int size = (int)MathF.Round(SaturnMath.Lerp(start.Size, end.Size, t));
 
                 IPositionable.OverlapResult result = IPositionable.HitTestResult(position, size, lane);
@@ -1549,6 +1549,9 @@ public static class Renderer3D
                 // Judgement line is between start and end. Insert a third point on the judgement line.
                 // Then generate from start to center, and center to end.
                 float t = SaturnMath.InverseLerp(start.GlobalTime, end.GlobalTime, time);
+
+                float startCenter = start.StartAngle + start.IntervalAngle * maxSize * 0.5f;
+                float endCenter = end.StartAngle + end.IntervalAngle * maxSize * 0.5f;
                 
                 RenderHoldPoint center = new()
                 {
@@ -1556,7 +1559,7 @@ public static class Renderer3D
                     GlobalScaledTime = scaledTime, 
                     LocalTime = SaturnMath.Lerp(start.LocalTime, end.LocalTime, t),
                     IntervalAngle  = SaturnMath.Lerp(start.IntervalAngle,  end.IntervalAngle,  t),
-                    StartAngle = SaturnMath.LerpCyclic(start.StartAngle, end.StartAngle, t, 360),
+                    StartAngle = SaturnMath.LerpCyclicManual(start.StartAngle, end.StartAngle, t, 360, SaturnMath.FlipHoldInterpolation(startCenter, endCenter)),
                 };
 
                 generatePart(start, center, false);
@@ -1617,7 +1620,7 @@ public static class Renderer3D
         {
             float startScale = getScale(start.GlobalTime, start.GlobalScaledTime);
             float endScale = getScale(end.GlobalTime, end.GlobalScaledTime);
-
+            
             if (startScale > 1.25f && endScale > 1.25f) return;
             
             bool sameTime = start.GlobalTime == end.GlobalTime;
@@ -1640,6 +1643,10 @@ public static class Renderer3D
             {
                 interval = 20.0f / (end.GlobalTime - start.GlobalTime);
             }
+            
+            float startCenter = start.StartAngle + start.IntervalAngle * maxSize * 0.5f;
+            float endCenter = end.StartAngle + end.IntervalAngle * maxSize * 0.5f;
+            bool flip = SaturnMath.FlipHoldInterpolation(startCenter, endCenter);
 
             // For every imaginary "sub point" between start and end.
             for (float t = 0; t < 1; t += interval)
@@ -1647,9 +1654,9 @@ public static class Renderer3D
                 // Very brute-force optimization: Look ahead and behind by one step to see if the arc and its neighbors are entirely off-screen.
                 if (skip(t, out float scale)) continue;
                 
-                float localTime        = SaturnMath.Lerp(start.LocalTime,        end.LocalTime,        t);
-                float intervalAngle    = SaturnMath.Lerp(start.IntervalAngle,         end.IntervalAngle,         t);
-                float startAngle       = SaturnMath.LerpCyclic(start.StartAngle, end.StartAngle, t, 360);
+                float localTime     = SaturnMath.Lerp(start.LocalTime,     end.LocalTime,     t);
+                float intervalAngle = SaturnMath.Lerp(start.IntervalAngle, end.IntervalAngle, t);
+                float startAngle    = SaturnMath.LerpCyclicManual(start.StartAngle, end.StartAngle, t, 360, flip);
 
                 generateArc(scale, localTime, startAngle, intervalAngle);
             }
@@ -2684,7 +2691,7 @@ public static class Renderer3D
         
         canvas.Restore();
     }
-
+    
     private struct RenderBonusSweepEffect(int startPosition, float startTime, float duration, bool isCounterclockwise)
     {
         public readonly int StartPosition = startPosition;
