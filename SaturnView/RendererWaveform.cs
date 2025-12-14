@@ -98,34 +98,37 @@ public static class RendererWaveform
             return;
         }
 
-        int startSample = (int)(startTime / audioLength * waveform.Length);
-        int endSample = (int)(endTime / audioLength * waveform.Length);
-
-        for (int y = 0; y < canvasInfo.Height; y++)
+        lock (waveform)
         {
-            float sample = 0;
+            int startSample = (int)(startTime / audioLength * waveform.Length);
+            int endSample = (int)(endTime / audioLength * waveform.Length);
 
-            if (waveform != null && waveform.Length != 0 && audioLength != 0)
+            for (int y = 0; y < canvasInfo.Height; y++)
             {
-                // Get 0-1 progress across canvas.
-                float t = 1 - (y / canvasInfo.Height);
+                float sample = 0;
 
-                int sampleIndex = (int)SaturnMath.Lerp(startSample, endSample, t);
+                if (waveform != null && waveform.Length != 0 && audioLength != 0)
+                {
+                    // Get 0-1 progress across canvas.
+                    float t = 1 - (y / canvasInfo.Height);
 
-                sample = sampleIndex < 0 || sampleIndex >= waveform.Length ? 0 : waveform[sampleIndex];
+                    int sampleIndex = (int)SaturnMath.Lerp(startSample, endSample, t);
+
+                    sample = sampleIndex < 0 || sampleIndex >= waveform.Length ? 0 : waveform[sampleIndex];
+                }
+
+                float x0 = (canvasInfo.Width + canvasInfo.Width * sample * 0.9f) * 0.5f;
+                float x1 = (canvasInfo.Width - canvasInfo.Width * sample * 0.9f) * 0.5f;
+
+                if (x0 - x1 < 1)
+                {
+                    x0 = (int)x0;
+                    x1 = x0 - 0.5f;
+                }
+
+                Paint.Color = waveformColor;
+                canvas.DrawLine(x0, y, x1, y, Paint);
             }
-
-            float x0 = (canvasInfo.Width + canvasInfo.Width * sample * 0.9f) * 0.5f;
-            float x1 = (canvasInfo.Width - canvasInfo.Width * sample * 0.9f) * 0.5f;
-
-            if (x0 - x1 < 1)
-            {
-                x0 = (int)x0;
-                x1 = x0 - 0.5f;
-            }
-
-            Paint.Color = waveformColor;
-            canvas.DrawLine(x0, y, x1, y, Paint);
         }
     }
 }
