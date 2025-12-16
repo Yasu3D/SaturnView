@@ -862,23 +862,18 @@ public static class Renderer3D
 
             for (int i = 1; i < holdNote.Points.Count; i++)
             {
-                HoldPointNote start = holdNote.Points[i - 1];
-                HoldPointNote end = holdNote.Points[i];
-
-                RenderUtils.GetProgress(start.Timestamp.Time, start.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float startProgress);
-                RenderUtils.GetProgress(end.Timestamp.Time, end.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float endProgress);
-                startProgress = RenderUtils.Perspective(startProgress);
-                endProgress = RenderUtils.Perspective(endProgress);
-
-                if (startProgress < radius) continue;
-                if (endProgress > radius) continue;
-
-                float t = SaturnMath.InverseLerp(startProgress, endProgress, radius);
-                t = RenderUtils.Perspective(t);
-
-                int position = (int)MathF.Round(SaturnMath.LerpCyclicManual(start.Position, end.Position, t, 60, SaturnMath.FlipHoldInterpolation(start, end)));
-                int size = (int)MathF.Round(SaturnMath.Lerp(start.Size, end.Size, t));
-
+                HoldPointNote startPoint = holdNote.Points[i - 1];
+                HoldPointNote endPoint = holdNote.Points[i];
+                
+                RenderUtils.GetProgress(startPoint.Timestamp.Time, startPoint.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float startRadius);
+                RenderUtils.GetProgress(endPoint.Timestamp.Time, endPoint.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float endRadius);
+                float r = RenderUtils.InversePerspective(radius);
+                float t = SaturnMath.InverseLerp(startRadius, endRadius, r);
+                
+                bool flip = SaturnMath.FlipHoldInterpolation(startPoint, endPoint);
+                int position = (int)MathF.Round(SaturnMath.LerpCyclicManual(startPoint.Position, endPoint.Position, t, 60, flip));
+                int size = (int)MathF.Round(SaturnMath.Lerp(startPoint.Size, endPoint.Size, t));
+                
                 IPositionable.OverlapResult result = IPositionable.HitTestResult(position, size, lane);
                 if (result != IPositionable.OverlapResult.None) return result;
             }
