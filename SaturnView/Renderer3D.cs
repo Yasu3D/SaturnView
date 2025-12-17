@@ -867,11 +867,13 @@ public static class Renderer3D
                 
                 RenderUtils.GetProgress(startPoint.Timestamp.Time, startPoint.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float startRadius);
                 RenderUtils.GetProgress(endPoint.Timestamp.Time, endPoint.Timestamp.ScaledTime, showSpeedChanges, viewDistance, time, scaledTime, out float endRadius);
+                
                 float r = RenderUtils.InversePerspective(radius);
-                float t = SaturnMath.InverseLerp(startRadius, endRadius, r);
 
                 if (startRadius < r) continue;
                 if (endRadius > r) continue;
+                
+                float t = SaturnMath.InverseLerp(startRadius, endRadius, r);
                 
                 bool flip = SaturnMath.FlipHoldInterpolation(startPoint, endPoint);
                 int position = (int)MathF.Round(SaturnMath.LerpCyclicManual(startPoint.Position, endPoint.Position, t, 60, flip));
