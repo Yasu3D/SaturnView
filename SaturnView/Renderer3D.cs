@@ -94,30 +94,31 @@ public static class Renderer3D
             if (!settings.ShowLaneToggleAnimations) return;
             
             // Get the current state of all lanes.
-            foreach (Note note in chart.LaneToggles)
+            for (int i = 0; i < chart.LaneToggles.Count; i++)
             {
+                Note note = chart.LaneToggles[i];
                 if (note.Timestamp.Time > time) continue;
                 if (note is not ILaneToggle laneToggle) continue;
                 if (note is not IPositionable positionable) continue;
-                
+
                 float delta = time - note.Timestamp.Time;
                 float duration = ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size);
-                
+
                 bool state = note is LaneShowNote; // not fully explicit but good enough.
 
                 // Instant or after the sweep. Set lanes without animating.
                 if (duration == 0 || delta > duration)
                 {
-                    for (int i = positionable.Position; i < positionable.Position + positionable.Size; i++)
+                    for (int j = positionable.Position; j < positionable.Position + positionable.Size; j++)
                     {
-                        lanesToDraw[i % 60] = state;
+                        lanesToDraw[j % 60] = state;
                     }
 
                     continue;
                 }
 
                 float progress = delta / duration;
-                
+
                 // In range for a sweep animation. Set lanes based on animation.
                 if (laneToggle.Direction is LaneSweepDirection.Center)
                 {
@@ -128,24 +129,24 @@ public static class Renderer3D
                     int centerCounterclockwise = positionable.Size % 2 != 0 ? centerClockwise : centerClockwise + 1;
                     int offset = positionable.Size % 2 != 0 ? 60 : 59;
 
-                    for (int i = 0; i < (int)(steps * progress); i++)
+                    for (int j = 0; j < (int)(steps * progress); j++)
                     {
-                        lanesToDraw[(centerClockwise - i + offset) % 60] = state;
-                        lanesToDraw[(centerCounterclockwise + i + offset) % 60] = state;
+                        lanesToDraw[(centerClockwise - j + offset) % 60] = state;
+                        lanesToDraw[(centerCounterclockwise + j + offset) % 60] = state;
                     }
                 }
                 else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
                 {
-                    for (int i = 0; i < (int)(positionable.Size * progress); i++)
+                    for (int j = 0; j < (int)(positionable.Size * progress); j++)
                     {
-                        lanesToDraw[(positionable.Position + positionable.Size - i + 59) % 60] = state;
+                        lanesToDraw[(positionable.Position + positionable.Size - j + 59) % 60] = state;
                     }
                 }
                 else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
                 {
-                    for (int i = 0; i < (int)(positionable.Size * progress); i++)
+                    for (int j = 0; j < (int)(positionable.Size * progress); j++)
                     {
-                        lanesToDraw[(i + positionable.Position + 60) % 60] = state;
+                        lanesToDraw[(j + positionable.Position + 60) % 60] = state;
                     }
                 }
             }
@@ -176,39 +177,42 @@ public static class Renderer3D
                                          );
             
             // Find all visible global events.
-            foreach (Event @event in chart.Events)
+            for (int i = 0; i < chart.Events.Count; i++)
             {
+                Event @event = chart.Events[i];
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
-                
+
                 if (!RenderUtils.GetProgress(@event.Timestamp.Time, @event.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
             }
 
             // Find all visible bookmarks.
-            foreach (Bookmark bookmark in chart.Bookmarks)
+            for (int i = 0; i < chart.Bookmarks.Count; i++)
             {
+                Bookmark bookmark = chart.Bookmarks[i];
                 if (settings.HideBookmarksDuringPlayback && playing) break;
-                
+
                 if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, bookmark.Timestamp.ScaledTime, false, viewDistance, time, scaledTime, out float progress)) continue;
                 objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
             }
-            
+
             // Find all visible lane toggles.
-            foreach (Note note in chart.LaneToggles)
+            for (int i = 0; i < chart.LaneToggles.Count; i++)
             {
+                Note note = chart.LaneToggles[i];
                 if (settings.HideLaneToggleNotesDuringPlayback && playing) break;
                 if (note is not ILaneToggle laneToggle) continue;
                 if (note is not IPositionable positionable) continue;
-                
+
                 float tStart = 1 - (note.Timestamp.Time - time) / viewDistance;
                 float tEnd = 1 - (note.Timestamp.Time + ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
 
                 if (tStart <= 0 && tEnd <= 0) continue;
                 if (tStart > 1.01f && tEnd > 1.01f) continue;
-                
+
                 objectsToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings, activeObjectGroup)));
             }
-            
+
             // Find all visible objects in layers.
             for (int l = 0; l < chart.Layers.Count; l++)
             {
@@ -220,21 +224,22 @@ public static class Renderer3D
                 }
 
                 // Find all visible events.
-                foreach (Event @event in layer.Events)
+                for (int e = 0; e < layer.Events.Count; e++)
                 {
+                    Event @event = layer.Events[e];
                     if (settings.HideEventMarkersDuringPlayback && playing) break;
 
                     if (@event is StopEffectEvent stopEffectEvent && stopEffectEvent.SubEvents.Length == 2)
                     {
                         Timestamp start = stopEffectEvent.SubEvents[0].Timestamp;
                         Timestamp end = stopEffectEvent.SubEvents[1].Timestamp;
-                        
+
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
@@ -252,25 +257,25 @@ public static class Renderer3D
                         Timestamp start = reverseEffectEvent.SubEvents[0].Timestamp;
                         Timestamp middle = reverseEffectEvent.SubEvents[1].Timestamp;
                         Timestamp end = reverseEffectEvent.SubEvents[2].Timestamp;
-                        
+
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, start.ScaledTime, false, viewDistance, time, scaledTime, out float t0))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // Middle Marker
                         if (RenderUtils.GetProgress(middle.Time, middle.ScaledTime, false, viewDistance, time, scaledTime, out float t1))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, end.ScaledTime, false, viewDistance, time, scaledTime, out float t2))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // Area Fill
                         if (start.Time <= time + viewDistance && end.Time >= time)
                         {
@@ -283,7 +288,7 @@ public static class Renderer3D
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                     }
                 }
-                
+
                 VisibilityChangeEvent? lastVisibilityChange = layer.LastVisibilityChange(time);
                 if (settings.ShowVisibilityChanges && lastVisibilityChange != null && !lastVisibilityChange.Visibility) continue;
                 
@@ -438,8 +443,9 @@ public static class Renderer3D
                 }
 
                 // Find all visible generated notes.
-                foreach (Note note in layer.GeneratedNotes)
+                for (int n = 0; n < layer.GeneratedNotes.Count; n++)
                 {
+                    Note note = layer.GeneratedNotes[n];
                     if (reverseActive && !lastReverseEffect!.ContainedNotes.Contains(note)) continue;
                     if (!RenderUtils.GetProgress(note.Timestamp.Time, note.Timestamp.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float t)) continue;
 
@@ -546,55 +552,60 @@ public static class Renderer3D
 
         void renderEventAreas()
         {
-            foreach (RenderObject renderObject in eventAreasToDraw)
+            for (int i = 0; i < eventAreasToDraw.Count; i++)
             {
+                RenderObject renderObject = eventAreasToDraw[i];
                 if (renderObject.Object is not Event @event) continue;
                 bool selected = selectedObjects != null && selectedObjects.Contains(renderObject.Object);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == renderObject.Object;
-                
+
                 DrawEventArea(canvas, canvasInfo, @event, time, viewDistance, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
 
         void renderHoldEnds()
         {
-            foreach (RenderObject renderObject in holdEndsToDraw)
+            for (int i = 0; i < holdEndsToDraw.Count; i++)
             {
+                RenderObject renderObject = holdEndsToDraw[i];
                 if (renderObject.Object is not HoldPointNote holdPointNote) continue;
-                
+
                 bool selected = selectedObjects != null && selectedObjects.Contains(holdPointNote);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == holdPointNote;
-                
+
                 DrawHoldEndNote(canvas, canvasInfo, settings, holdPointNote, RenderUtils.Perspective(renderObject.Scale), renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
         
         void renderHoldSurfaces()
         {
-            foreach (RenderObject renderObject in holdsToDraw)
+            for (int i = 0; i < holdsToDraw.Count; i++)
             {
+                RenderObject renderObject = holdsToDraw[i];
                 if (renderObject.Object is not HoldNote holdNote) continue;
                 if (renderObject.Layer == null) continue;
-                
+
                 bool selected = selectedObjects != null && selectedObjects.Contains(holdNote);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == holdNote;
-                
+
                 DrawHoldSurface(canvas, canvasInfo, settings, holdNote, renderObject.Layer, time, viewDistance, playing, renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f, selected, pointerOver);
             }
         }
         
         void renderJudgeAreas()
         {
-            foreach (RenderJudgeArea renderJudgeArea in timingWindowsToDraw)
+            for (int i = 0; i < timingWindowsToDraw.Count; i++)
             {
+                RenderJudgeArea renderJudgeArea = timingWindowsToDraw[i];
                 DrawJudgeArea(canvas, canvasInfo, settings, renderJudgeArea, 1);
             }
         }
         
         void renderObjects()
         {
-            foreach (RenderObject renderObject in objectsToDraw)
+            for (int i = 0; i < objectsToDraw.Count; i++)
             {
+                RenderObject renderObject = objectsToDraw[i];
                 bool selected = selectedObjects != null && selectedObjects.Contains(renderObject.Object);
                 bool pointerOver = pointerOverObject != null && pointerOverObject == renderObject.Object;
                 float opacity = renderObject.IsVisible ? 1 : settings.HiddenOpacity * 0.1f;
@@ -609,7 +620,7 @@ public static class Renderer3D
                     selected = selected || (selectedObjects != null && selectedObjects.Contains(holdNote.Points[0]));
                     pointerOver = pointerOver || pointerOverObject == holdNote.Points[0];
                 }
-                
+
                 render(renderObject, selected, pointerOver, opacity, false);
             }
 
@@ -735,8 +746,9 @@ public static class Renderer3D
 
         void renderBonusEffects()
         {
-            foreach (RenderBonusSweepEffect sweepEffect in bonusSweepEffectsToDraw)
+            for (int i = 0; i < bonusSweepEffectsToDraw.Count; i++)
             {
+                RenderBonusSweepEffect sweepEffect = bonusSweepEffectsToDraw[i];
                 DrawBonusSweepEffect(canvas, canvasInfo, sweepEffect.StartPosition, sweepEffect.StartTime, sweepEffect.Duration, sweepEffect.IsCounterclockwise, time);
             }
         }
