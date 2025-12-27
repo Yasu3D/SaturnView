@@ -828,8 +828,9 @@ public static class Renderer3D
         // Hit test stop effect event
         if (obj is StopEffectEvent stopEffectEvent)
         {
-            foreach (EffectSubEvent subEvent in stopEffectEvent.SubEvents)
+            for (int i = 0; i < stopEffectEvent.SubEvents.Length; i++)
             {
+                EffectSubEvent subEvent = stopEffectEvent.SubEvents[i];
                 IPositionable.OverlapResult result = hitTestObject(subEvent);
                 if (result == IPositionable.OverlapResult.None) continue;
 
@@ -839,8 +840,9 @@ public static class Renderer3D
         // Hit test reverse effect event
         else if (obj is ReverseEffectEvent reverseEffectEvent)
         {
-            foreach (EffectSubEvent subEvent in reverseEffectEvent.SubEvents)
+            for (int i = 0; i < reverseEffectEvent.SubEvents.Length; i++)
             {
+                EffectSubEvent subEvent = reverseEffectEvent.SubEvents[i];
                 IPositionable.OverlapResult result = hitTestObject(subEvent);
                 if (result == IPositionable.OverlapResult.None) continue;
 
@@ -2496,19 +2498,23 @@ public static class Renderer3D
             int normalHitCount = 0;
             int bonusHitCount = 0;
 
-            foreach (Layer layer in chart.Layers)
-            foreach (Note note in layer.Notes)
+            for (int i = 0; i < chart.Layers.Count; i++)
             {
-                if (note is not IPlayable playable) continue;
-                if (playable.JudgementType == JudgementType.Fake) continue;
+                Layer layer = chart.Layers[i];
+                for (int j = 0; j < layer.Notes.Count; j++)
+                {
+                    Note note = layer.Notes[j];
+                    if (note is not IPlayable playable) continue;
+                    if (playable.JudgementType == JudgementType.Fake) continue;
 
-                noteCount++;
+                    noteCount++;
 
-                if (note.Timestamp.Time > time) continue;
-                
-                normalHitCount++;
-                
-                if (playable.BonusType is BonusType.Bonus) bonusHitCount++;
+                    if (note.Timestamp.Time > time) continue;
+
+                    normalHitCount++;
+
+                    if (playable.BonusType is BonusType.Bonus) bonusHitCount++;
+                }
             }
 
             float progress = noteCount == 0 ? 0 : (float)(normalHitCount + bonusHitCount + bonusHitCount) / noteCount;
