@@ -84,60 +84,64 @@ public static class Renderer2D
                                          );
             
             // Find all visible global events.
-            foreach (Event @event in chart.Events)
+            for (int i = 0; i < chart.Events.Count; i++)
             {
+                Event @event = chart.Events[i];
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
-                
+
                 if (!RenderUtils.GetProgress(@event.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
                 objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
             }
 
             // Find all visible bookmarks.
-            foreach (Bookmark bookmark in chart.Bookmarks)
+            for (int i = 0; i < chart.Bookmarks.Count; i++)
             {
+                Bookmark bookmark = chart.Bookmarks[i];
                 if (settings.HideBookmarksDuringPlayback && playing) break;
-                
+
                 if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
                 objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
             }
-            
+
             // Find all visible lane toggles.
-            foreach (Note note in chart.LaneToggles)
+            for (int i = 0; i < chart.LaneToggles.Count; i++)
             {
+                Note note = chart.LaneToggles[i];
                 if (settings.HideLaneToggleNotesDuringPlayback && playing) break;
                 if (note is not ILaneToggle laneToggle) continue;
                 if (note is not IPositionable positionable) continue;
-                
+
                 float tStart = 1 - (note.Timestamp.Time - time) / viewDistance;
                 float tEnd = 1 - (note.Timestamp.Time + ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size) - time) / viewDistance;
 
                 if (tStart <= 0 && tEnd <= 0) continue;
                 if (tStart > 1.01f && tEnd > 1.01f) continue;
-                
+
                 objectsToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings, activeObjectGroup)));
             }
-            
+
             // Find all visible objects in layers.
             for (int l = 0; l < chart.Layers.Count; l++)
             {
                 Layer layer = chart.Layers[l];
 
                 // Find all visible events.
-                foreach (Event @event in layer.Events)
+                for (int i = 0; i < layer.Events.Count; i++)
                 {
+                    Event @event = layer.Events[i];
                     if (settings.HideEventMarkersDuringPlayback && playing) break;
 
                     if (@event is StopEffectEvent stopEffectEvent && stopEffectEvent.SubEvents.Length == 2)
                     {
                         Timestamp start = stopEffectEvent.SubEvents[0].Timestamp;
                         Timestamp end = stopEffectEvent.SubEvents[1].Timestamp;
-                        
+
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
                             objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
@@ -155,25 +159,25 @@ public static class Renderer2D
                         Timestamp start = reverseEffectEvent.SubEvents[0].Timestamp;
                         Timestamp middle = reverseEffectEvent.SubEvents[1].Timestamp;
                         Timestamp end = reverseEffectEvent.SubEvents[2].Timestamp;
-                        
+
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // Middle Marker
                         if (RenderUtils.GetProgress(middle.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t2))
                         {
                             objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
-                        
+
                         // Area Fill
                         if (start.Time <= time + viewDistance && end.Time >= time)
                         {
@@ -186,7 +190,7 @@ public static class Renderer2D
                         objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                     }
                 }
-                
+
                 // Find all visible notes.
                 for (int n = 0; n < layer.Notes.Count; n++)
                 {
@@ -285,8 +289,9 @@ public static class Renderer2D
                 }
 
                 // Find all visible generated notes.
-                foreach (Note note in layer.GeneratedNotes)
+                for (int i = 0; i < layer.GeneratedNotes.Count; i++)
                 {
+                    Note note = layer.GeneratedNotes[i];
                     if (!RenderUtils.GetProgress(note.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
 
                     objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));

@@ -68,13 +68,14 @@ public static class RendererWaveform
         {
             float chartStartTime = time - (judgeLineMargin * pixelsPerMilliseconds);
             float chartEndTime = chartStartTime + canvasInfo.Height * pixelsPerMilliseconds;
-            
-            foreach (Note note in chart.Layers[0].GeneratedNotes)
+
+            for (int i = 0; i < chart.Layers[0].GeneratedNotes.Count; i++)
             {
+                Note note = chart.Layers[0].GeneratedNotes[i];
                 if (note is not MeasureLineNote measureLine) continue;
                 if (measureLine.IsBeatLine && !settings.ShowBeatLineNotes) continue;
                 if (!measureLine.IsBeatLine && !settings.ShowMeasureLineNotes) continue;
-                
+
                 float t = SaturnMath.InverseLerp(chartEndTime, chartStartTime, measureLine.Timestamp.Time);
                 if (t < 0) continue;
                 if (t > 1) continue;
