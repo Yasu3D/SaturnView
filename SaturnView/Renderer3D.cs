@@ -1657,6 +1657,8 @@ public static class Renderer3D
             {
                 interval = 20.0f / (end.GlobalTime - start.GlobalTime);
             }
+
+            if (interval <= 0) return;
             
             float startCenter = start.StartAngle + start.IntervalAngle * maxSize * 0.5f;
             float endCenter = end.StartAngle + end.IntervalAngle * maxSize * 0.5f;
