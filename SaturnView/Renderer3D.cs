@@ -2290,7 +2290,7 @@ public static class Renderer3D
                 Difficulty.Normal => 0xFF1B7CFF,
                 Difficulty.Hard => 0xFFFFC300,
                 Difficulty.Expert => 0xFFFF0084,
-                Difficulty.Inferno => 0xFF400084,
+                Difficulty.Inferno => 0xFF3F0042,
                 Difficulty.WorldsEnd => 0xFF000000,
                 _ => 0xFFBFBFBF,
             };
