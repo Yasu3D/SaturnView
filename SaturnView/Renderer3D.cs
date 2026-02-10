@@ -379,25 +379,23 @@ public static class Renderer3D
                     if (note is HoldNote holdNote && holdNote.Points.Count != 0)
                     {
                         // Hold Notes
-                        if (settings.ShowSpeedChanges)
-                        {
-                            if (holdNote.Points[^1].Timestamp.Time < time) continue;
-                            if (holdNote.Points[^1].Timestamp.ScaledTime < scaledTime) continue;
-                            if (holdNote.Points[ 0].Timestamp.ScaledTime > scaledTime + viewDistance) continue;
-                        }
-                        else
-                        {
-                            if (holdNote.Points[^1].Timestamp.Time < time) continue;
-                            if (holdNote.Points[ 0].Timestamp.Time > time + viewDistance) continue;
-                        }
+                        if (holdNote.Points[^1].Timestamp.Time < time) continue;
+
+                        Timestamp start = holdNote.Points[0].Timestamp;
+                        Timestamp end = holdNote.Points[^1].Timestamp;
+
+                        bool startVisible = RenderUtils.GetProgress(start.Time, start.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart);
+                        bool endVisible = RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd);
+
+                        if (tStart > 1.25f && tEnd > 1.25f) continue;
+                        if (tStart < 0 && tEnd < 0) continue;
                         
                         bool isVisible = layer.Visible && RenderUtils.IsVisible(holdNote, settings, activeObjectGroup);
                         
                         holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
                         
                         // Hold Start
-                        Timestamp start = holdNote.Points[0].Timestamp;
-                        if (RenderUtils.GetProgress(start.Time, start.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tStart))
+                        if (startVisible)
                         {
                             Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
                             Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
@@ -407,8 +405,7 @@ public static class Renderer3D
                         }
 
                         // Hold End
-                        Timestamp end = holdNote.Points[^1].Timestamp;
-                        if (holdNote.Points.Count > 1 && RenderUtils.GetProgress(end.Time, end.ScaledTime, settings.ShowSpeedChanges, viewDistance, time, scaledTime, out float tEnd))
+                        if (holdNote.Points.Count > 1 && endVisible)
                         {
                             holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
                         }
