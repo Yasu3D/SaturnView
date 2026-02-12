@@ -3,7 +3,7 @@ using SaturnData.Notation.Interfaces;
 
 namespace SaturnView;
 
-internal struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool sync, bool isVisible)
+internal struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, float scale, bool isVisible)
 {
     // Universal
     public readonly ITimeable Object = @object;
@@ -13,5 +13,5 @@ internal struct RenderObject(ITimeable @object, Layer? layer, int? layerIndex, f
     public readonly bool IsVisible = isVisible;
     
     // Note-Specific
-    public readonly bool Sync = sync;
+    public readonly bool Sync = @object is Note { IsSync: true };
 }

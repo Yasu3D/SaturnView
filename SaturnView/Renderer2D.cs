@@ -90,7 +90,7 @@ public static class Renderer2D
                 if (settings.HideEventMarkersDuringPlayback && playing) break;
 
                 if (!RenderUtils.GetProgress(@event.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
-                objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                objectsToDraw.Add(new(@event, chart.Layers[0], 0, progress, RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
             }
 
             // Find all visible bookmarks.
@@ -100,7 +100,7 @@ public static class Renderer2D
                 if (settings.HideBookmarksDuringPlayback && playing) break;
 
                 if (!RenderUtils.GetProgress(bookmark.Timestamp.Time, 0, false, viewDistance, time, 0, out float progress)) continue;
-                objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, false, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
+                objectsToDraw.Add(new(bookmark, chart.Layers[0], 0, progress, RenderUtils.IsVisible(bookmark, settings, activeObjectGroup)));
             }
 
             // Find all visible lane toggles.
@@ -117,7 +117,7 @@ public static class Renderer2D
                 if (tStart <= 0 && tEnd <= 0) continue;
                 if (tStart > 1.01f && tEnd > 1.01f) continue;
 
-                objectsToDraw.Add(new(note, null, 0, tStart, false, RenderUtils.IsVisible(note, settings, activeObjectGroup)));
+                objectsToDraw.Add(new(note, null, 0, tStart, RenderUtils.IsVisible(note, settings, activeObjectGroup)));
             }
 
             // Find all visible objects in layers.
@@ -139,19 +139,19 @@ public static class Renderer2D
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
-                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[0], layer, l, t0, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
-                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            objectsToDraw.Add(new(stopEffectEvent.SubEvents[1], layer, l, t1, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // Area Fill
                         if (stopEffectEvent.SubEvents[0].Timestamp.Time <= time + viewDistance && stopEffectEvent.SubEvents[1].Timestamp.Time >= time)
                         {
-                            eventAreasToDraw.Add(new(stopEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            eventAreasToDraw.Add(new(stopEffectEvent, layer, l, 0, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                     }
                     else if (@event is ReverseEffectEvent reverseEffectEvent && reverseEffectEvent.SubEvents.Length == 3)
@@ -163,31 +163,31 @@ public static class Renderer2D
                         // Start Marker
                         if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float t0))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[0], layer, l, t0, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // Middle Marker
                         if (RenderUtils.GetProgress(middle.Time, 0, false, viewDistance, time, 0, out float t1))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[1], layer, l, t1, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // End Marker
                         if (RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float t2))
                         {
-                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            objectsToDraw.Add(new(reverseEffectEvent.SubEvents[2], layer, l, t2, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
 
                         // Area Fill
                         if (start.Time <= time + viewDistance && end.Time >= time)
                         {
-                            eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                            eventAreasToDraw.Add(new(reverseEffectEvent, layer, l, 0, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                         }
                     }
                     else
                     {
                         if (!RenderUtils.GetProgress(@event.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
-                        objectsToDraw.Add(new(@event, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
+                        objectsToDraw.Add(new(@event, layer, l, t, layer.Visible && RenderUtils.IsVisible(@event, settings, activeObjectGroup)));
                     }
                 }
 
@@ -241,24 +241,20 @@ public static class Renderer2D
                         
                         bool isVisible = layer.Visible && RenderUtils.IsVisible(holdNote, settings, activeObjectGroup);
                         
-                        holdsToDraw.Add(new(holdNote, layer, l, 0, false, isVisible));
+                        holdsToDraw.Add(new(holdNote, layer, l, 0, isVisible));
                         
                         // Hold Start
                         Timestamp start = holdNote.Points[0].Timestamp;
                         if (RenderUtils.GetProgress(start.Time, 0, false, viewDistance, time, 0, out float tStart))
                         {
-                            Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
-                            Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
-                            bool sync = note.IsSync(prev) || note.IsSync(next);
-
-                            objectsToDraw.Add(new(note, layer, l, tStart, sync, isVisible));
+                            objectsToDraw.Add(new(note, layer, l, tStart, isVisible));
                         }
 
                         // Hold End
                         Timestamp end = holdNote.Points[^1].Timestamp;
                         if (holdNote.Points.Count > 1 && RenderUtils.GetProgress(end.Time, 0, false, viewDistance, time, 0, out float tEnd))
                         {
-                            holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, false, isVisible));
+                            holdEndsToDraw.Add(new(holdNote.Points[^1], layer, l, tEnd, isVisible));
                         }
 
                         // Hold Points
@@ -271,7 +267,7 @@ public static class Renderer2D
                                 HoldPointNote point = holdNote.Points[j];
                                 float t = 1 - (point.Timestamp.Time - time) / viewDistance;
 
-                                objectsToDraw.Add(new(point, layer, l, t, false, isVisible));
+                                objectsToDraw.Add(new(point, layer, l, t, isVisible));
                             }
                         }
                     }
@@ -279,12 +275,8 @@ public static class Renderer2D
                     {
                         // Normal Notes
                         if (!RenderUtils.GetProgress(note.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
-
-                        Note? prev = n > 0                     ? layer.Notes[n - 1] : null;
-                        Note? next = n < layer.Notes.Count - 1 ? layer.Notes[n + 1] : null;
-                        bool sync = note.IsSync(prev) || note.IsSync(next);
-
-                        objectsToDraw.Add(new(note, layer, l, t, sync, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
+                        
+                        objectsToDraw.Add(new(note, layer, l, t, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
                     }
                 }
 
@@ -294,7 +286,7 @@ public static class Renderer2D
                     Note note = layer.GeneratedNotes[i];
                     if (!RenderUtils.GetProgress(note.Timestamp.Time, 0, false, viewDistance, time, 0, out float t)) continue;
 
-                    objectsToDraw.Add(new(note, layer, l, t, false, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
+                    objectsToDraw.Add(new(note, layer, l, t, layer.Visible && RenderUtils.IsVisible(note, settings, activeObjectGroup)));
                 }
             }
             
@@ -383,7 +375,21 @@ public static class Renderer2D
 
             if (cursorNote != null)
             {
-                render(new(cursorNote, null, null, 1, false, true), false, false, 0.5f, true);
+                render
+                (
+                    renderObject: new
+                    (
+                        @object: cursorNote,
+                        layer: null,
+                        layerIndex: null,
+                        scale: 1,
+                        isVisible: true
+                    ),
+                    selected: false,
+                    pointerOver: false,
+                    opacity: 0.5f,
+                    overwriteLaneToggleStartTime: true
+                );
             }
 
             return;
