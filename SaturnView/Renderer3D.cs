@@ -99,56 +99,8 @@ public static class Renderer3D
                 Note note = chart.LaneToggles[i];
                 if (note.Timestamp.Time > time) continue;
                 if (note is not ILaneToggle laneToggle) continue;
-                if (note is not IPositionable positionable) continue;
 
-                float delta = time - note.Timestamp.Time;
-                float duration = ILaneToggle.SweepDuration(laneToggle.Direction, positionable.Size);
-
-                bool state = note is LaneShowNote; // not fully explicit but good enough.
-
-                // Instant or after the sweep. Set lanes without animating.
-                if (duration == 0 || delta > duration)
-                {
-                    for (int j = positionable.Position; j < positionable.Position + positionable.Size; j++)
-                    {
-                        lanesToDraw[j % 60] = state;
-                    }
-
-                    continue;
-                }
-
-                float progress = delta / duration;
-
-                // In range for a sweep animation. Set lanes based on animation.
-                if (laneToggle.Direction is LaneSweepDirection.Center)
-                {
-                    float halfSize = positionable.Size * 0.5f;
-                    int floor = (int)halfSize;
-                    int steps = (int)MathF.Ceiling(halfSize);
-                    int centerClockwise = positionable.Position + floor;
-                    int centerCounterclockwise = positionable.Size % 2 != 0 ? centerClockwise : centerClockwise + 1;
-                    int offset = positionable.Size % 2 != 0 ? 60 : 59;
-
-                    for (int j = 0; j < (int)(steps * progress); j++)
-                    {
-                        lanesToDraw[(centerClockwise - j + offset) % 60] = state;
-                        lanesToDraw[(centerCounterclockwise + j + offset) % 60] = state;
-                    }
-                }
-                else if (laneToggle.Direction is LaneSweepDirection.Clockwise)
-                {
-                    for (int j = 0; j < (int)(positionable.Size * progress); j++)
-                    {
-                        lanesToDraw[(positionable.Position + positionable.Size - j + 59) % 60] = state;
-                    }
-                }
-                else if (laneToggle.Direction is LaneSweepDirection.Counterclockwise)
-                {
-                    for (int j = 0; j < (int)(positionable.Size * progress); j++)
-                    {
-                        lanesToDraw[(j + positionable.Position + 60) % 60] = state;
-                    }
-                }
+                laneToggle.SetState(lanesToDraw, time, false);
             }
         }
         
@@ -1993,7 +1945,7 @@ public static class Renderer3D
             {
                 SKPoint[] vertices = new SKPoint[positionable.Size * 6];
             
-                if (laneToggle.Direction is LaneSweepDirection.Center)
+                if (laneToggle.Direction is LaneSweepDirection.CenterOutward)
                 {
                     int center = (int)Math.Ceiling(positionable.Size / 2.0f);
                     float duration = center * 8.3333333f;
@@ -2007,6 +1959,40 @@ public static class Renderer3D
                         float t = even
                             ? i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 1) * 8.3333333f
                             : i < center ? startTime + duration - i * 8.3333333f : startTime - duration + (i + 2) * 8.3333333f;
+                    
+                        float stepScale = SaturnMath.InverseLerp(time + viewDistance, time, t);
+                        stepScale = RenderUtils.Perspective(stepScale);
+                    
+                        float stepRadius = canvasInfo.JudgementLineRadius * stepScale;
+                        stepRadius = Math.Max(0, stepRadius);
+                    
+                        SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle    );
+                        SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, radius,    angle - 6);
+                        SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle    );
+                        SKPoint p3 = RenderUtils.PointOnArc(canvasInfo.Center, stepRadius, angle - 6);
+
+                        vertices[6 * i]     = p0;
+                        vertices[6 * i + 1] = p1;
+                        vertices[6 * i + 2] = p2;
+                        vertices[6 * i + 3] = p3;
+                        vertices[6 * i + 4] = p2;
+                        vertices[6 * i + 5] = p1;
+                    }
+                }
+                else if (laneToggle.Direction is LaneSweepDirection.CenterInward)
+                {
+                    int center = (int)Math.Ceiling(positionable.Size / 2.0f);
+                    float duration = center * 8.3333333f;
+
+                    bool even = positionable.Size % 2 == 0;
+                
+                    for (int i = 0; i < positionable.Size; i++)
+                    {
+                        float angle = (positionable.Position + i) * -6;
+
+                        float t = even
+                            ? i < center ? startTime + (i + 1) * 8.3333333f : startTime + duration + duration - i * 8.3333333f
+                            : i < center ? startTime + (i + 1) * 8.3333333f : startTime + duration + duration - (i + 1) * 8.3333333f;
                     
                         float stepScale = SaturnMath.InverseLerp(time + viewDistance, time, t);
                         stepScale = RenderUtils.Perspective(stepScale);
