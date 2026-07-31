@@ -89,7 +89,7 @@ public static class RenderUtils
     {
         // Huge thanks to CG505 for figuring out the perspective math:
         // https://www.desmos.com/calculator/9a0srmgktj
-        x = Math.Min(1.3f, x);
+        x = Math.Min(1.316f, x);
         return 3.325f * x / (13.825f - 10.5f * x);
     }
     
