@@ -1,5 +1,5 @@
-﻿using SaturnData.Notation.Core;
 ﻿using System.Globalization;
+using SaturnData.Notation.Core;
 using SaturnData.Notation.Events;
 using SaturnData.Notation.Interfaces;
 using SaturnData.Notation.Notes;
@@ -261,16 +261,15 @@ public static class Renderer3D
                         // Bonus Spin FX
                         if (checkForBonusNotes && note is SlideClockwiseNote or SlideCounterclockwiseNote && playable.BonusType == BonusType.Bonus)
                         {
-                            float bpm = chart.LastTempoChange(time)?.Tempo ?? 120;
-
-                            float duration = bpm >= 200
-                                ? 480000 / bpm
-                                : 240000 / bpm;
+                            float tempo = chart.LastTempoChange(time)?.Tempo ?? 120;
+                            float duration = SlideClockwiseNote.BonusEffectDuration(tempo);
 
                             if (note.Timestamp.Time < time && note.Timestamp.Time + duration > time && note is IPositionable positionable)
                             {
-                                int startPosition = positionable.Position + positionable.Size / 2;
                                 bool isCounterclockwise = note is SlideCounterclockwiseNote;
+                                int startPosition = isCounterclockwise
+                                    ? positionable.Position + positionable.Size / 2 + 1
+                                    : positionable.Position + positionable.Size / 2;
                                 
                                 bonusSweepEffectsToDraw.Add(new(startPosition, note.Timestamp.Time, duration, isCounterclockwise));
                             }
@@ -1043,6 +1042,40 @@ public static class Renderer3D
                 canvas.DrawPath(path, NotePaints.GetSyncOutlinePaint(opacity));
             }
         }
+
+        // Bonus Triangles
+        if (playable != null && playable.BonusType == BonusType.Bonus)
+        {
+            SKPath path = new();
+            
+            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
+
+            int count = positionable.Size == 60 
+                ? positionable.Size 
+                : positionable.Size - 2;
+            float start = positionable.Size == 60 
+                ? positionable.Position * -6
+                : positionable.Position * -6 - 6;
+            
+            for (int i = 0; i < count; i++)
+            {
+                bool even = i % 2 == 0;
+
+                float angleA = start + i * -6;
+                float angleB = start + (i + 1) * -6;
+
+                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleA : angleB);
+                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, even ? angleA : angleB);
+                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleB : angleA);
+
+                path.MoveTo(p0);
+                path.LineTo(p1);
+                path.LineTo(p2);
+            }
+
+            canvas.DrawPath(path, NotePaints.GetNoteBonusPaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
+        }
         
         // Chain Stripes
         if (note is ChainNote)
@@ -1099,40 +1132,6 @@ public static class Renderer3D
             }
 
             canvas.DrawPath(path, NotePaints.GetChainStripePaint(opacity));
-        }
-
-        // Bonus Triangles
-        if (playable != null && playable.BonusType == BonusType.Bonus)
-        {
-            SKPath path = new();
-            
-            float innerRadius = radius - NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-            float outerRadius = radius + NotePaints.NoteStrokeWidths[(int)settings.NoteThickness] * 0.5f * pixelScale;
-
-            int count = positionable.Size == 60 
-                ? positionable.Size 
-                : positionable.Size - 2;
-            float start = positionable.Size == 60 
-                ? positionable.Position * -6
-                : positionable.Position * -6 - 6;
-            
-            for (int i = 0; i < count; i++)
-            {
-                bool even = i % 2 == 0;
-
-                float angleA = start + i * -6;
-                float angleB = start + (i + 1) * -6;
-
-                SKPoint p0 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleA : angleB);
-                SKPoint p1 = RenderUtils.PointOnArc(canvasInfo.Center, outerRadius, even ? angleA : angleB);
-                SKPoint p2 = RenderUtils.PointOnArc(canvasInfo.Center, innerRadius, even ? angleB : angleA);
-
-                path.MoveTo(p0);
-                path.LineTo(p1);
-                path.LineTo(p2);
-            }
-
-            canvas.DrawPath(path, NotePaints.GetNoteBonusPaint(canvasInfo, settings, colorId, pixelScale, perspectiveScale, opacity));
         }
         
         // Snap Arrows
@@ -2367,39 +2366,34 @@ public static class Renderer3D
     private static void DrawBonusSweepEffect(SKCanvas canvas, CanvasInfo canvasInfo, int startPosition, float startTime, float duration, bool isCounterclockwise, float time)
     {
         if (time < startTime) return;
-        if (time > startTime + duration) return;
+        
+        float endTime = startTime + duration;
+        if (time > endTime) return;
         
         SKRect rect = new(0, 0, canvasInfo.Width, canvasInfo.Height);
 
-        float delta = time - startTime;
-        float step = MathF.Ceiling(delta * 0.06f);
+        int a = 0;
+        int b = 15;
+        int c = 58;
+        int d = 73;
+        
+        float t = SaturnMath.InverseLerp(startTime, endTime, time);
+        int step = (int)(t * d);
 
-        float offset;
-        float start;
-        float sweep;
-        float clamp;
-
+        int offset;
+        int start;
+        int sweep = step < b ? step : b;
+            sweep = step < c ? sweep : d - step;
+            
         if (isCounterclockwise)
         {
-            offset = -step - startPosition;
-            
-            start = 0;
-            sweep = MathF.Min(15, step);
-            clamp = MathF.Ceiling(MathF.Min(0, -step + (duration - 250) * 0.06f));
-            
-            start -= clamp;
-            sweep += clamp;
+            offset = -startPosition - step + 1;
+            start = Math.Max(0, step - 58);
         }
         else
         {
-            offset = step - startPosition - 16;
-
-            start = 15;
-            sweep = -MathF.Min(15, step);
-            clamp = MathF.Ceiling(MathF.Min(0, -step + (duration - 250) * 0.06f));
-
-            start += clamp;
-            sweep += clamp;
+            offset = -startPosition + step - b;
+            start = Math.Max(0, 15 - step); 
         }
         
         canvas.Save();
