@@ -1,9 +1,11 @@
+using SaturnData.Content.Items;
+using SaturnData.Content.Items.Attributes;
+
 namespace SaturnView;
 
-[Serializable]
-public class RenderSettings
+public class RenderSettings : ContentItem
 {
-    public event EventHandler? PropertyChanged;
+    public new event EventHandler? PropertyChanged;
     
 #region Enum Definitions
 
@@ -113,6 +115,8 @@ public class RenderSettings
     /// <summary>
     /// Simplifies chart visuals to lower the performance cost.
     /// </summary>
+    [SctLineBreak]
+    [SctKey("LOW_PERFORMANCE", 27)]
     public bool LowPerformanceMode
     {
         get => lowPerformanceMode;
@@ -129,6 +133,8 @@ public class RenderSettings
     /// <summary>
     /// The note speed to render the chart with. (Game-Accurate)
     /// </summary>
+    [SctLineBreak]
+    [SctKey("NOTE_SPEED", 27)]
     public int NoteSpeed
     {
         get => noteSpeed;
@@ -143,24 +149,26 @@ public class RenderSettings
     private int noteSpeed = 30;
 
     /// <summary>
-    /// The color of the judgement line.
+    /// The amount to dim the background by.
     /// </summary>
-    public JudgementLineColorOption JudgementLineColor
+    [SctKey("BACKGROUND_DIM", 27)]
+    public BackgroundDimOption BackgroundDim
     {
-        get => judgementLineColor;
+        get => backgroundDim;
         set
         {
-            if (judgementLineColor == value) return;
+            if (backgroundDim == value) return;
             
-            judgementLineColor = value;
+            backgroundDim = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private JudgementLineColorOption judgementLineColor = JudgementLineColorOption.Version3;
+    private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
     
     /// <summary>
     /// The thickness of notes.
     /// </summary>
+    [SctKey("NOTE_THICKNESS", 27)]
     public NoteThicknessOption NoteThickness
     {
         get => noteThickness;
@@ -175,78 +183,44 @@ public class RenderSettings
     private NoteThicknessOption noteThickness = NoteThicknessOption.Thickness3;
     
     /// <summary>
-    /// Should lane toggle animations be shown?
+    /// The color of the judgement line.
     /// </summary>
-    public bool ShowLaneToggleAnimations
+    [SctKey("JUDGEMENT_LINE_COLOR", 27)]
+    public JudgementLineColorOption JudgementLineColor
     {
-        get => showLaneToggleAnimations;
-        set 
+        get => judgementLineColor;
+        set
         {
-            showLaneToggleAnimations = value;
+            if (judgementLineColor == value) return;
+            
+            judgementLineColor = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showLaneToggleAnimations = true;
+    private JudgementLineColorOption judgementLineColor = JudgementLineColorOption.Version3;
     
     /// <summary>
-    /// Should event markers be hidden during playback?
+    /// The density of guidelines.
     /// </summary>
-    public bool HideEventMarkersDuringPlayback
+    [SctKey("GUIDE_LINE_TYPE", 27)]
+    public GuideLineTypeOption GuideLineType
     {
-        get => hideEventMarkersDuringPlayback;
-        set 
+        get => guideLineType;
+        set
         {
-            hideEventMarkersDuringPlayback = value;
+            if (guideLineType == value) return;
+            
+            guideLineType = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool hideEventMarkersDuringPlayback = true;
-    
-    /// <summary>
-    /// Should lane toggle notes be hidden during playback?
-    /// </summary>
-    public bool HideLaneToggleNotesDuringPlayback
-    {
-        get => hideLaneToggleNotesDuringPlayback;
-        set 
-        {
-            hideLaneToggleNotesDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool hideLaneToggleNotesDuringPlayback = true;
-    
-    /// <summary>
-    /// Should hold note control points be hidden during playback?
-    /// </summary>
-    public bool HideHoldControlPointsDuringPlayback
-    {
-        get => hideHoldControlPointsDuringPlayback;
-        set 
-        {
-            hideHoldControlPointsDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool hideHoldControlPointsDuringPlayback = true;
-    
-    /// <summary>
-    /// Should bookmarks be hidden during playback?
-    /// </summary>
-    public bool HideBookmarksDuringPlayback
-    {
-        get => hideBookmarksDuringPlayback;
-        set 
-        {
-            hideBookmarksDuringPlayback = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool hideBookmarksDuringPlayback = true;
+    private GuideLineTypeOption guideLineType;
     
     /// <summary>
     /// The color of Touch notes.
     /// </summary>
+    [SctLineBreak]
+    [SctKey("COLOR_TOUCH", 27)]
     public NoteColorOption TouchNoteColor
     {
         get => touchNoteColor;
@@ -263,6 +237,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Chain notes.
     /// </summary>
+    [SctKey("COLOR_CHAIN", 27)]
     public NoteColorOption ChainNoteColor
     {
         get => chainNoteColor;
@@ -279,6 +254,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Hold notes.
     /// </summary>
+    [SctKey("COLOR_HOLD", 27)]
     public NoteColorOption HoldNoteColor
     {
         get => holdNoteColor;
@@ -295,6 +271,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Slide Clockwise notes.
     /// </summary>
+    [SctKey("COLOR_SLIDE_CLW", 27)]
     public NoteColorOption SlideClockwiseNoteColor
     {
         get => slideClockwiseNoteColor;
@@ -311,6 +288,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Slide Counterclockwise notes.
     /// </summary>
+    [SctKey("COLOR_SLIDE_CCW", 27)]
     public NoteColorOption SlideCounterclockwiseNoteColor
     {
         get => slideCounterclockwiseNoteColor;
@@ -327,6 +305,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Snap Forward notes.
     /// </summary>
+    [SctKey("COLOR_SNAP_FWD", 27)]
     public NoteColorOption SnapForwardNoteColor
     {
         get => snapForwardNoteColor;
@@ -343,6 +322,7 @@ public class RenderSettings
     /// <summary>
     /// The color of Snap Backward notes.
     /// </summary>
+    [SctKey("COLOR_SNAP_BWD", 27)]
     public NoteColorOption SnapBackwardNoteColor
     {
         get => snapBackwardNoteColor;
@@ -357,40 +337,10 @@ public class RenderSettings
     private NoteColorOption snapBackwardNoteColor = NoteColorOption.SkyBlue;
     
     /// <summary>
-    /// The density of guidelines.
-    /// </summary>
-    public GuideLineTypeOption GuideLineType
-    {
-        get => guideLineType;
-        set
-        {
-            if (guideLineType == value) return;
-            
-            guideLineType = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private GuideLineTypeOption guideLineType;
-    
-    /// <summary>
-    /// The amount to dim the background by.
-    /// </summary>
-    public BackgroundDimOption BackgroundDim
-    {
-        get => backgroundDim;
-        set
-        {
-            if (backgroundDim == value) return;
-            
-            backgroundDim = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private BackgroundDimOption backgroundDim = BackgroundDimOption.NoDim;
-
-    /// <summary>
     /// The opacity of "hidden" objects.
     /// </summary>
+    [SctLineBreak]
+    [SctKey("HIDDEN_OPACITY", 27)]
     public int HiddenOpacity
     {
         get => hiddenOpacity;
@@ -405,8 +355,411 @@ public class RenderSettings
     private int hiddenOpacity = 1;
     
     /// <summary>
+    /// Should Touch notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_TOUCH", 27)]
+    public bool ShowTouchNotes
+    {
+        get => showTouchNotes;
+        set
+        {
+            if (showTouchNotes == value) return;
+            
+            showTouchNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showTouchNotes = true;
+    
+    /// <summary>
+    /// Should Chain notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_CHAIN", 27)]
+    public bool ShowChainNotes
+    {
+        get => showChainNotes;
+        set
+        {
+            if (showChainNotes == value) return;
+            
+            showChainNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showChainNotes = true;
+    
+    /// <summary>
+    /// Should Hold notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_HOLD", 27)]
+    public bool ShowHoldNotes
+    {
+        get => showHoldNotes;
+        set
+        {
+            if (showHoldNotes == value) return;
+            
+            showHoldNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showHoldNotes = true;
+
+    /// <summary>
+    /// Should Slide Clockwise notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_SLIDE_CLW", 27)]
+    public bool ShowSlideClockwiseNotes
+    {
+        get => showSlideClockwiseNotes;
+        set
+        {
+            if (showSlideClockwiseNotes == value) return;
+            
+            showSlideClockwiseNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSlideClockwiseNotes = true;
+    
+    /// <summary>
+    /// Should Slide Counterclockwise notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_SLIDE_CCW", 27)]
+    public bool ShowSlideCounterclockwiseNotes
+    {
+        get => showSlideCounterclockwiseNotes;
+        set
+        {
+            if (showSlideCounterclockwiseNotes == value) return;
+            
+            showSlideCounterclockwiseNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSlideCounterclockwiseNotes = true;
+    
+    /// <summary>
+    /// Should Snap Forward notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_SNAP_FWD", 27)]
+    public bool ShowSnapForwardNotes
+    {
+        get => showSnapForwardNotes;
+        set
+        {
+            if (showSnapForwardNotes == value) return;
+            
+            showSnapForwardNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSnapForwardNotes = true;
+    
+    /// <summary>
+    /// Should Snap Backward notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_SNAP_BWD", 27)]
+    public bool ShowSnapBackwardNotes
+    {
+        get => showSnapBackwardNotes;
+        set
+        {
+            if (showSnapBackwardNotes == value) return;
+            
+            showSnapBackwardNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSnapBackwardNotes = true;
+    
+    /// <summary>
+    /// Should Sync notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_SYNC", 27)]
+    public bool ShowSyncNotes
+    {
+        get => showSyncNotes;
+        set 
+        {
+            if (showSyncNotes == value) return;
+            
+            showSyncNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSyncNotes = true;
+    
+    /// <summary>
+    /// Should Measure Line notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_MEASURELINE", 27)]
+    public bool ShowMeasureLineNotes
+    {
+        get => showMeasureLineNotes;
+        set 
+        {
+            if (showMeasureLineNotes == value) return;
+            
+            showMeasureLineNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showMeasureLineNotes = true;
+
+    /// <summary>
+    /// Should Beat Lines be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_BEATLINE", 27)]
+    public bool ShowBeatLineNotes
+    {
+        get => showBeatLineNotes;
+        set 
+        {
+            if (showBeatLineNotes == value) return;
+            
+            showBeatLineNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showBeatLineNotes = true;
+    
+    /// <summary>
+    /// Should Lane Show notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_LANESHOW", 27)]
+    public bool ShowLaneShowNotes
+    {
+        get => showLaneShowNotes;
+        set 
+        {
+            if (showLaneShowNotes == value) return;
+            
+            showLaneShowNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showLaneShowNotes = true;
+    
+    /// <summary>
+    /// Should Lane Hide notes be shown?
+    /// </summary>
+    [SctKey("SHOW_NOTE_LANEHIDE", 27)]
+    public bool ShowLaneHideNotes
+    {
+        get => showLaneHideNotes;
+        set 
+        {
+            if (showLaneHideNotes == value) return;
+            
+            showLaneHideNotes = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showLaneHideNotes = true;
+    
+    /// <summary>
+    /// Should Tempo changes be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_TEMPO", 27)]
+    public bool ShowTempoChangeEvents
+    {
+        get => showTempoChangeEvents;
+        set 
+        {
+            if (showTempoChangeEvents == value) return;
+            
+            showTempoChangeEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showTempoChangeEvents = true;
+    
+    /// <summary>
+    /// Should Metre changes be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_METRE", 27)]
+    public bool ShowMetreChangeEvents
+    {
+        get => showMetreChangeEvents;
+        set 
+        {
+            if (showMetreChangeEvents == value) return;
+            
+            showMetreChangeEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showMetreChangeEvents = true;
+    
+    /// <summary>
+    /// Should Speed changes be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_SPEED", 27)]
+    public bool ShowSpeedChangeEvents
+    {
+        get => showSpeedChangeEvents;
+        set 
+        {
+            if (showSpeedChangeEvents == value) return;
+            
+            showSpeedChangeEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showSpeedChangeEvents = true;
+    
+    /// <summary>
+    /// Should Visibility changes be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_VISIBILITY", 27)]
+    public bool ShowVisibilityChangeEvents
+    {
+        get => showVisibilityChangeEvents;
+        set 
+        {
+            if (showVisibilityChangeEvents == value) return;
+            
+            showVisibilityChangeEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showVisibilityChangeEvents = true;
+    
+    /// <summary>
+    /// Should Reverse effects be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_REVERSE", 27)]
+    public bool ShowReverseEffectEvents
+    {
+        get => showReverseEffectEvents;
+        set 
+        {
+            if (showReverseEffectEvents == value) return;
+            
+            showReverseEffectEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showReverseEffectEvents = true;
+    
+    /// <summary>
+    /// Should Stop effects be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_STOP", 27)]
+    public bool ShowStopEffectEvents
+    {
+        get => showStopEffectEvents;
+        set 
+        {
+            if (showStopEffectEvents == value) return;
+            
+            showStopEffectEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showStopEffectEvents = true;
+    
+    /// <summary>
+    /// Should Tutorial tags be shown?
+    /// </summary>
+    [SctKey("SHOW_EVENT_TUTORIAL", 27)]
+    public bool ShowTutorialMarkerEvents
+    {
+        get => showTutorialMarkerEvents;
+        set 
+        {
+            if (showTutorialMarkerEvents == value) return;
+            
+            showTutorialMarkerEvents = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showTutorialMarkerEvents = true;
+    
+    /// <summary>
+    /// Should Bookmarks be shown?
+    /// </summary>
+    [SctKey("SHOW_BOOKMARKS", 27)]
+    public bool ShowBookmarks
+    {
+        get => showBookmarks;
+        set 
+        {
+            if (showBookmarks == value) return;
+            
+            showBookmarks = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showBookmarks = true;
+    
+    /// <summary>
+    /// Should event markers be hidden during playback?
+    /// </summary>
+    [SctLineBreak]
+    [SctKey("HIDE_PLAYBACK_EVENTMARKERS", 27)]
+    public bool HideEventMarkersDuringPlayback
+    {
+        get => hideEventMarkersDuringPlayback;
+        set 
+        {
+            hideEventMarkersDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool hideEventMarkersDuringPlayback = true;
+    
+    /// <summary>
+    /// Should lane toggle notes be hidden during playback?
+    /// </summary>
+    [SctKey("HIDE_PLAYBACK_LANETOGGLES", 27)]
+    public bool HideLaneToggleNotesDuringPlayback
+    {
+        get => hideLaneToggleNotesDuringPlayback;
+        set 
+        {
+            hideLaneToggleNotesDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool hideLaneToggleNotesDuringPlayback = true;
+    
+    /// <summary>
+    /// Should hold note control points be hidden during playback?
+    /// </summary>
+    [SctKey("HIDE_PLAYBACK_HOLDPOINTS", 27)]
+    public bool HideHoldControlPointsDuringPlayback
+    {
+        get => hideHoldControlPointsDuringPlayback;
+        set 
+        {
+            hideHoldControlPointsDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool hideHoldControlPointsDuringPlayback = true;
+    
+    /// <summary>
+    /// Should bookmarks be hidden during playback?
+    /// </summary>
+    [SctKey("HIDE_PLAYBACK_BOOKMARKS", 27)]
+    public bool HideBookmarksDuringPlayback
+    {
+        get => hideBookmarksDuringPlayback;
+        set 
+        {
+            hideBookmarksDuringPlayback = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool hideBookmarksDuringPlayback = true;
+    
+    /// <summary>
     /// Should scroll speed changes be visible?
     /// </summary>
+    [SctLineBreak]
+    [SctKey("EFFECTS_SPEED_SHOW", 27)]
     public bool ShowSpeedChanges
     {
         get => showSpeedChanges;
@@ -423,6 +776,7 @@ public class RenderSettings
     /// <summary>
     /// Should visibility changes be visible?
     /// </summary>
+    [SctKey("EFFECTS_VISIBILITY_SHOW", 27)]
     public bool ShowVisibilityChanges
     {
         get => showVisibilityChanges;
@@ -437,8 +791,25 @@ public class RenderSettings
     private bool showVisibilityChanges = true;
     
     /// <summary>
+    /// Should lane toggle animations be shown?
+    /// </summary>
+    [SctKey("EFFECTS_LANES_SHOW", 27)]
+    public bool ShowLaneToggleAnimations
+    {
+        get => showLaneToggleAnimations;
+        set 
+        {
+            showLaneToggleAnimations = value;
+            PropertyChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    private bool showLaneToggleAnimations = true;
+    
+    /// <summary>
     /// Should judge areas be shown?
     /// </summary>
+    [SctLineBreak]
+    [SctKey("JUDGE_AREA_SHOW", 27)]
     public bool ShowJudgeAreas
     {
         get => showJudgeAreas;
@@ -455,6 +826,7 @@ public class RenderSettings
     /// <summary>
     /// Should MARVELOUS judge areas be shown?
     /// </summary>
+    [SctKey("JUDGE_AREA_MARVELOUS", 27)]
     public bool ShowMarvelousArea
     {
         get => showMarvelousArea;
@@ -471,6 +843,7 @@ public class RenderSettings
     /// <summary>
     /// Should GREAT judge areas be shown?
     /// </summary>
+    [SctKey("JUDGE_AREA_GREAT", 27)]
     public bool ShowGreatArea
     {
         get => showGreatArea;
@@ -487,6 +860,7 @@ public class RenderSettings
     /// <summary>
     /// Should GOOD judge areas be shown?
     /// </summary>
+    [SctKey("JUDGE_AREA_GOOD", 27)]
     public bool ShowGoodArea
     {
         get => showGoodArea;
@@ -504,6 +878,7 @@ public class RenderSettings
     /// Should judge areas follow the Saturn specifications?<br/>
     /// (Slight engine changes to prevent "splashing")
     /// </summary>
+    [SctKey("JUDGE_AREA_SATURN", 27)]
     public bool SaturnJudgeAreas
     {
         get => saturnJudgeAreas;
@@ -520,6 +895,8 @@ public class RenderSettings
     /// <summary>
     /// Should the sweep animations of lane toggles be visualized?
     /// </summary>
+    [SctLineBreak]
+    [SctKey("VISUALIZE_LANE_SWEEPS", 27)]
     public bool VisualizeLaneSweeps
     {
         get => visualizeLaneSweeps;
@@ -534,328 +911,27 @@ public class RenderSettings
     private bool visualizeLaneSweeps = true;
     
     /// <summary>
-    /// Should Touch notes be shown?
+    /// How opaque/bright should the R-Note effect be?
     /// </summary>
-    public bool ShowTouchNotes
+    [SctLineBreak]
+    [SctKey("R_EFFECT_OPACITY", 27)]
+    public int RNoteEffectOpacity
     {
-        get => showTouchNotes;
+        get => rNoteEffectOpacity;
         set
         {
-            if (showTouchNotes == value) return;
+            if (rNoteEffectOpacity == value) return;
             
-            showTouchNotes = value;
+            rNoteEffectOpacity = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private bool showTouchNotes = true;
+    private int rNoteEffectOpacity = 10;
     
-    /// <summary>
-    /// Should Chain notes be shown?
-    /// </summary>
-    public bool ShowChainNotes
-    {
-        get => showChainNotes;
-        set
-        {
-            if (showChainNotes == value) return;
-            
-            showChainNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showChainNotes = true;
-    
-    /// <summary>
-    /// Should Hold notes be shown?
-    /// </summary>
-    public bool ShowHoldNotes
-    {
-        get => showHoldNotes;
-        set
-        {
-            if (showHoldNotes == value) return;
-            
-            showHoldNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showHoldNotes = true;
-
-    /// <summary>
-    /// Should Slide Clockwise notes be shown?
-    /// </summary>
-    public bool ShowSlideClockwiseNotes
-    {
-        get => showSlideClockwiseNotes;
-        set
-        {
-            if (showSlideClockwiseNotes == value) return;
-            
-            showSlideClockwiseNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSlideClockwiseNotes = true;
-    
-    /// <summary>
-    /// Should Slide Counterclockwise notes be shown?
-    /// </summary>
-    public bool ShowSlideCounterclockwiseNotes
-    {
-        get => showSlideCounterclockwiseNotes;
-        set
-        {
-            if (showSlideCounterclockwiseNotes == value) return;
-            
-            showSlideCounterclockwiseNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSlideCounterclockwiseNotes = true;
-    
-    /// <summary>
-    /// Should Snap Forward notes be shown?
-    /// </summary>
-    public bool ShowSnapForwardNotes
-    {
-        get => showSnapForwardNotes;
-        set
-        {
-            if (showSnapForwardNotes == value) return;
-            
-            showSnapForwardNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSnapForwardNotes = true;
-    
-    /// <summary>
-    /// Should Snap Backward notes be shown?
-    /// </summary>
-    public bool ShowSnapBackwardNotes
-    {
-        get => showSnapBackwardNotes;
-        set
-        {
-            if (showSnapBackwardNotes == value) return;
-            
-            showSnapBackwardNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSnapBackwardNotes = true;
-    
-    /// <summary>
-    /// Should Sync notes be shown?
-    /// </summary>
-    public bool ShowSyncNotes
-    {
-        get => showSyncNotes;
-        set 
-        {
-            if (showSyncNotes == value) return;
-            
-            showSyncNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSyncNotes = true;
-    
-    /// <summary>
-    /// Should Measure Line notes be shown?
-    /// </summary>
-    public bool ShowMeasureLineNotes
-    {
-        get => showMeasureLineNotes;
-        set 
-        {
-            if (showMeasureLineNotes == value) return;
-            
-            showMeasureLineNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showMeasureLineNotes = true;
-
-    /// <summary>
-    /// Should Beat Lines be shown?
-    /// </summary>
-    public bool ShowBeatLineNotes
-    {
-        get => showBeatLineNotes;
-        set 
-        {
-            if (showBeatLineNotes == value) return;
-            
-            showBeatLineNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showBeatLineNotes = true;
-    
-    /// <summary>
-    /// Should Lane Show notes be shown?
-    /// </summary>
-    public bool ShowLaneShowNotes
-    {
-        get => showLaneShowNotes;
-        set 
-        {
-            if (showLaneShowNotes == value) return;
-            
-            showLaneShowNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showLaneShowNotes = true;
-    
-    /// <summary>
-    /// Should Lane Hide notes be shown?
-    /// </summary>
-    public bool ShowLaneHideNotes
-    {
-        get => showLaneHideNotes;
-        set 
-        {
-            if (showLaneHideNotes == value) return;
-            
-            showLaneHideNotes = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showLaneHideNotes = true;
-    
-    /// <summary>
-    /// Should Tempo changes be shown?
-    /// </summary>
-    public bool ShowTempoChangeEvents
-    {
-        get => showTempoChangeEvents;
-        set 
-        {
-            if (showTempoChangeEvents == value) return;
-            
-            showTempoChangeEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showTempoChangeEvents = true;
-    
-    /// <summary>
-    /// Should Metre changes be shown?
-    /// </summary>
-    public bool ShowMetreChangeEvents
-    {
-        get => showMetreChangeEvents;
-        set 
-        {
-            if (showMetreChangeEvents == value) return;
-            
-            showMetreChangeEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showMetreChangeEvents = true;
-    
-    /// <summary>
-    /// Should Speed changes be shown?
-    /// </summary>
-    public bool ShowSpeedChangeEvents
-    {
-        get => showSpeedChangeEvents;
-        set 
-        {
-            if (showSpeedChangeEvents == value) return;
-            
-            showSpeedChangeEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showSpeedChangeEvents = true;
-    
-    /// <summary>
-    /// Should Visibility changes be shown?
-    /// </summary>
-    public bool ShowVisibilityChangeEvents
-    {
-        get => showVisibilityChangeEvents;
-        set 
-        {
-            if (showVisibilityChangeEvents == value) return;
-            
-            showVisibilityChangeEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showVisibilityChangeEvents = true;
-    
-    /// <summary>
-    /// Should Reverse effects be shown?
-    /// </summary>
-    public bool ShowReverseEffectEvents
-    {
-        get => showReverseEffectEvents;
-        set 
-        {
-            if (showReverseEffectEvents == value) return;
-            
-            showReverseEffectEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showReverseEffectEvents = true;
-    
-    /// <summary>
-    /// Should Stop effects be shown?
-    /// </summary>
-    public bool ShowStopEffectEvents
-    {
-        get => showStopEffectEvents;
-        set 
-        {
-            if (showStopEffectEvents == value) return;
-            
-            showStopEffectEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showStopEffectEvents = true;
-    
-    /// <summary>
-    /// Should Tutorial tags be shown?
-    /// </summary>
-    public bool ShowTutorialMarkerEvents
-    {
-        get => showTutorialMarkerEvents;
-        set 
-        {
-            if (showTutorialMarkerEvents == value) return;
-            
-            showTutorialMarkerEvents = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showTutorialMarkerEvents = true;
-    
-    /// <summary>
-    /// Should Bookmarks be shown?
-    /// </summary>
-    public bool ShowBookmarks
-    {
-        get => showBookmarks;
-        set 
-        {
-            if (showBookmarks == value) return;
-            
-            showBookmarks = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private bool showBookmarks = true;
-
     /// <summary>
     /// When should R-Note effects be visible?
     /// </summary>
+    [SctKey("EFFECT_VISIBILITY_R", 27)]
     public EffectVisibilityOption RNoteEffectVisibility
     {
         get => rNoteEffectVisibility;
@@ -872,6 +948,7 @@ public class RenderSettings
     /// <summary>
     /// When should R-Note effects be visible?
     /// </summary>
+    [SctKey("EFFECT_VISIBILITY_BONUS", 27)]
     public EffectVisibilityOption BonusEffectVisibility
     {
         get => bonusEffectVisibility;
@@ -886,24 +963,27 @@ public class RenderSettings
     private EffectVisibilityOption bonusEffectVisibility = EffectVisibilityOption.OnlyWhenPlaying;
 
     /// <summary>
-    /// How opaque/bright should the R-Note effect be?
+    /// Should unit ticks be shown when paused?
     /// </summary>
-    public int RNoteEffectOpacity
+    [SctKey("EFFECT_VISIBILITY_UNIT_TICK", 27)]
+    public EffectVisibilityOption UnitTickVisibility
     {
-        get => rNoteEffectOpacity;
-        set
+        get => unitTickVisibility;
+        set 
         {
-            if (rNoteEffectOpacity == value) return;
+            if (unitTickVisibility == value) return;
             
-            rNoteEffectOpacity = value;
+            unitTickVisibility = value;
             PropertyChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    private int rNoteEffectOpacity = 10;
+    private EffectVisibilityOption unitTickVisibility = EffectVisibilityOption.OnlyWhenPaused;
     
     /// <summary>
     /// Should the background change when a clear is achieved?
     /// </summary>
+    [SctLineBreak]
+    [SctKey("CLEAR_BACKGROUND_VISIBILITY", 27)]
     public ClearBackgroundVisibilityOption ClearBackgroundVisibility
     {
         get => clearBackgroundVisibility;
@@ -920,6 +1000,8 @@ public class RenderSettings
     /// <summary>
     /// Should the chart level be displayed?
     /// </summary>
+    [SctLineBreak]
+    [SctKey("INTERFACE_VISIBILITY_LEVEL", 31)]
     public InterfaceVisibilityOption LevelDisplayVisibility
     {
         get => levelDisplayVisibility;
@@ -936,6 +1018,7 @@ public class RenderSettings
     /// <summary>
     /// Should the chart title be displayed?
     /// </summary>
+    [SctKey("INTERFACE_VISIBILITY_TITLE", 31)]
     public InterfaceVisibilityOption TitleDisplayVisibility
     {
         get => titleDisplayVisibility;
@@ -952,6 +1035,7 @@ public class RenderSettings
     /// <summary>
     /// Should the chart difficulty be displayed?
     /// </summary>
+    [SctKey("INTERFACE_VISIBILITY_DIFFICULTY", 31)]
     public InterfaceVisibilityOption DifficultyDisplayVisibility
     {
         get => difficultyDisplayVisibility;
@@ -964,20 +1048,4 @@ public class RenderSettings
         }
     }
     private InterfaceVisibilityOption difficultyDisplayVisibility = InterfaceVisibilityOption.Visible;
-    
-    /// <summary>
-    /// Should unit ticks be shown when paused?
-    /// </summary>
-    public EffectVisibilityOption UnitTickVisibility
-    {
-        get => unitTickVisibility;
-        set 
-        {
-            if (unitTickVisibility == value) return;
-            
-            unitTickVisibility = value;
-            PropertyChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    private EffectVisibilityOption unitTickVisibility = EffectVisibilityOption.OnlyWhenPaused;
 }
